@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "tag": "v0.374.3",
+  "version": "0.374.3",
+  "previousTag": "v0.374.2",
+  "generatedAt": "2026-07-10T04:24:00.000Z",
+  "noUserFacingChanges": false,
+  "summary": {
+    "zh": "修复 ChatGPT Plus/Pro（Codex OAuth）登录：浏览器授权流程可正常启动，不再在打开浏览器前失败。",
+    "en": "Fixes ChatGPT Plus/Pro (Codex OAuth) login so the browser authorization flow starts normally instead of failing before launch."
+  },
+  "counts": {
+    "feature": 0,
+    "fix": 1,
+    "improvement": 0,
+    "migration": 0
+  },
+  "source": {
+    "owner": "liliMozi",
+    "repo": "openhanako",
+    "commitRange": "v0.374.2..521ed1478",
+    "releaseUrl": "https://github.com/liliMozi/openhanako/releases/tag/v0.374.3",
+    "releaseNotes": ""
+  },
+  "items": [
+    {
+      "id": "codex-oauth-callback-contract",
+      "kind": "fix",
+      "importance": "high",
+      "title": {
+        "zh": "修复 Codex OAuth 登录无法打开浏览器",
+        "en": "Fix Codex OAuth login failing before browser launch"
+      },
+      "summary": {
+        "zh": "适配新的 OAuth 回调契约后，设置里的 ChatGPT Plus/Pro 登录会正常打开浏览器完成授权；临时登录会话状态也改为组件内管理。",
+        "en": "After adapting to the new OAuth callback contract, ChatGPT Plus/Pro login in Settings opens the browser for authorization as expected; temporary OAuth session state stays component-local."
+      },
+      "details": [
+        {
+          "zh": "此前登录会在打开浏览器前失败；现在浏览器授权流程可正常启动。",
+          "en": "Login previously failed before the browser opened; the browser authorization flow now starts normally."
+        }
+      ],
+      "sources": [
+        {
+          "type": "commit",
+          "ref": "521ed1478",
+          "title": "fix(auth): adapt Codex OAuth callback contract"
+        }
+      ]
+    }
+  ]
+}
