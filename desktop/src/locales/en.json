@@ -3333,6 +3333,7 @@
     "halfCreated": "Session created ({id}) but the first message failed; retry or open the session and send manually",
     "createdSession": "Created session {id}",
     "sendFailed": "Delivery failed: {error}",
+    "rejectFailed": "Failed to ignore: {error}",
     "messageField": "Message"
   }
 }

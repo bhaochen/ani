@@ -17,6 +17,9 @@ vi.mock('../../utils/screenshot', () => ({
   takeScreenshot: vi.fn(),
 }));
 
+const SOURCE_SESSION_PATH = '/sessions/main.jsonl';
+const SOURCE_SESSION_ID = 'sid-source-1';
+
 function sendBlock(overrides: Record<string, unknown> = {}) {
   return {
     type: 'suggestion_card',
@@ -53,7 +56,7 @@ function createBlock(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function renderCard(block: Record<string, unknown>, sessionPath = '/sessions/main.jsonl') {
+function renderCard(block: Record<string, unknown>, sessionPath = SOURCE_SESSION_PATH) {
   return render(<SessionCollabDraftCard block={block as any} sessionPath={sessionPath} />);
 }
 
@@ -75,6 +78,11 @@ describe('SessionCollabDraftCard', () => {
       currentAgentId: 'hanako',
       streamingSessions: [],
       selectedMessageIdsBySession: {},
+      // 源 session 的 path→sessionId 映射：走既有 currentSessionPath/currentSessionId
+      // 而不是把 sessionPath 当 sessionId 传给 reject。
+      currentSessionPath: SOURCE_SESSION_PATH,
+      currentSessionId: SOURCE_SESSION_ID,
+      sessions: [],
     } as never);
     vi.mocked(hanaFetch).mockReset();
     vi.mocked(hanaFetch).mockResolvedValue(new Response(JSON.stringify({ ok: true, result: null }), { status: 200 }));
@@ -85,12 +93,28 @@ describe('SessionCollabDraftCard', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders a send draft card with target identity and editable message', () => {
+  it('renders a send draft card with the target agent avatar and the store-resolved session title', () => {
+    useStore.setState({
+      sessions: [
+        { path: '/sessions/target.jsonl', sessionId: 'sid-target-1', title: 'Project kickoff', firstMessage: '', modified: '', messageCount: 0, agentId: 'hanako', agentName: 'Hanako', cwd: null },
+      ],
+    } as never);
     renderCard(sendBlock());
 
-    expect(screen.getByText('sid-target-1')).toBeInTheDocument();
+    expect(screen.getByAltText('Hanako')).toBeInTheDocument();
+    expect(screen.getByText('Project kickoff')).toBeInTheDocument();
+    expect(screen.queryByText('sid-target-1')).not.toBeInTheDocument();
     expect(screen.getByDisplayValue('original message')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'sessionCollab.confirmSend' })).toBeInTheDocument();
+  });
+
+  it('falls back to agent name + short id tail (never the raw sessionId) when no matching session is in the store', () => {
+    renderCard(sendBlock());
+
+    // 完整裸 sessionId 不允许出现在标题区；退化标题是 agentName + 短尾巴（'sid-target-1' 后 4 位 'et-1'）。
+    expect(screen.queryByText('sid-target-1')).not.toBeInTheDocument();
+    const fallbackTitle = screen.getByText('Hanako …et-1');
+    expect(fallbackTitle.textContent).not.toContain('sid-target-1');
   });
 
   it('submits the edited message to /api/session-collab/apply and shows the sent state on success', async () => {
@@ -149,11 +173,12 @@ describe('SessionCollabDraftCard', () => {
     });
   });
 
-  it('renders a create draft card with an agent selector and the first message', () => {
+  it('renders a create draft card headerless: agent selector first, no duplicated header row', () => {
     renderCard(createBlock());
 
     expect(screen.getByDisplayValue('first message body')).toBeInTheDocument();
-    expect(screen.getAllByText('Hanako').length).toBeGreaterThanOrEqual(2);
+    // 无头形态：agent 名只出现一次（选择器触发器）；改动前头部行+触发器共两次
+    expect(screen.getAllByText('Hanako')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'sessionCollab.confirmCreate' })).toBeInTheDocument();
   });
 
@@ -172,13 +197,86 @@ describe('SessionCollabDraftCard', () => {
     expect(screen.getByRole('button', { name: 'sessionCollab.confirmCreate' })).not.toBeDisabled();
   });
 
-  it('rejects locally on ignore without calling the apply API', () => {
+  it('posts /api/session-collab/reject on ignore and converges to the rejected state on success', async () => {
     renderCard(sendBlock());
 
     fireEvent.click(screen.getByRole('button', { name: 'sessionCollab.ignore' }));
 
+    await waitFor(() => {
+      expect(hanaFetch).toHaveBeenCalledWith('/api/session-collab/reject', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ suggestionId: 'suggestion_send_1', sourceSessionId: SOURCE_SESSION_ID }),
+      }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'sessionCollab.confirmSend' })).not.toBeInTheDocument();
+      expect(screen.getByText('common.rejected')).toBeInTheDocument();
+    });
+  });
+
+  it('treats a 404 reject response (already-expired draft) as converged to rejected', async () => {
+    vi.mocked(hanaFetch).mockResolvedValue(
+      new Response(JSON.stringify({ error: 'not found', code: 'draft_expired' }), { status: 404 }),
+    );
+    renderCard(sendBlock());
+
+    fireEvent.click(screen.getByRole('button', { name: 'sessionCollab.ignore' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('common.rejected')).toBeInTheDocument();
+    });
+  });
+
+  it('shows an inFlight message on 409 reject and keeps the card pending (retryable)', async () => {
+    vi.mocked(hanaFetch).mockResolvedValue(
+      new Response(JSON.stringify({ error: 'draft is being applied', code: 'draft_in_flight' }), { status: 409 }),
+    );
+    renderCard(sendBlock());
+
+    fireEvent.click(screen.getByRole('button', { name: 'sessionCollab.ignore' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('sessionCollab.inFlight')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'sessionCollab.ignore' })).toBeInTheDocument();
+  });
+
+  it('shows a retryable error and keeps status pending on 500 reject failure', async () => {
+    vi.mocked(hanaFetch).mockResolvedValue(
+      new Response(JSON.stringify({ error: 'store_unavailable' }), { status: 500 }),
+    );
+    renderCard(sendBlock());
+
+    fireEvent.click(screen.getByRole('button', { name: 'sessionCollab.ignore' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/sessionCollab\.rejectFailed/)).toBeInTheDocument();
+    });
+    // 状态没有翻转：确认按钮还在，忽略按钮可以重试。
+    expect(screen.getByRole('button', { name: 'sessionCollab.confirmSend' })).toBeInTheDocument();
+    const ignoreBtn = screen.getByRole('button', { name: 'sessionCollab.ignore' });
+    expect(ignoreBtn).not.toBeDisabled();
+
+    vi.mocked(hanaFetch).mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    fireEvent.click(ignoreBtn);
+    await waitFor(() => {
+      expect(vi.mocked(hanaFetch).mock.calls.length).toBe(2);
+    });
+  });
+
+  it('renders the converged approved state directly (no confirm button) when block.status starts as approved', () => {
+    renderCard(sendBlock({ status: 'approved' }));
+
     expect(screen.queryByRole('button', { name: 'sessionCollab.confirmSend' })).not.toBeInTheDocument();
-    expect(hanaFetch).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'sessionCollab.ignore' })).not.toBeInTheDocument();
+    expect(screen.getByText('common.approved')).toBeInTheDocument();
+  });
+
+  it('shows the created session id in the converged approved state when block.resultSessionId is set (history rebuild)', () => {
+    renderCard(createBlock({ status: 'approved', resultSessionId: 'sid-rebuilt' }));
+
+    expect(screen.getByText('sessionCollab.createdSession:id=sid-rebuilt')).toBeInTheDocument();
   });
 
   it('AssistantMessage dispatches session_send_draft suggestion_card blocks to this card, not the automation fallback', () => {

@@ -30,7 +30,14 @@ describe("session-collab apply route", () => {
     const app = makeApp(store);
     const res = await post(app, { suggestionId: entry.suggestionId });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, result: { accepted: true, targetSessionId: "sid-a" } });
+    // decisionPersisted:false 是预期的——这里的 engine mock 没有 getSessionManifest/
+    // ensureSessionLoaded，决策持久化优雅降级（灰测修复 C）。持久化成功路径的覆盖
+    // 见 tests/session-collab-decision.test.ts（带完整 engine mock）。
+    expect(await res.json()).toEqual({
+      ok: true,
+      result: { accepted: true, targetSessionId: "sid-a" },
+      decisionPersisted: false,
+    });
     expect(store.get(entry.suggestionId)).toBeNull();
   });
 

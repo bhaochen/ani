@@ -78,4 +78,34 @@ describe("SessionCollabDraftStore", () => {
     store.create(makeEntry({ sourceSessionId: "b" }));
     expect(store.listForSession("a")).toHaveLength(1);
   });
+
+  describe("discard（灰测修复 C：确认状态持久化的忽略入口）", () => {
+    it("discard 已存在条目：返回被删条目的公开形态，条目随后不可再 get", () => {
+      const store = new SessionCollabDraftStore();
+      const entry = store.create(makeEntry());
+      const discarded = store.discard(entry.suggestionId);
+      expect(discarded).toMatchObject({ suggestionId: entry.suggestionId, kind: "send", sourceSessionId: "src-1" });
+      expect((discarded as any).apply).toBeUndefined();
+      expect(store.get(entry.suggestionId)).toBeNull();
+    });
+
+    it("discard 不存在的 suggestionId：返回 null", () => {
+      const store = new SessionCollabDraftStore();
+      expect(store.discard("nope")).toBeNull();
+    });
+
+    it("discard in-flight 条目：返回 null，条目不被抽掉（apply 仍在跑）", async () => {
+      const store = new SessionCollabDraftStore();
+      let resolveApply: (v: unknown) => void;
+      const apply = vi.fn(() => new Promise((res) => { resolveApply = res; }));
+      const entry = store.create(makeEntry({ apply }));
+      const applyPromise = store.apply(entry.suggestionId, {});
+      await new Promise((r) => setTimeout(r, 10));
+      expect(store.discard(entry.suggestionId)).toBeNull();
+      // 条目仍在，还能被 get 到（没被静默抽走）
+      expect(store.get(entry.suggestionId)).toBeTruthy();
+      resolveApply!("done");
+      await expect(applyPromise).resolves.toMatchObject({ ok: true });
+    });
+  });
 });

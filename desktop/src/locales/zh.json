@@ -3333,6 +3333,7 @@
     "halfCreated": "会话已创建（{id}），首条消息投递失败，可重试或打开该会话手动发送",
     "createdSession": "已创建会话 {id}",
     "sendFailed": "发送失败：{error}",
+    "rejectFailed": "忽略失败：{error}",
     "messageField": "消息内容"
   }
 }

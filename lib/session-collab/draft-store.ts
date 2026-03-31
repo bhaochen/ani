@@ -50,6 +50,13 @@ export class SessionCollabDraftStore {
       .map((e) => this._publicEntry(e));
   }
 
+  discard(suggestionId: string) {
+    const entry = this._entries.get(suggestionId);
+    if (!entry || entry._applying) return null;
+    this._entries.delete(suggestionId);
+    return this._publicEntry(entry);
+  }
+
   async apply(suggestionId: string, editedDraft?: Record<string, unknown>) {
     const entry = this._entries.get(suggestionId);
     if (!entry) return { ok: false as const, reason: "not-found" as const };

@@ -444,7 +444,7 @@
     background: var(--tool-bg);
     border-radius: var(--radius-sm);
     padding: var(--space-12) var(--space-16);
-    width: var(--chat-task-block-width);
+    width: min(560px, 100%);
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -952,6 +952,14 @@
 }
 
 /* ── 跨 session 协作草稿确认卡（send / create） ── */
+
+.sessionCollabDraftAvatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
 
 .sessionCollabDraftBody {
     display: flex;

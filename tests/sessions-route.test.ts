@@ -55,6 +55,10 @@ vi.mock("../core/message-utils.js", () => ({
   // 本文件的测试不构造 hana-message-origin 条目，恒等直通即等价于真实实现
   // （annotateOriginMessages 只在遇到该 customType 时才会摘除/注释条目）。
   annotateOriginMessages: vi.fn((messages) => messages || []),
+  // 同理：本文件的测试不构造 hana-session-collab-decision 条目，空索引 + 直通
+  // 等价于真实实现（灰测修复 C：草稿卡确认状态持久化，见 tests/session-collab-decision.test.ts）。
+  collectSessionCollabDecisions: vi.fn(() => new Map()),
+  overlaySessionCollabDecision: vi.fn((block) => block),
 }));
 
 vi.mock("../core/session-turn-actions.js", () => ({

@@ -3327,6 +3327,7 @@
     "halfCreated": "セッションは作成されました（{id}）が、最初のメッセージの送信に失敗しました。再試行するか、セッションを開いて手動で送信してください",
     "createdSession": "セッションを作成しました {id}",
     "sendFailed": "送信に失敗しました：{error}",
+    "rejectFailed": "無視に失敗しました：{error}",
     "messageField": "メッセージ内容"
   }
 }

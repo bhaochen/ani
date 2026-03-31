@@ -40,6 +40,8 @@ import {
   isActiveDesktopSessionPath,
   isArchivedDesktopSessionPath,
   annotateOriginMessages,
+  collectSessionCollabDecisions,
+  overlaySessionCollabDecision,
 } from "../../core/message-utils.ts";
 import { MESSAGE_ORIGIN_RECORD_TYPE } from "../../core/desktop-session-submit.ts";
 import { sessionFileRevision } from "../../core/session-list-projection-cache.ts";
@@ -1230,6 +1232,10 @@ export function createSessionsRoute(engine, hub = null) {
       const turnInputConsumptionEntryIds = new Set();
       const deferredStore = engine.deferredResults;
       const receiverName = resolveDeferredReceiverName(engine, resolvedSessionPath);
+      // 草稿卡确认状态持久化（灰测修复 C）：决策 custom 消息本身 display:false
+      // 不会进展示（与 origin 记录同理），只用来覆盖后面 toolResult 分支产出的
+      // suggestion_card block 的 status，让重开 session 不再回弹 pending。
+      const sessionCollabDecisions = collectSessionCollabDecisions(sourceMessages);
       for (const message of sourceMessages) {
         if (message?.role !== "custom" || message.customType !== TURN_INPUT_CONSUMPTION_EVENT_TYPE) continue;
         const parsed = parseTurnInputConsumptionRecord(message.data);
@@ -1371,7 +1377,8 @@ export function createSessionsRoute(engine, hub = null) {
           if (afterIndex >= pageBounds.startIdx && afterIndex < pageBounds.endIdx) {
             const extracted = extractBlocks(m.toolName, m.details, m);
             for (const b of extracted) {
-              blocks.push({ ...b, afterIndex, sourceIndex });
+              const overlaid = overlaySessionCollabDecision(b, sessionCollabDecisions);
+              blocks.push({ ...overlaid, afterIndex, sourceIndex });
             }
           }
         } else if (m.role === "custom") {

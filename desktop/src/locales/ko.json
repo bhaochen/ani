@@ -3327,6 +3327,7 @@
     "halfCreated": "세션이 생성되었지만({id}) 첫 메시지 전송에 실패했어요. 다시 시도하거나 세션을 열어 직접 보내 주세요",
     "createdSession": "세션이 생성되었어요 {id}",
     "sendFailed": "전송 실패: {error}",
+    "rejectFailed": "무시 실패: {error}",
     "messageField": "메시지 내용"
   }
 }
