@@ -42,6 +42,16 @@ function nextPendingDraftId(): string {
   return `pending-${Date.now().toString(36)}-${_pendingDraftSequence.toString(36)}`;
 }
 
+/**
+ * pending 新会话身份补丁：任何把 store 切入 "welcome / 待建会话" 态的入口都必须
+ * 展开这个补丁，而不是裸设 `pendingNewSession: true`。currentPendingSessionDraft()
+ * 要求 pendingDraftId 非空才认这是一个有效的待建草稿；裸设会让身份残缺，
+ * submitEditorMessage 的 ensureSession 门槛就此失效，发送静默无响应（#2101）。
+ */
+export function pendingNewSessionIdentityPatch(): { pendingNewSession: true; pendingDraftId: string } {
+  return { pendingNewSession: true, pendingDraftId: nextPendingDraftId() };
+}
+
 function invalidateSessionSwitches(): void {
   _switchVersion += 1;
   _switchAbortController?.abort();
@@ -521,13 +531,32 @@ export async function loadSessions(): Promise<void> {
     const localSessions = useStore.getState().sessions || [];
     const sessions = mergeSessionsWithOptimisticFirstMessages(serverSessions, localSessions);
 
-    const s = useStore.getState();
-    useStore.setState((state: any) => ({
-      sessions,
-      sessionLocatorsById: mergeSessionLocators(state.sessionLocatorsById || {}, sessions),
-    }));
+    useStore.setState((state: any) => {
+      const sessionLocatorsById = mergeSessionLocators(state.sessionLocatorsById || {}, sessions);
+      const currentSessionId = typeof state.currentSessionId === 'string' && state.currentSessionId.trim()
+        ? state.currentSessionId.trim()
+        : null;
+      const currentLocatorPath = currentSessionId
+        && !state.pendingNewSession
+        && !state.pendingSessionSwitchPath
+        ? sessionLocatorsById[currentSessionId]?.path || null
+        : null;
+      return {
+        sessions,
+        sessionLocatorsById,
+        ...(currentLocatorPath && currentLocatorPath !== state.currentSessionPath
+          ? { currentSessionPath: currentLocatorPath }
+          : {}),
+      };
+    });
 
-    if (sessions.length > 0 && !s.currentSessionPath && !s.pendingNewSession && !s.pendingSessionSwitchPath) {
+    const latest = useStore.getState();
+    if (
+      sessions.length > 0
+      && !latest.currentSessionPath
+      && !latest.pendingNewSession
+      && !latest.pendingSessionSwitchPath
+    ) {
       // 首次加载：走完整的 switchSession 确保后端同步 + 消息加载
       await switchSession(sessions[0].path);
     }
@@ -1088,8 +1117,7 @@ export async function createNewSession(options: CreateNewSessionOptions = {}): P
     selectedWorkspaceLabel: defaultWorkspaceLabel,
     workspaceFolders: [],
     selectedAgentId: null,
-    pendingNewSession: true,
-    pendingDraftId: nextPendingDraftId(),
+    ...pendingNewSessionIdentityPatch(),
     pendingProjectId,
     pendingNewSessionThinkingLevel: null,
     pendingNewSessionPermissionMode: null,
