@@ -15,6 +15,8 @@ import {
   parseRendererArchiveName,
   parseServerArchiveName,
   publishChannel,
+  releaseExistsFromExec,
+  SHELL_COMPAT_FLOOR,
 } from "../scripts/publish-train.mjs";
 
 const tempDirs: string[] = [];
@@ -154,12 +156,11 @@ describe("publish-train: computeMirrors", () => {
 });
 
 describe("publish-train: assembleTrainManifest (reuses buildSeedManifest, no parallel builder)", () => {
-  it("merges per-platform server entries under one manifest carrying minShell/contract from buildSeedManifest", () => {
+  it("merges per-platform server entries under one manifest carrying contract from buildSeedManifest", () => {
     const manifest = buildSampleManifest();
     expect(manifest.schema).toBe(1);
     expect(manifest.train).toBe(1);
     expect(manifest.channel).toBe("stable");
-    expect(manifest.minShell).toBe("1.2.3"); // sourced from buildSeedManifest's own `minShell: version` convention
     expect(manifest.contract).toEqual({ preload: 1, serverProtocol: 1 }); // sourced from buildSeedManifest, not invented here
     expect(manifest.rollout).toEqual({ percent: 100, salt: "test-salt" });
     expect(manifest.mirrors).toEqual(["https://github.com/liliMozi/openhanako/releases/download/train-1"]);
@@ -170,6 +171,18 @@ describe("publish-train: assembleTrainManifest (reuses buildSeedManifest, no par
     expect(manifest.artifacts.renderer).toEqual({
       version: "1.2.3", sha256: HEX_C, size: 333, path: "renderer-1.2.3.tar.gz",
     });
+  });
+
+  it("sets minShell to the hand-maintained SHELL_COMPAT_FLOOR, never the train's own version", () => {
+    // sampleServerEntries()/sampleRendererEntry() are pinned to version "1.2.3",
+    // which is deliberately not equal to SHELL_COMPAT_FLOOR: if the
+    // implementation ever regresses to `minShell: version` (buildSeedManifest's
+    // seed-only convention), this test must fail rather than pass by
+    // coincidence.
+    expect(SHELL_COMPAT_FLOOR).not.toBe("1.2.3");
+    const manifest = buildSampleManifest();
+    expect(manifest.minShell).toBe(SHELL_COMPAT_FLOOR);
+    expect(manifest.minShell).not.toBe("1.2.3");
   });
 
   it("passes manifestModule.validateManifest (self-checked before signing)", () => {
@@ -271,6 +284,51 @@ describe("publish-train: discoverBoxes", () => {
   });
 });
 
+describe("publish-train: releaseExistsFromExec (only a real not-found reads as absent)", () => {
+  // Error shape matches what execFileSync throws for a failed gh call with
+  // encoding "utf8" and piped stdio: message "Command failed: ..." plus the
+  // captured stderr as a string property.
+  function makeExecError(stderr: string) {
+    const err = new Error(`Command failed: gh release view some-tag --json tagName\n${stderr}`);
+    (err as Error & { stderr: string }).stderr = stderr;
+    (err as Error & { status: number }).status = 1;
+    return err;
+  }
+
+  it("returns true when the gh call succeeds", () => {
+    expect(releaseExistsFromExec("train-1", () => '{"tagName":"train-1"}')).toBe(true);
+  });
+
+  it('returns false on the exact "release not found" stderr gh emits for a missing release', () => {
+    // Measured against gh 2.92.0: `gh release view <missing-tag> --json tagName`
+    // exits 1 with stderr "release not found\n".
+    const exec = vi.fn(() => {
+      throw makeExecError("release not found\n");
+    });
+    expect(releaseExistsFromExec("train-1", exec)).toBe(false);
+  });
+
+  it("rethrows auth/network/rate-limit failures instead of reading them as absent", () => {
+    for (const stderr of [
+      "HTTP 401: Bad credentials (https://api.github.com/graphql)\n",
+      "HTTP 403: API rate limit exceeded\n",
+      "error connecting to api.github.com\n",
+    ]) {
+      const exec = vi.fn(() => {
+        throw makeExecError(stderr);
+      });
+      expect(() => releaseExistsFromExec("train-1", exec)).toThrow(/gh release view train-1 failed/);
+    }
+  });
+
+  it("rethrows errors that carry no stderr at all (spawn failure, gh missing)", () => {
+    const exec = vi.fn(() => {
+      throw new Error("spawn gh ENOENT");
+    });
+    expect(() => releaseExistsFromExec("train-1", exec)).toThrow(/spawn gh ENOENT/);
+  });
+});
+
 describe("publish-train: publishChannel", () => {
   function baseDeps(overrides: Record<string, unknown> = {}) {
     return {
@@ -290,13 +348,19 @@ describe("publish-train: publishChannel", () => {
   }
 
   const boxes = { serverEntries: sampleServerEntries(), rendererEntry: sampleRendererEntry() };
-  const env = { HANA_SIGN_KEY: "/dev/null" }; // requireSignKeyPath only checks existence; /dev/null exists everywhere this test runs
+
+  function makeSigningEnv() {
+    const dir = makeTempDir("hana-publish-train-signing-");
+    const signKeyPath = path.join(dir, "test-signing-key.pem");
+    fs.writeFileSync(signKeyPath, "test signing key fixture");
+    return { HANA_SIGN_KEY: signKeyPath };
+  }
 
   it("dry-run computes and prints the plan but calls zero publish operations", async () => {
     const deps = baseDeps();
     const result = await publishChannel({
       tag: "v1.2.3", channel: "stable", dryRun: true, repo: "liliMozi/openhanako",
-      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env, deps, log: () => {},
+      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
     });
     expect(result.action).toBe("dry-run");
     expect(result.train).toBe(1);
@@ -309,7 +373,7 @@ describe("publish-train: publishChannel", () => {
     const deps = baseDeps(); // releaseExists() -> false for everything: channels AND train-1 are both new
     const result = await publishChannel({
       tag: "v1.2.3", channel: "stable", dryRun: false, repo: "liliMozi/openhanako",
-      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env, deps, log: () => {},
+      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
     });
     expect(result).toEqual({ action: "created", channel: "stable", train: 1, trainTag: "train-1" });
     expect(deps.createRelease).toHaveBeenCalledTimes(2);
@@ -326,7 +390,7 @@ describe("publish-train: publishChannel", () => {
     });
     const result = await publishChannel({
       tag: "v1.2.3", channel: "beta", dryRun: false, repo: "liliMozi/openhanako",
-      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env, deps, log: () => {},
+      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
     });
     expect(result.action).toBe("created");
     expect(deps.createRelease).toHaveBeenCalledTimes(1); // only train-1 (channels already exists)
@@ -356,7 +420,7 @@ describe("publish-train: publishChannel", () => {
 
     const result = await publishChannel({
       tag: "v1.2.3", channel: "stable", dryRun: false, repo: "liliMozi/openhanako",
-      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env, deps, log: () => {},
+      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
     });
 
     expect(result).toEqual({ action: "resumed", channel: "stable", train: 6, trainTag: "train-6" });
@@ -387,11 +451,28 @@ describe("publish-train: publishChannel", () => {
     await expect(
       publishChannel({
         tag: "v1.2.3", channel: "stable", dryRun: false, repo: "liliMozi/openhanako",
-        releasedAt: "2026-07-11T00:00:00.000Z", boxes, env, deps, log: () => {},
+        releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
       }),
     ).rejects.toThrow(/real conflict, not a safe resume/);
     expect(deps.createRelease).not.toHaveBeenCalled();
     expect(deps.uploadAssets).not.toHaveBeenCalled();
+  });
+
+  it("propagates a non-not-found releaseExists failure and makes zero publish calls", async () => {
+    const deps = baseDeps({
+      releaseExists: vi.fn(() => {
+        throw new Error("gh release view channels failed: HTTP 401: Bad credentials");
+      }),
+    });
+    await expect(
+      publishChannel({
+        tag: "v1.2.3", channel: "stable", dryRun: false, repo: "liliMozi/openhanako",
+        releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
+      }),
+    ).rejects.toThrow(/HTTP 401/);
+    expect(deps.createRelease).not.toHaveBeenCalled();
+    expect(deps.uploadAssets).not.toHaveBeenCalled();
+    expect(deps.signManifest).not.toHaveBeenCalled();
   });
 
   it("beta.json always carries channel:\"beta\" even when resuming off a train stable created first", async () => {
@@ -417,7 +498,7 @@ describe("publish-train: publishChannel", () => {
 
     const result = await publishChannel({
       tag: "v1.2.3", channel: "beta", dryRun: false, repo: "liliMozi/openhanako",
-      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env, deps, log: () => {},
+      releasedAt: "2026-07-11T00:00:00.000Z", boxes, env: makeSigningEnv(), deps, log: () => {},
     });
 
     expect(result.action).toBe("resumed");

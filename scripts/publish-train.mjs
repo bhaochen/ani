@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * scripts/publish-train.mjs — publishes one channel's hot-update train.
  *
@@ -13,8 +12,12 @@
  *   3. Builds a schema-1 manifest for that train via `buildSeedManifest`
  *      (scripts/build-server-artifact.mjs) — the SAME function the local/CI
  *      seed build uses — called once per platform-arch and merged, so
- *      `minShell`/`contract`/schema come from that one source instead of
- *      being re-invented here.
+ *      `contract`/schema come from that one source instead of being
+ *      re-invented here. `minShell` is the one exception: it is overwritten
+ *      with the hand-maintained `SHELL_COMPAT_FLOOR` constant below instead
+ *      of `buildSeedManifest`'s own version-equals-minShell convention,
+ *      because that convention is only correct for a seed, not a train
+ *      (see the constant's comment for why).
  *   4. Signs it and either creates a new `train-<N>` release (archives +
  *      train.json + train.json.sig) or, if that release already exists
  *      with byte-identical artifacts (see "resumable publish" below),
@@ -93,6 +96,22 @@ const CHANNELS_RELEASE_NOTES =
   "Live channel pointer release. stable.json / beta.json (and their .sig "
   + "files) are overwritten in place on every publish; installed clients "
   + "poll only these two static files to discover the newest train.";
+
+// The oldest installed shell (the app itself, not the hot-update payload)
+// that a train is still allowed to reach. This is deliberately NOT the
+// train's own version: `buildSeedManifest` sets `minShell: version` because
+// a seed is built into and ships inside one specific shell, so "minShell
+// equals my own version" is correct there. A train is different — it is
+// pulled down by whatever shell version a user already has installed, so
+// pinning minShell to the train's version would mean every single train
+// demands the newest shell, and nobody's existing install would ever pass
+// the gate (see desktop/src/shared/artifact-ota.cjs's
+// isShellVersionSufficient). Bump this by hand ONLY when a train's content
+// starts depending on a shell capability older installs don't have (a new
+// preload API, a new server-launch protocol, etc.) — raising it means every
+// shell older than this version stops receiving hot updates and has to
+// update the app itself first, so don't raise it casually.
+export const SHELL_COMPAT_FLOOR = "0.386.5";
 
 // ── argument parsing ────────────────────────────────────────────────────
 
@@ -189,14 +208,20 @@ export function computeMirrors({ repo, train }) {
 
 /**
  * Assembles one schema-1 train manifest covering every platform-arch server
- * archive plus the shared renderer archive. `minShell` and `contract` are
- * NOT invented here: each platform-arch entry is produced by calling
- * `buildSeedManifest` (the same function the seed/train-0 build uses) and
- * the per-platform results are merged, so both fields — and the schema
- * number — come from that one source. `buildSeedManifest` computes them
- * the same way regardless of platform/arch, so the per-call results are
- * expected to agree; the check below is a cheap guard against that
- * assumption silently breaking in the future, not a live concern today.
+ * archive plus the shared renderer archive. `contract` is NOT invented
+ * here: each platform-arch entry is produced by calling `buildSeedManifest`
+ * (the same function the seed/train-0 build uses) and the per-platform
+ * results are merged, so that field — and the schema number — come from
+ * that one source. `buildSeedManifest` computes them the same way
+ * regardless of platform/arch, so the per-call results are expected to
+ * agree; the check below is a cheap guard against that assumption silently
+ * breaking in the future, not a live concern today.
+ *
+ * `minShell` is the one field deliberately NOT taken from
+ * `buildSeedManifest`: that function sets `minShell: version`, which is
+ * correct for a seed (it ships inside one specific shell) but wrong for a
+ * train (see `SHELL_COMPAT_FLOOR` above for why). It is overwritten with
+ * `SHELL_COMPAT_FLOOR` below.
  * @param {{
  *   version: string, releasedAt: string, keyId: string,
  *   channel: "stable"|"beta", train: number,
@@ -250,7 +275,7 @@ export function assembleTrainManifest({
     channel,
     releasedAt,
     keyId,
-    minShell: base.minShell,
+    minShell: SHELL_COMPAT_FLOOR,
     contract: base.contract,
     urgent: false,
     rollout: { percent: 100, salt: rolloutSalt },
@@ -337,13 +362,35 @@ function ghExec(args) {
   return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 }
 
-function defaultReleaseExists(tag) {
+/**
+ * "Release exists" may only read as false on gh's actual missing-release
+ * error. Auth failures, rate limits, network errors etc. MUST propagate:
+ * misreading them as "absent" would silently restart a channel's train
+ * numbering at 1 (breaking the anti-rollback chain clients enforce) or
+ * wrongly attempt to re-create an existing train release. Measured against
+ * gh 2.92.0: `gh release view <missing-tag> --json tagName` exits 1 with
+ * stderr exactly "release not found".
+ * @param {string} tag
+ * @param {(args: string[]) => string} exec - throws on non-zero exit with
+ *   the child's stderr on the error's `stderr` property (execFileSync shape)
+ * @returns {boolean}
+ */
+export function releaseExistsFromExec(tag, exec) {
   try {
-    ghExec(["release", "view", tag, "--json", "tagName"]);
+    exec(["release", "view", tag, "--json", "tagName"]);
     return true;
-  } catch {
-    return false;
+  } catch (err) {
+    const stderr = err && err.stderr != null ? String(err.stderr) : "";
+    if (stderr.includes("release not found")) return false;
+    // Spawn-level failures (gh binary missing etc.) carry no stderr —
+    // nothing to classify, rethrow untouched.
+    if (!stderr) throw err;
+    throw new Error(`publish-train: gh release view ${tag} failed: ${stderr.trim()}`, { cause: err });
   }
+}
+
+function defaultReleaseExists(tag) {
+  return releaseExistsFromExec(tag, ghExec);
 }
 
 function defaultReleaseAssetNames(tag) {
