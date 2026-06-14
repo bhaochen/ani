@@ -54,6 +54,10 @@
  *        `isVersionAlreadyCurrent`'s doc comment).
  *     -> minShell (shell too old -> the update is real but blocked; the
  *        shell's own update is electron-updater's job, not this module's)
+ *     -> preload contract (same shape as minShell, one level more specific:
+ *        this train's renderer needs a preload API version this shell
+ *        doesn't expose yet; reported through the same "minshell-blocked"
+ *        outcome, see `isPreloadContractSatisfied`)
  *     -> rollout bucket (dedicated random UUID in HANA_HOME)
  *     -> quarantine short-circuit (train permanently blacklisted)
  *     -> [downloadAndApplyArtifacts only] acquire the artifacts directory
@@ -119,6 +123,7 @@ const manifestModule = require("../../../shared/artifact-core/manifest.cjs");
 const pointerStore = require("../../../shared/artifact-core/pointer-store.cjs");
 const activation = require("../../../shared/artifact-core/activation.cjs");
 const artifactBoot = require("./artifact-boot.cjs");
+const { PRELOAD_API_VERSION } = require("../../../shared/contract-versions.cjs");
 // Static specifier on purpose — see artifact-ota-dev-bypass.cjs's header
 // comment; vite.config.main.js's alias keys off this exact literal.
 const devBypass = require("./artifact-ota-dev-bypass.cjs");
@@ -376,6 +381,21 @@ function isShellVersionSufficient(currentShellVersion, minShellVersion) {
     if (current[i] !== min[i]) return current[i] > min[i];
   }
   return true;
+}
+
+// ── preload contract comparison (additive-only integer version, not semver) ─
+
+/**
+ * Same shape of gate as `isShellVersionSufficient`, one level more specific:
+ * minShell asks "is the shell new enough at all", this asks "does the shell
+ * expose the preload API surface this train's renderer needs". A manifest
+ * requiring a higher `contract.preload` than this shell supports is exactly
+ * as unrunnable as a manifest requiring a higher minShell — the shell itself
+ * needs updating (electron-updater's job, not this module's) before this
+ * train can ever apply here.
+ */
+function isPreloadContractSatisfied(manifestPreloadVersion, shellPreloadVersion) {
+  return shellPreloadVersion >= manifestPreloadVersion;
 }
 
 // ── rollout bucketing: dedicated random UUID, zero linkage to
@@ -667,6 +687,7 @@ async function checkOnce(opts) {
         lastError: null,
         available: null,
         minShellBlocked: false,
+        blockedReason: null,
       });
       return { outcome: "up-to-date", train: manifest.train };
     }
@@ -692,6 +713,7 @@ async function checkOnce(opts) {
         lastError: null,
         available: null,
         minShellBlocked: false,
+        blockedReason: null,
       });
       return { outcome: "up-to-date", train: manifest.train };
     }
@@ -706,7 +728,28 @@ async function checkOnce(opts) {
         lastError: null,
         available,
         minShellBlocked: true,
+        blockedReason: "minShell",
       });
+      log(`[ota] train ${manifest.train} (${version}) blocked: minShell ${manifest.minShell} > shell ${currentShellVersion}`);
+      return { outcome: "minshell-blocked", train: manifest.train, version, minShellBlocked: true };
+    }
+
+    // Preload contract gate: same "the shell itself is too old" family as
+    // minShell above, so it's reported through the exact same outcome and
+    // persisted fields (a UI that already handles minshell-blocked handles
+    // this for free) — `blockedReason` is the only place the two are told
+    // apart, and it exists for diagnostics only.
+    if (!isPreloadContractSatisfied(manifest.contract.preload, PRELOAD_API_VERSION)) {
+      await writeOtaChannelState(homeDir, channel, {
+        etag,
+        lastManifestUrl: sourceUrl,
+        lastCheckedAt: nowIso(),
+        lastError: null,
+        available,
+        minShellBlocked: true,
+        blockedReason: "preloadContract",
+      });
+      log(`[ota] train ${manifest.train} (${version}) blocked: requires preload contract ${manifest.contract.preload} > shell's ${PRELOAD_API_VERSION}`);
       return { outcome: "minshell-blocked", train: manifest.train, version, minShellBlocked: true };
     }
 
@@ -719,6 +762,7 @@ async function checkOnce(opts) {
         lastError: null,
         available: null,
         minShellBlocked: false,
+        blockedReason: null,
       });
       return { outcome: "rollout-excluded", train: manifest.train };
     }
@@ -731,6 +775,7 @@ async function checkOnce(opts) {
         lastError: null,
         available: null,
         minShellBlocked: false,
+        blockedReason: null,
       });
       return { outcome: "quarantined", train: manifest.train };
     }
@@ -742,6 +787,7 @@ async function checkOnce(opts) {
       lastError: null,
       available,
       minShellBlocked: false,
+      blockedReason: null,
     });
     log(`[ota] train ${manifest.train} (${version}) available; waiting for the user to trigger download`);
     return { outcome: "available", train: manifest.train, version, minShellBlocked: false };
@@ -866,6 +912,10 @@ async function downloadAndApplyArtifacts(opts) {
 
     if (!isShellVersionSufficient(currentShellVersion, manifest.minShell)) {
       throw new Error(`minShell ${manifest.minShell} > shell ${currentShellVersion}`);
+    }
+
+    if (!isPreloadContractSatisfied(manifest.contract.preload, PRELOAD_API_VERSION)) {
+      throw new Error(`train requires preload contract ${manifest.contract.preload} > shell's ${PRELOAD_API_VERSION}`);
     }
 
     const rolloutId = await ensureRolloutId(homeDir);
@@ -1031,6 +1081,13 @@ function resolveStagedTrainStatus({ serverNext, rendererNext }) {
 }
 
 /**
+ * `minShellBlocked` covers every way this shell can be too old for a real,
+ * gate-passing update: the minShell version string gate AND the preload
+ * contract integer gate (see `checkOnce`'s `blockedReason` field in
+ * ota-state.json for which one actually fired — diagnostic only, this
+ * return value and the UI built on it treat both identically, because both
+ * mean the same thing to the user: "update the app itself first").
+ *
  * @param {string} homeDir
  * @param {{channel?: string}} [opts]
  * @returns {Promise<{staged: boolean, train: number|null, version: string|null,
@@ -1070,6 +1127,7 @@ module.exports = {
   RECHECK_INTERVAL_MS,
   channelManifestUrls,
   isShellVersionSufficient,
+  isPreloadContractSatisfied,
   computeRolloutBucket,
   isInRolloutBucket,
   ensureRolloutId,

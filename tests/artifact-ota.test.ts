@@ -25,6 +25,7 @@ const {
   fetchBuffer,
   downloadToFile,
   isShellVersionSufficient,
+  isPreloadContractSatisfied,
   computeRolloutBucket,
   isInRolloutBucket,
   ensureRolloutId,
@@ -78,6 +79,8 @@ async function makeOtaFixture(root: string, keys: ReturnType<typeof makeKeys>, o
   omitRenderer?: boolean;
   omitServer?: boolean;
   corruptRendererArchive?: boolean;
+  contractPreload?: number;
+  contractServerProtocol?: number;
 } = {}) {
   const version = opts.version ?? "2.0.0";
   const train = opts.train ?? 1;
@@ -118,7 +121,7 @@ async function makeOtaFixture(root: string, keys: ReturnType<typeof makeKeys>, o
     releasedAt: "2026-07-11T00:00:00.000Z",
     keyId: keys.keyId,
     minShell: opts.minShell ?? "0.1.0",
-    contract: { preload: 1, serverProtocol: 1 },
+    contract: { preload: opts.contractPreload ?? 1, serverProtocol: opts.contractServerProtocol ?? 1 },
     urgent: false,
     rollout: { percent: opts.rolloutPercent ?? 100, salt: opts.rolloutSalt ?? "test-salt" },
     artifacts: {},
@@ -319,6 +322,18 @@ describe("artifact-ota: isShellVersionSufficient (minShell gate)", () => {
   it("blocks (conservative default) when either version is unparseable", () => {
     expect(isShellVersionSufficient("not-a-version", "1.0.0")).toBe(false);
     expect(isShellVersionSufficient("1.0.0", "not-a-version")).toBe(false);
+  });
+});
+
+describe("artifact-ota: isPreloadContractSatisfied (preload contract gate)", () => {
+  it("passes when the manifest's required preload version equals the shell's supported version", () => {
+    expect(isPreloadContractSatisfied(1, 1)).toBe(true);
+  });
+  it("passes when the shell supports a newer preload version than the manifest requires", () => {
+    expect(isPreloadContractSatisfied(1, 2)).toBe(true);
+  });
+  it("blocks when the manifest requires a preload version the shell does not support yet", () => {
+    expect(isPreloadContractSatisfied(2, 1)).toBe(false);
   });
 });
 
@@ -543,8 +558,45 @@ describe("artifact-ota: checkOnce (gates, never downloads)", () => {
 
     const state = (await readOtaState(homeDir))[SEED_CHANNEL];
     expect(state.minShellBlocked).toBe(true);
+    expect(state.blockedReason).toBe("minShell");
     expect(state.available).not.toBeNull();
     expect(state.available.train).toBe(1);
+  });
+
+  it("blocks via the same minshell-blocked path when the manifest requires a newer preload contract than this shell supports", async () => {
+    const root = makeTempDir("hana-ota-e2e-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, contractPreload: 2 });
+    const homeDir = path.join(root, "home");
+
+    const result = await runWithDevOverride(manifestPath, () =>
+      checkOnce({ homeDir, keyset: keys.keyset, currentShellVersion: SHELL_VERSION, platformArch: PLATFORM_ARCH, log: () => {} }),
+    );
+
+    expect(result.outcome).toBe("minshell-blocked");
+    expect(result.minShellBlocked).toBe(true);
+    expect(await pointerStore.readPointer(homeDir, SEED_CHANNEL, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+
+    const state = (await readOtaState(homeDir))[SEED_CHANNEL];
+    expect(state.minShellBlocked).toBe(true);
+    expect(state.blockedReason).toBe("preloadContract");
+    expect(state.available).not.toBeNull();
+    expect(state.available.train).toBe(1);
+  });
+
+  it("does not block on the preload contract when the manifest requires exactly the version this shell supports (regression guard)", async () => {
+    const root = makeTempDir("hana-ota-e2e-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, contractPreload: 1 });
+    const homeDir = path.join(root, "home");
+
+    const result = await runWithDevOverride(manifestPath, () =>
+      checkOnce({ homeDir, keyset: keys.keyset, currentShellVersion: SHELL_VERSION, platformArch: PLATFORM_ARCH, log: () => {} }),
+    );
+
+    expect(result.outcome).toBe("available");
+    expect(result.minShellBlocked).toBe(false);
   });
 
   it("excludes via rollout percent 0, without recording an available update", async () => {
@@ -782,6 +834,26 @@ describe("artifact-ota: downloadAndApplyArtifacts", () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/rollout-excluded/i);
+    expect(await pointerStore.readPointer(homeDir, SEED_CHANNEL, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+  });
+
+  it("rejects with zero activation when the manifest requires a newer preload contract than this shell supports", async () => {
+    const root = makeTempDir("hana-ota-e2e-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, contractPreload: 2 });
+    const homeDir = path.join(root, "home");
+
+    const result = await runWithDevOverride(manifestPath, () =>
+      downloadAndApplyArtifacts({ homeDir, keyset: keys.keyset, currentShellVersion: SHELL_VERSION, platformArch: PLATFORM_ARCH, log: () => {} }),
+    );
+
+    expect(result.ok).toBe(false);
+    // Message must be attributable: both the manifest's required version and
+    // this shell's supported version, so a support screenshot is self-explanatory.
+    expect(result.error).toMatch(/preload/i);
+    expect(result.error).toContain("2");
+    expect(result.error).toContain("1");
     expect(await pointerStore.readPointer(homeDir, SEED_CHANNEL, "next")).toBeNull();
     expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
   });

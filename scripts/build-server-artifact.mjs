@@ -55,6 +55,7 @@ const ustar = require("../shared/artifact-core/ustar.cjs");
 const activation = require("../shared/artifact-core/activation.cjs");
 const manifestModule = require("../shared/artifact-core/manifest.cjs");
 const { loadPinnedKeyset } = require("../shared/artifact-core/keyset.cjs");
+const { PRELOAD_API_VERSION, SERVER_PROTOCOL_VERSION } = require("../shared/contract-versions.cjs");
 
 export const SEED_MANIFEST_NAME = "seed-train.json";
 
@@ -403,8 +404,9 @@ async function usePrebuiltRendererArchive({ archivePath, rendererArtifactOutDir,
 /**
  * schema-1 seed train manifest，双 kind：同时携带
  * artifacts.renderer 与 artifacts.server（启用双 artifact 管线后，安装包不再只带
- * server，renderer 也已拆出 asar）。兼容基线取 1/1；renderer 加载层
- * （hana-app:// 等）落地时接管真实常量。
+ * server，renderer 也已拆出 asar）。contract.{preload,serverProtocol} 取自
+ * shared/contract-versions.cjs 这个唯一常量源（种子与之后 publish-train 组装的
+ * 正式列车共用同一份值），不在这里维护字面量副本。
  * @param {{version: string, platform: string, arch: string, keyId: string, releasedAt: string,
  *          renderer: {sha256: string, size: number, archiveName: string},
  *          server: {sha256: string, size: number, archiveName: string}}} opts
@@ -417,7 +419,7 @@ export function buildSeedManifest({ version, platform, arch, keyId, releasedAt, 
     releasedAt,
     keyId,
     minShell: version,
-    contract: { preload: 1, serverProtocol: 1 },
+    contract: { preload: PRELOAD_API_VERSION, serverProtocol: SERVER_PROTOCOL_VERSION },
     urgent: false,
     rollout: { percent: 100, salt: "seed" },
     artifacts: {

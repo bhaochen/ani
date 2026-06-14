@@ -140,6 +140,20 @@ describe("build-server-artifact: dual-kind seed manifest shape", () => {
       path: "server-0.381.0-darwin-arm64.tar.gz",
     });
   });
+
+  it("stamps contract.{preload,serverProtocol} from the single shared constants module, not a private literal copy", async () => {
+    const { PRELOAD_API_VERSION, SERVER_PROTOCOL_VERSION } = await import("../shared/contract-versions.cjs");
+    const manifest = buildSeedManifest({
+      version: "0.381.0",
+      platform: "darwin",
+      arch: "arm64",
+      keyId: "2026a",
+      releasedAt: "2026-07-11T00:00:00.000Z",
+      renderer: { sha256: "b".repeat(64), size: 456, archiveName: "renderer-0.381.0.tar.gz" },
+      server: { sha256: "a".repeat(64), size: 123, archiveName: "server-0.381.0-darwin-arm64.tar.gz" },
+    });
+    expect(manifest.contract).toEqual({ preload: PRELOAD_API_VERSION, serverProtocol: SERVER_PROTOCOL_VERSION });
+  });
 });
 
 describe("build-server-artifact: keyset resolution", () => {

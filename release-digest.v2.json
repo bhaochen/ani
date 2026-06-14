@@ -3,6 +3,80 @@
   "entries": [
     {
       "schemaVersion": 1,
+      "tag": "v0.390.0",
+      "version": "0.390.0",
+      "previousTag": "v0.389.0",
+      "generatedAt": "2026-07-12T03:07:07.000Z",
+      "noUserFacingChanges": false,
+      "summary": {
+        "zh": "Hana 现在能更准确地判断组件更新：同版本内容不再误报为新更新，需要新版应用本体的组件也会在下载前明确拦截并提示升级。本版同时统一四个平台使用的界面更新归档，减少同版本内容不一致。",
+        "en": "Hana now evaluates component updates more accurately: same-version content is no longer reported as a new update, while components that require a newer app shell are blocked before download with a clear upgrade prompt. This release also uses one shared renderer update archive across all four platforms to prevent same-version content drift."
+      },
+      "counts": {
+        "feature": 1,
+        "fix": 1,
+        "improvement": 0,
+        "migration": 0
+      },
+      "source": {
+        "owner": "liliMozi",
+        "repo": "openhanako",
+        "commitRange": "v0.389.0..v0.390.0",
+        "releaseUrl": "https://github.com/liliMozi/openhanako/releases/tag/v0.390.0",
+        "releaseNotes": ""
+      },
+      "items": [
+        {
+          "id": "same-version-update-detection",
+          "kind": "fix",
+          "importance": "high",
+          "title": {
+            "zh": "同版本不再误报更新",
+            "en": "Same-version content no longer appears as an update"
+          },
+          "summary": {
+            "zh": "当本地已激活内容与更新列车版本相同时，Hana 会直接判定为已是最新，不再提示一个无法应用的重复更新。四个平台现在复用同一份界面归档，从源头避免同版本归档因构建时间不同而产生哈希漂移。",
+            "en": "When the active local content already matches the update train version, Hana now treats it as current instead of offering a duplicate update that cannot be applied. All four platforms also reuse the same renderer archive, preventing build-time metadata from producing different hashes for the same version."
+          },
+          "details": [],
+          "sources": [
+            {
+              "type": "commit",
+              "ref": "e10c8afcf",
+              "title": "fix(update): 检查更新对同版本列车误报\"有新版本可用\""
+            },
+            {
+              "type": "commit",
+              "ref": "23acede2f",
+              "title": "feat(build): renderer 热更新归档改为 CI 单点构建、四平台复用同一份"
+            }
+          ]
+        },
+        {
+          "id": "component-update-contract-gates",
+          "kind": "feature",
+          "importance": "high",
+          "title": {
+            "zh": "不兼容的组件更新会提前拦截",
+            "en": "Incompatible component updates are blocked early"
+          },
+          "summary": {
+            "zh": "组件更新现在会实际检查所需的界面 API 与服务协议版本；如果当前应用本体太旧，检查和下载入口都会停止，并沿用明确的“需要更新应用本体”提示，避免下载后才失败。",
+            "en": "Component updates now enforce their required interface API and server protocol versions. If the installed app shell is too old, both update checks and downloads stop with the existing clear prompt to update the app itself, avoiding a failure after download."
+          },
+          "details": [],
+          "sources": [
+            {
+              "type": "commit",
+              "ref": "9b2a6578f",
+              "title": "feat(update): 更新契约版本落地为真实门禁与握手"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
       "tag": "v0.389.0",
       "version": "0.389.0",
       "previousTag": "v0.386.6",
