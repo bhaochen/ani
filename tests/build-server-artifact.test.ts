@@ -2,6 +2,7 @@ import { createHash, generateKeyPairSync } from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { fileURLToPath } from "url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -89,25 +90,57 @@ describe("build-server-artifact: buildCodesignArgs (darwin in-seed signing spec)
     ]);
   });
 
-  it("signs executables (non-.node Mach-O) with Developer ID + hardened runtime + secure timestamp", () => {
-    const args = buildCodesignArgs({ identity: "ABCDEF0123456789", file: "/tree/node" });
+  it("signs executables (non-.node Mach-O) with Developer ID + hardened runtime + secure timestamp + JIT entitlements", () => {
+    const args = buildCodesignArgs({
+      identity: "ABCDEF0123456789",
+      file: "/tree/node",
+      entitlementsPath: "/repo/build/server-macho-entitlements.plist",
+    });
     expect(args).toEqual([
-      "--sign", "ABCDEF0123456789", "--timestamp", "--force", "--options", "runtime", "/tree/node",
+      "--sign", "ABCDEF0123456789", "--timestamp", "--force",
+      "--options", "runtime",
+      "--entitlements", "/repo/build/server-macho-entitlements.plist",
+      "/tree/node",
     ]);
   });
 
-  it("signs .node addons with Developer ID + secure timestamp but WITHOUT hardened runtime (matches the proven pre-sign CI spec)", () => {
-    const args = buildCodesignArgs({ identity: "ABCDEF0123456789", file: "/tree/node_modules/x/build/addon.node" });
+  it("signs .node addons with Developer ID + secure timestamp but WITHOUT hardened runtime or entitlements (matches the proven pre-sign CI spec)", () => {
+    const args = buildCodesignArgs({
+      identity: "ABCDEF0123456789",
+      file: "/tree/node_modules/x/build/addon.node",
+      entitlementsPath: "/repo/build/server-macho-entitlements.plist",
+    });
     expect(args).toEqual([
       "--sign", "ABCDEF0123456789", "--timestamp", "--force", "/tree/node_modules/x/build/addon.node",
     ]);
     expect(args).not.toContain("runtime");
+    expect(args).not.toContain("--entitlements");
   });
 
-  it("never injects entitlements or keychain flags (not part of the proven notarized spec)", () => {
-    const args = buildCodesignArgs({ identity: "ABCDEF0123456789", file: "/tree/node" });
-    expect(args).not.toContain("--entitlements");
+  it("hard-errors when hardened runtime is requested without an entitlements file (a runtime-flagged binary without allow-jit is exactly the arm64 startup-crash incident)", () => {
+    expect(() => buildCodesignArgs({ identity: "ABCDEF0123456789", file: "/tree/node" })).toThrow(
+      /entitlements/i,
+    );
+  });
+
+  it("never injects keychain flags (not part of the proven notarized spec); ad-hoc mode carries no entitlements", () => {
+    const args = buildCodesignArgs({
+      identity: "ABCDEF0123456789",
+      file: "/tree/node",
+      entitlementsPath: "/repo/build/server-macho-entitlements.plist",
+    });
     expect(args).not.toContain("--keychain");
+    const adhoc = buildCodesignArgs({ identity: undefined, file: "/tree/node", entitlementsPath: "/repo/build/server-macho-entitlements.plist" });
+    expect(adhoc).toEqual(["--sign", "-", "--force", "/tree/node"]);
+  });
+
+  it("repo ships the server Mach-O entitlements plist with the JIT allowances V8 needs on arm64", () => {
+    const plistPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "build", "server-macho-entitlements.plist");
+    expect(fs.existsSync(plistPath)).toBe(true);
+    const plist = fs.readFileSync(plistPath, "utf8");
+    expect(plist).toContain("com.apple.security.cs.allow-jit");
+    expect(plist).toContain("com.apple.security.cs.allow-unsigned-executable-memory");
+    expect(plist).toContain("com.apple.security.cs.allow-dyld-environment-variables");
   });
 });
 
@@ -194,7 +227,7 @@ describe("build-server-artifact: packServerArchive (pack-only, no manifest)", ()
     expect(fs.existsSync(path.join(artifactOutDir, "seed-train.json"))).toBe(false);
   });
 
-  it("signs Mach-O binaries BEFORE packing on darwin (sign first, pack second)", async () => {
+  it("signs Mach-O binaries BEFORE the startup smoke test, and smoke-tests BEFORE packing on darwin (sign, smoke, pack)", async () => {
     const root = makeTempDir("hana-pack-server-");
     const outDir = makeServerTree(root);
     const order: string[] = [];
@@ -209,6 +242,9 @@ describe("build-server-artifact: packServerArchive (pack-only, no manifest)", ()
         signMachOFiles: async () => {
           order.push("sign");
         },
+        smokeTestNodeStartup: async () => {
+          order.push("smoke");
+        },
         packTree: async () => {
           order.push("pack");
         },
@@ -216,7 +252,58 @@ describe("build-server-artifact: packServerArchive (pack-only, no manifest)", ()
         statSize: () => 1,
       },
     });
-    expect(order).toEqual(["sign", "pack"]);
+    expect(order).toEqual(["sign", "smoke", "pack"]);
+  });
+
+  it("aborts packing with a readable error when the signed node binary fails its startup smoke test", async () => {
+    const root = makeTempDir("hana-pack-server-");
+    const outDir = makeServerTree(root);
+    let packCalled = false;
+    await expect(
+      packServerArchive({
+        outDir,
+        artifactOutDir: path.join(root, "artifact"),
+        version: "0.381.0",
+        platform: "darwin",
+        arch: "arm64",
+        log: () => {},
+        deps: {
+          signMachOFiles: async () => {},
+          smokeTestNodeStartup: async () => {
+            throw new Error(
+              "[build-server] signed node binary failed its startup smoke test (exit signal SIGTRAP): "
+                + "Fatal process out of memory: Failed to reserve virtual memory for CodeRange",
+            );
+          },
+          packTree: async () => {
+            packCalled = true;
+          },
+          sha256File: async () => "e".repeat(64),
+          statSize: () => 1,
+        },
+      }),
+    ).rejects.toThrow(/startup smoke test/);
+    expect(packCalled).toBe(false);
+  });
+
+  it("does not run the node startup smoke test for non-darwin targets", async () => {
+    const root = makeTempDir("hana-pack-server-");
+    const outDir = makeServerTree(root);
+    let smokeCalled = false;
+    await packServerArchive({
+      outDir,
+      artifactOutDir: path.join(root, "artifact"),
+      version: "0.381.0",
+      platform: "linux",
+      arch: "x64",
+      log: () => {},
+      deps: {
+        smokeTestNodeStartup: async () => {
+          smokeCalled = true;
+        },
+      },
+    });
+    expect(smokeCalled).toBe(false);
   });
 
   it("passes env down to the darwin signer so HANA_MACHO_SIGN_IDENTITY reaches it (no process.env grabbing)", async () => {
@@ -235,6 +322,7 @@ describe("build-server-artifact: packServerArchive (pack-only, no manifest)", ()
         signMachOFiles: async (_outDir: string, _log: (msg: string) => void, env: unknown) => {
           seenEnv = env;
         },
+        smokeTestNodeStartup: async () => {},
         packTree: async () => {},
         sha256File: async () => "e".repeat(64),
         statSize: () => 1,

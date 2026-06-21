@@ -118,27 +118,39 @@ export function findMachOFiles(rootDir) {
 /**
  * 组装单个文件的 codesign 参数（纯函数，供测试逐一断言）。双模式：
  * - identity 未设/为空 → ad-hoc `--sign - --force`（本地 install:local 现状，
- *   与 scripts/sign-local.cjs 同款，一字不变）。
- * - identity 非空 → Developer ID 正式签名。参数规格照抄 CI 里跑过公证的
- *   旧 "Pre-sign server binaries" 步骤（fe8677824 起实证可过 notarization）：
- *   identity + `--timestamp`（secure timestamp）+ `--force`（幂等重签）；
- *   `.node` addon 不加 hardened runtime，其余 Mach-O（node 可执行、
- *   spawn-helper 等）加 `--options runtime`。不加 `--entitlements` /
- *   `--keychain` —— 原实证流程没有，不凭空引入（identity 解析走 CI 已设好
- *   的 keychain 搜索列表，见 build.yml "Setup macOS signing keychain"）。
- * @param {{identity?: string, file: string}} opts
+ *   与 scripts/sign-local.cjs 同款，一字不变）。ad-hoc 不加 hardened runtime，
+ *   因此也不需要 entitlements。
+ * - identity 非空 → Developer ID 正式签名：identity + `--timestamp`
+ *   （secure timestamp）+ `--force`（幂等重签）；`.node` addon 不加 hardened
+ *   runtime，其余 Mach-O（node 可执行、spawn-helper 等）加 `--options runtime`，
+ *   并且**必须**同时加 `--entitlements <entitlementsPath>`——arm64 macOS 严格
+ *   执行 W^X，hardened runtime 二进制缺 com.apple.security.cs.allow-jit 时
+ *   V8 无法申请可执行内存，node 启动即死于 CodeRange 虚拟内存保留失败。
+ *   历史上这里"照抄旧实证流程、不加 entitlements"，产出的箱子能过公证但
+ *   在 arm64 上完全无法运行；所以现在 hardened runtime 而 entitlementsPath
+ *   缺失直接硬报错，禁止静默签出一个必然崩溃的二进制。
+ *   不加 `--keychain`（identity 解析走 CI 已设好的 keychain 搜索列表，
+ *   见 build.yml "Setup macOS signing keychain"）。
+ * @param {{identity?: string, file: string, entitlementsPath?: string}} opts
  * @returns {string[]} codesign 的完整参数数组
  */
-export function buildCodesignArgs({ identity, file }) {
+export function buildCodesignArgs({ identity, file, entitlementsPath }) {
   if (!identity) {
     return ["--sign", "-", "--force", file];
   }
   const hardenedRuntime = !file.endsWith(".node");
+  if (hardenedRuntime && !entitlementsPath) {
+    throw new Error(
+      `[build-server] refusing to sign ${file} with hardened runtime but no entitlements file. `
+        + "A runtime-flagged binary without com.apple.security.cs.allow-jit cannot start V8 on "
+        + "arm64 macOS (CodeRange OOM crash at launch); pass entitlementsPath.",
+    );
+  }
   return [
     "--sign", identity,
     "--timestamp",
     "--force",
-    ...(hardenedRuntime ? ["--options", "runtime"] : []),
+    ...(hardenedRuntime ? ["--options", "runtime", "--entitlements", entitlementsPath] : []),
     file,
   ];
 }
@@ -154,12 +166,60 @@ export function buildCodesignArgs({ identity, file }) {
  */
 async function defaultSignMachOFiles(outDir, log, env = process.env) {
   const identity = env.HANA_MACHO_SIGN_IDENTITY;
+  // Developer ID 模式下 hardened runtime 文件必须携带 JIT entitlements
+  //（缺了它 node 在 arm64 上启动即崩，见 buildCodesignArgs 注释）。plist
+  // 缺失必须硬报错——静默退回"无 entitlements 签名"正是当初的事故。
+  let entitlementsPath;
+  if (identity) {
+    entitlementsPath = path.join(ROOT, "build", "server-macho-entitlements.plist");
+    if (!fs.existsSync(entitlementsPath)) {
+      throw new Error(
+        `[build-server] server Mach-O entitlements plist missing: ${entitlementsPath}. `
+          + "Developer ID signing requires it (hardened runtime without allow-jit produces a "
+          + "binary that crashes at launch on arm64 macOS); refusing to sign without it.",
+      );
+    }
+  }
   const machoFiles = findMachOFiles(outDir);
   for (const file of machoFiles) {
-    execFileSync("codesign", buildCodesignArgs({ identity, file }), { stdio: "pipe" });
+    execFileSync("codesign", buildCodesignArgs({ identity, file, entitlementsPath }), { stdio: "pipe" });
   }
   const mode = identity ? "Developer ID (HANA_MACHO_SIGN_IDENTITY)" : "ad-hoc";
   log(`[build-server] seed: ${mode} signed ${machoFiles.length} Mach-O file(s) before packing`);
+}
+
+/**
+ * 装箱前启动烟测（darwin）：实际运行一次树内签好名的 node 二进制，证明它
+ * 能活着走完进程启动（V8 初始化会立刻暴露签名/entitlements 问题——缺
+ * allow-jit 的 hardened 二进制在 arm64 上此刻就崩）。任何非零退出、信号、
+ * spawn 失败都硬报错中止装箱：签坏的二进制永远不该进归档、上货架。
+ *
+ * 跨架构说明：CI 在 arm64 runner 上也构建 x64 箱子，这一步会经 Rosetta
+ * 执行 x64 node——照跑，不做"跑不了就跳过"的分支（GitHub 的 macOS runner
+ * 带 Rosetta；真跑不了就该 CI 红，人来处理，而不是放一个没验证过的箱子过去）。
+ * @param {string} outDir - server 产出树根目录（node 二进制位于 `<outDir>/node`，
+ *   与 build-server.mjs 复制 runtime 的落点一致）
+ * @param {(msg: string) => void} log
+ */
+async function defaultSmokeTestNodeStartup(outDir, log) {
+  const nodeBin = path.join(outDir, "node");
+  try {
+    execFileSync(nodeBin, ["-e", "process.exit(0)"], { stdio: "pipe", timeout: 30_000 });
+  } catch (err) {
+    const stderr = err?.stderr ? String(err.stderr).trim().slice(0, 2000) : "";
+    const detail = err?.signal
+      ? `killed by signal ${err.signal}`
+      : err?.status != null
+        ? `exit code ${err.status}`
+        : `spawn failed: ${err?.message ?? err}`;
+    throw new Error(
+      `[build-server] signed node binary failed its startup smoke test (${detail}): ${nodeBin}. `
+        + "Refusing to pack a binary that cannot start — this is exactly how a broken signature "
+        + "(e.g. hardened runtime without JIT entitlements) would otherwise reach the shelf."
+        + (stderr ? `\nstderr: ${stderr}` : ""),
+    );
+  }
+  log("[build-server] seed: signed node binary passed the startup smoke test");
 }
 
 /**
@@ -237,6 +297,7 @@ function requireSignKeyPath(env) {
  *   log?: (msg: string) => void,
  *   deps?: {
  *     signMachOFiles?: (outDir: string, log: (msg: string) => void, env: NodeJS.ProcessEnv | Record<string, string | undefined>) => Promise<void>,
+ *     smokeTestNodeStartup?: (outDir: string, log: (msg: string) => void) => Promise<void>,
  *     packTree?: (srcDir: string, archivePath: string) => Promise<void>,
  *     sha256File?: (filePath: string) => Promise<string>,
  *     statSize?: (filePath: string) => number,
@@ -247,6 +308,7 @@ function requireSignKeyPath(env) {
 export async function packServerArchive({ outDir, artifactOutDir, version, platform, arch, env = process.env, log = console.log, deps = {} }) {
   const {
     signMachOFiles = defaultSignMachOFiles,
+    smokeTestNodeStartup = defaultSmokeTestNodeStartup,
     packTree = ustar.packTree,
     sha256File = activation.sha256File,
     statSize = (filePath) => fs.statSync(filePath).size,
@@ -258,6 +320,9 @@ export async function packServerArchive({ outDir, artifactOutDir, version, platf
   // 决定 ad-hoc / Developer ID 双模式，见 defaultSignMachOFiles。
   if (platform === "darwin") {
     await signMachOFiles(outDir, log, env);
+    // ── 签完立刻启动烟测：实际跑一次签好名的 node，签坏的二进制在这里
+    // 就地报错中止装箱，永远到不了货架（见 defaultSmokeTestNodeStartup）──
+    await smokeTestNodeStartup(outDir, log);
   }
 
   // ── 后装箱：干净目录，绝不让上一次构建的残留文件混进这次的 seed ──
