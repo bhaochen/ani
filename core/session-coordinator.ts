@@ -792,6 +792,8 @@ export class SessionCoordinator {
    * @param {() => object} deps.listAgents - 列出所有 agent
    * @param {(cwd: string, context: {agent: object, agentId: string}) => Promise<{workspacePaths?: object[]}|void>} [deps.onBeforeSessionCreate]
    * @param {(sessionPath: string, reason: string) => void|Promise<void>} [deps.onSessionRuntimeDiscarded]
+   * @param {(sessionPath: string) => string|null} [deps.getSessionIdForPath]
+   * @param {(sessionRef: {sessionId: string, sessionPath?: string}, reason: string) => object} [deps.abortToolExecutionsForSession]
    */
   constructor(deps: any) {
     this._d = deps;
@@ -2904,6 +2906,7 @@ export class SessionCoordinator {
         this._deleteRuntimeValueForPath(this._prePromptAbortControllers, sessionPath);
       }
     }
+    abortController.signal.throwIfAborted();
     assertVideoInputSupported(entry.session.model, opts?.videos);
     assertAudioInputSupported(entry.session.model, opts?.audios);
     const promptOpts = buildPromptMediaOptions(opts);
@@ -2994,6 +2997,17 @@ export class SessionCoordinator {
     const confirmStore = this._d.getConfirmStore?.() || this._d.confirmStore || this._d.getEngine?.()?.confirmStore;
 
     try {
+      const sessionId = this._d.getSessionIdForPath?.(sessionPath);
+      if (sessionId) {
+        this._d.abortToolExecutionsForSession?.({ sessionId, sessionPath }, reason);
+      } else if (this._d.abortToolExecutionsForSession) {
+        throw new Error("sessionId is unavailable");
+      }
+    } catch (err) {
+      log.warn(`abort cleanup ${shortPath}: tool execution cleanup failed: ${err.message}`);
+    }
+
+    try {
       taskRegistry?.abortByParentSession?.(sessionPath, reason);
     } catch (err) {
       log.warn(`abort cleanup ${shortPath}: task cleanup failed: ${err.message}`);
@@ -3040,11 +3054,17 @@ export class SessionCoordinator {
       pending.abort();
       this._deleteRuntimeValueForPath(this._prePromptAbortControllers, sessionPath);
       this._cleanupAbortedSessionSidecars(sessionPath, reason);
+      this._d.emitEvent?.({
+        type: "session_status",
+        isStreaming: false,
+        aborted: true,
+        reason,
+      }, sessionPath);
       return true;
     }
+    this._cleanupAbortedSessionSidecars(sessionPath, reason);
     const entry = this._getSessionEntryByPath(sessionPath);
     if (!entry?.session.isStreaming) return false;
-    this._cleanupAbortedSessionSidecars(sessionPath, reason);
     return this._forceReleaseStreamingSession(entry, sessionPath, reason);
   }
 
@@ -3857,9 +3877,16 @@ export class SessionCoordinator {
     if (!sessionPath || !this._envChangeLedger) return null;
     const entry = this._getSessionEntryByPath(sessionPath);
     if (!entry) return null;
+    const recipientAgentId = typeof entry.agentId === "string" && entry.agentId.trim()
+      ? entry.agentId.trim()
+      : this.resolveSessionOwnership(sessionPath).agentId;
+    if (!recipientAgentId) {
+      throw new Error("renderSessionReminderBlock: session Agent ownership is unavailable");
+    }
     return collectReminderBlock({
       sessionEntry: entry,
       ledger: this._envChangeLedger,
+      recipientAgentId,
       now: Date.now(),
       isZh: getLocale().startsWith("zh"),
       timeZone: this._d.getPrefs?.()?.getTimezone?.(),

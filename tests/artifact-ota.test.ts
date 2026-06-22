@@ -24,6 +24,7 @@ const {
   fetchWithRedirects,
   fetchBuffer,
   downloadToFile,
+  fetchChannelManifest,
   isShellVersionSufficient,
   isPreloadContractSatisfied,
   computeRolloutBucket,
@@ -81,6 +82,7 @@ async function makeOtaFixture(root: string, keys: ReturnType<typeof makeKeys>, o
   corruptRendererArchive?: boolean;
   contractPreload?: number;
   contractServerProtocol?: number;
+  channel?: string;
 } = {}) {
   const version = opts.version ?? "2.0.0";
   const train = opts.train ?? 1;
@@ -117,7 +119,7 @@ async function makeOtaFixture(root: string, keys: ReturnType<typeof makeKeys>, o
   const manifest: any = {
     schema: 1,
     train,
-    channel: "stable",
+    channel: opts.channel ?? "stable",
     releasedAt: "2026-07-11T00:00:00.000Z",
     keyId: keys.keyId,
     minShell: opts.minShell ?? "0.1.0",
@@ -154,6 +156,36 @@ async function makeOtaFixture(root: string, keys: ReturnType<typeof makeKeys>, o
   return { fixtureDir, manifestPath, manifest, serverSha256, rendererSha256 };
 }
 
+/**
+ * Builds a schema-valid, signed manifest as bytes only — no archives, no
+ * fixture directory on disk. Used by the dual-source race tests below,
+ * which exercise `fetchChannelManifest`/`checkOnce` via injected
+ * `fetchOnce` (never reach staging/download), so the `artifacts` entries
+ * only need to be schema-shaped, not backed by real files.
+ */
+function buildSignedManifestBytes(keys: ReturnType<typeof makeKeys>, opts: { train: number; channel?: string; version?: string }) {
+  const version = opts.version ?? "0.500.0";
+  const manifest = {
+    schema: 1,
+    train: opts.train,
+    channel: opts.channel ?? "stable",
+    releasedAt: "2026-07-11T00:00:00.000Z",
+    keyId: keys.keyId,
+    minShell: "0.1.0",
+    contract: { preload: 1, serverProtocol: 1 },
+    urgent: false,
+    rollout: { percent: 100, salt: "test-salt" },
+    artifacts: {
+      server: { [PLATFORM_ARCH]: { version, sha256: "a".repeat(64), size: 10, path: "server.tar.gz" } },
+      renderer: { version, sha256: "b".repeat(64), size: 10, path: "renderer.tar.gz" },
+    },
+    mirrors: [],
+  };
+  const manifestBytes = Buffer.from(JSON.stringify(manifest, null, 2) + "\n", "utf8");
+  const sigBytes = cryptoSign(null, manifestBytes, keys.privateKey);
+  return { manifestBytes, sigBytes, manifest };
+}
+
 // Explicitly `Promise<any>` (not generic): `ota` is an untyped CommonJS
 // require of a local .cjs file with no declaration file, so a generic
 // signature here infers `unknown` instead of `any` at every call site
@@ -177,6 +209,29 @@ function stagingDirFor(homeDir: string) {
 
 function fakeStreamResponse(statusCode: number, headers: Record<string, string>, chunks: Buffer[] = []) {
   return { statusCode, headers, bodyStream: Readable.from(chunks) };
+}
+
+/**
+ * A Readable that emits `chunks` one at a time, each after a real
+ * `intervalMs` delay, then ends — used to simulate a slow/trickling
+ * network download with actual elapsed time (as opposed to
+ * `fakeStreamResponse`'s effectively-instant `Readable.from`), so the
+ * stall-window and attempt-deadline guards in `downloadToFile` have real
+ * time to observe.
+ */
+function makeTrickleStream(chunks: Buffer[], intervalMs: number): Readable {
+  let i = 0;
+  return new Readable({
+    read() {
+      if (i >= chunks.length) {
+        this.push(null);
+        return;
+      }
+      const chunk = chunks[i];
+      i += 1;
+      setTimeout(() => this.push(chunk), intervalMs);
+    },
+  });
 }
 
 describe("artifact-ota: fetchWithRedirects (fake transport)", () => {
@@ -299,11 +354,210 @@ describe("artifact-ota: downloadToFile", () => {
   });
 });
 
+describe("artifact-ota: downloadToFile stall/deadline guards (trickle-attack mitigation)", () => {
+  it("aborts a trickling download that never clears the rolling stall window, and cleans up the partial file", async () => {
+    const root = makeTempDir("hana-ota-dl-stall-");
+    const destPath = path.join(root, "archive.tar.gz");
+    // 5 chunks of 10 bytes each, one every 200ms — far slower than the 50ms
+    // stall window / 1000-byte minimum below, so the rolling-progress guard
+    // must fire long before the stream would ever finish naturally.
+    const chunks = Array.from({ length: 5 }, () => Buffer.alloc(10, 1));
+    const fetchOnce = async () => ({ statusCode: 200, headers: {}, bodyStream: makeTrickleStream(chunks, 200) });
+
+    await expect(
+      downloadToFile("https://mirror.example/archive.tar.gz", destPath, {
+        fetchOnce,
+        stallWindowMs: 50,
+        stallMinBytes: 1000,
+      }),
+    ).rejects.toThrow(/stalled/);
+    expect(fs.existsSync(destPath)).toBe(false);
+  });
+
+  it("does not abort a healthy trickling download that clears the stall window every round", async () => {
+    const root = makeTempDir("hana-ota-dl-stall-ok-");
+    const destPath = path.join(root, "archive.tar.gz");
+    const chunks = Array.from({ length: 5 }, () => Buffer.alloc(50, 2));
+    const fetchOnce = async () => ({ statusCode: 200, headers: {}, bodyStream: makeTrickleStream(chunks, 5) });
+
+    const result = await downloadToFile("https://mirror.example/archive.tar.gz", destPath, {
+      fetchOnce,
+      stallWindowMs: 50,
+      stallMinBytes: 10,
+    });
+    expect(result.bytesWritten).toBe(250);
+    expect(fs.readFileSync(destPath).length).toBe(250);
+  });
+
+  it("aborts a download that exceeds the hard per-attempt deadline even with otherwise-healthy progress", async () => {
+    const root = makeTempDir("hana-ota-dl-deadline-");
+    const destPath = path.join(root, "archive.tar.gz");
+    const chunks = Array.from({ length: 10 }, () => Buffer.alloc(50, 3));
+    const fetchOnce = async () => ({ statusCode: 200, headers: {}, bodyStream: makeTrickleStream(chunks, 20) });
+
+    await expect(
+      downloadToFile("https://mirror.example/archive.tar.gz", destPath, {
+        fetchOnce,
+        stallWindowMs: 1000, // generous — never the guard that fires here
+        stallMinBytes: 1,
+        attemptDeadlineMs: 40, // natural duration is ~200ms; deadline must win
+      }),
+    ).rejects.toThrow(/deadline/);
+    expect(fs.existsSync(destPath)).toBe(false);
+  });
+});
+
 describe("artifact-ota: channelManifestUrls", () => {
-  it("returns the AtomGit primary and GitHub fallback in the fixed source order", () => {
+  it("returns [origin(GitHub), mirror(AtomGit)] — a role label, not a priority order (both are fetched in parallel)", () => {
     const urls = channelManifestUrls("stable");
-    expect(urls[0]).toBe("https://gitcode.com/liliMozi/OpenHanako-Releases/releases/download/channels/stable.json");
-    expect(urls[1]).toBe("https://github.com/liliMozi/openhanako/releases/download/channels/stable.json");
+    expect(urls[0]).toBe("https://github.com/liliMozi/openhanako/releases/download/channels/stable.json");
+    expect(urls[1]).toBe("https://gitcode.com/liliMozi/OpenHanako-Releases/releases/download/channels/stable.json");
+  });
+});
+
+// ── dual-source manifest fetch: both channel-manifest sources are raced in
+//    parallel, verified independently, and the higher-train side wins (tie
+//    goes to the origin) — see artifact-ota.cjs's file header "dual-source
+//    manifest fetch" note for the full design rationale ─────────────────
+
+function installTwoSourceFetch(
+  originUrl: string,
+  mirrorUrl: string,
+  origin: { manifestBytes: Buffer; sigBytes: Buffer } | "error" | "not-modified" | null,
+  mirror: { manifestBytes: Buffer; sigBytes: Buffer } | "error" | "not-modified" | null,
+) {
+  return async (url: string) => {
+    const respond = (side: typeof origin, base: string, label: string) => {
+      if (side === "error" || side === null) throw new Error(`${label} unreachable`);
+      if (side === "not-modified") return fakeStreamResponse(304, {});
+      if (url === base) return fakeStreamResponse(200, {}, [side.manifestBytes]);
+      if (url === `${base}.sig`) return fakeStreamResponse(200, {}, [side.sigBytes]);
+      throw new Error(`unexpected url ${url}`);
+    };
+    if (url === originUrl || url === `${originUrl}.sig`) return respond(origin, originUrl, "origin");
+    if (url === mirrorUrl || url === `${mirrorUrl}.sig`) return respond(mirror, mirrorUrl, "mirror");
+    throw new Error(`unexpected url ${url}`);
+  };
+}
+
+describe("artifact-ota: fetchChannelManifest (dual-source parallel race)", () => {
+  it("keeps the origin's manifest when its train is higher than the mirror's (mirror lagging behind origin)", async () => {
+    const keys = makeKeys();
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    const origin = buildSignedManifestBytes(keys, { train: 4, version: "0.402.0" });
+    const mirror = buildSignedManifestBytes(keys, { train: 3, version: "0.401.0" });
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, origin, mirror);
+
+    const result = await fetchChannelManifest({ channel: "stable", keyset: keys.keyset, fetchOnce, log: () => {} });
+
+    expect(result.notModified).toBeUndefined();
+    expect(result.manifest.train).toBe(4);
+    expect(result.sourceKind).toBe("origin");
+    expect(result.originUnreachable).toBe(false);
+  });
+
+  it("keeps the mirror's manifest when its train is strictly higher than the origin's (mirror ahead, reverse case)", async () => {
+    const keys = makeKeys();
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    const origin = buildSignedManifestBytes(keys, { train: 3, version: "0.401.0" });
+    const mirror = buildSignedManifestBytes(keys, { train: 5, version: "0.403.0" });
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, origin, mirror);
+
+    const result = await fetchChannelManifest({ channel: "stable", keyset: keys.keyset, fetchOnce, log: () => {} });
+
+    expect(result.manifest.train).toBe(5);
+    expect(result.sourceKind).toBe("mirror");
+    // Origin DID participate (it verified fine, it just lost the train
+    // comparison) — originUnreachable must stay false; it only reflects
+    // whether origin contributed a candidate, not whether it won.
+    expect(result.originUnreachable).toBe(false);
+  });
+
+  it("breaks an exact train-number tie in favor of the origin", async () => {
+    const keys = makeKeys();
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    const origin = buildSignedManifestBytes(keys, { train: 4, version: "0.402.0" });
+    const mirror = buildSignedManifestBytes(keys, { train: 4, version: "0.402.0" });
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, origin, mirror);
+
+    const result = await fetchChannelManifest({ channel: "stable", keyset: keys.keyset, fetchOnce, log: () => {} });
+
+    expect(result.sourceKind).toBe("origin");
+  });
+
+  it("sets originUnreachable and resolves from the mirror alone when the origin fetch fails outright", async () => {
+    const root = makeTempDir("hana-ota-dual-source-");
+    const keys = makeKeys();
+    const homeDir = path.join(root, "home");
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    const mirror = buildSignedManifestBytes(keys, { train: 9, version: "0.409.0" });
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, "error", mirror);
+
+    const result = await checkOnce({
+      homeDir,
+      keyset: keys.keyset,
+      currentShellVersion: SHELL_VERSION,
+      platformArch: PLATFORM_ARCH,
+      channel: "stable",
+      fetchOnce,
+      log: () => {},
+    });
+
+    expect(result.outcome).toBe("available");
+    expect(result.train).toBe(9);
+
+    // State persisted and readable back through both surfaces the settings
+    // page consumes.
+    const state = (await readOtaState(homeDir)).stable;
+    expect(state.manifestSource).toBe("mirror");
+    expect(state.originUnreachable).toBe(true);
+    expect(state.manifestReleasedAt).toBe("2026-07-11T00:00:00.000Z");
+
+    const status = await readStagedTrainStatus(homeDir, { channel: "stable" });
+    expect(status.manifestSource).toBe("mirror");
+    expect(status.originUnreachable).toBe(true);
+    expect(status.manifestReleasedAt).toBe("2026-07-11T00:00:00.000Z");
+  });
+
+  it("excludes a candidate whose signature fails verification without poisoning the other side's valid candidate", async () => {
+    const keys = makeKeys();
+    const otherKeys = makeKeys("some-other-key-not-in-keyset");
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    // Origin is signed with a key that ISN'T in the keyset passed to
+    // fetchChannelManifest below — verification must fail for it, exactly
+    // like a tampered signature or a compromised source would.
+    const origin = buildSignedManifestBytes(otherKeys, { train: 10, version: "0.410.0" });
+    const mirror = buildSignedManifestBytes(keys, { train: 6, version: "0.406.0" });
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, origin, mirror);
+
+    const result = await fetchChannelManifest({ channel: "stable", keyset: keys.keyset, fetchOnce, log: () => {} });
+
+    // The mirror's valid, lower-train candidate must still win — the
+    // origin's invalid signature excludes it entirely rather than being
+    // preferred by the tie/train-number logic or blocking the round.
+    expect(result.manifest.train).toBe(6);
+    expect(result.sourceKind).toBe("mirror");
+    expect(result.originUnreachable).toBe(true);
+  });
+
+  it("errors when both sources fail (neither fetch succeeds nor answers 304)", async () => {
+    const keys = makeKeys();
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, "error", "error");
+
+    await expect(
+      fetchChannelManifest({ channel: "stable", keyset: keys.keyset, fetchOnce, log: () => {} }),
+    ).rejects.toThrow(/all channel manifest sources failed/i);
+  });
+
+  it("reports not-modified when both sources answer 304", async () => {
+    const keys = makeKeys();
+    const [originUrl, mirrorUrl] = channelManifestUrls("stable");
+    const fetchOnce = installTwoSourceFetch(originUrl, mirrorUrl, "not-modified", "not-modified");
+
+    const result = await fetchChannelManifest({ channel: "stable", keyset: keys.keyset, fetchOnce, log: () => {} });
+
+    expect(result.notModified).toBe(true);
   });
 });
 
@@ -789,6 +1043,63 @@ describe("artifact-ota: checkOnce (gates, never downloads)", () => {
   });
 });
 
+// ── channel namespace assertion: a validly-signed manifest for the WRONG
+//    channel (e.g. a beta manifest served back from the stable URL) must
+//    never be silently accepted onto this channel's pointer namespace ────
+
+describe("artifact-ota: checkOnce (channel assertion)", () => {
+  it("rejects (outcome 'error') when a stable request receives a validly-signed manifest that declares channel 'beta'", async () => {
+    const root = makeTempDir("hana-ota-e2e-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, channel: "beta" });
+    const homeDir = path.join(root, "home");
+
+    const result = await runWithDevOverride(manifestPath, () =>
+      checkOnce({ homeDir, keyset: keys.keyset, currentShellVersion: SHELL_VERSION, platformArch: PLATFORM_ARCH, channel: "stable", log: () => {} }),
+    );
+
+    expect(result.outcome).toBe("error");
+    expect(result.error).toMatch(/stable/);
+    expect(result.error).toMatch(/beta/);
+    expect(await pointerStore.readPointer(homeDir, "stable", "next")).toBeNull();
+    const state = (await readOtaState(homeDir)).stable;
+    expect(state.lastError).toMatch(/stable/);
+    expect(state.lastError).toMatch(/beta/);
+  });
+
+  it("still checks out normally (regression) when the manifest's channel matches the requested channel", async () => {
+    const root = makeTempDir("hana-ota-e2e-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, channel: "stable", version: "0.500.0" });
+    const homeDir = path.join(root, "home");
+
+    const result = await runWithDevOverride(manifestPath, () =>
+      checkOnce({ homeDir, keyset: keys.keyset, currentShellVersion: SHELL_VERSION, platformArch: PLATFORM_ARCH, channel: "stable", log: () => {} }),
+    );
+
+    expect(result.outcome).toBe("available");
+    expect(result.version).toBe("0.500.0");
+  });
+});
+
+describe("artifact-ota: downloadAndApplyArtifacts (channel assertion)", () => {
+  it("rejects when a stable apply-now receives a validly-signed manifest that declares channel 'beta'", async () => {
+    const root = makeTempDir("hana-ota-e2e-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, channel: "beta" });
+    const homeDir = path.join(root, "home");
+
+    const result = await runWithDevOverride(manifestPath, () =>
+      downloadAndApplyArtifacts({ homeDir, keyset: keys.keyset, currentShellVersion: SHELL_VERSION, platformArch: PLATFORM_ARCH, channel: "stable", log: () => {} }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/stable/);
+    expect(result.error).toMatch(/beta/);
+    expect(await pointerStore.readPointer(homeDir, "stable", "next")).toBeNull();
+  });
+});
+
 describe("artifact-ota: checkOnce (ETag / not-modified semantics, mutation-check target)", () => {
   it("a 304 leaves a previously recorded `available` and `lastError` untouched, only lastCheckedAt advances", async () => {
     const root = makeTempDir("hana-ota-e2e-");
@@ -1182,6 +1493,9 @@ describe("artifact-ota: readStagedTrainStatus (filesystem integration)", () => {
       available: null,
       lastError: null,
       lastCheckedAt: null,
+      manifestSource: null,
+      manifestReleasedAt: null,
+      originUnreachable: false,
     });
   });
 
@@ -1244,6 +1558,317 @@ describe("artifact-ota: readStagedTrainStatus (filesystem integration)", () => {
       available: null,
       lastError: null,
       lastCheckedAt: "2026-01-01T00:00:00.000Z",
+      manifestSource: null,
+      manifestReleasedAt: null,
+      originUnreachable: false,
     });
+  });
+});
+
+// ── structural: shared OTA pipeline core must stay desktop-free ───────────
+//
+// The pipeline core (`shared/artifact-core/ota-core.cjs`) exists so a
+// future server/CLI consumer can run check/verify/download/activate
+// without importing anything under desktop/. These are text-level
+// assertions on purpose — a runtime behavioral test can't catch "someone
+// added a require to a desktop file" the way grepping the source can, and
+// the whole point of this boundary is that it must never regress silently.
+
+describe("artifact-ota: shared pipeline core stays desktop-free (structural)", () => {
+  const otaCoreSource = fs.readFileSync(
+    path.join(__dirname, "..", "shared", "artifact-core", "ota-core.cjs"),
+    "utf8",
+  );
+
+  it("never requires anything under desktop/", () => {
+    const requireCalls = otaCoreSource.match(/require\(\s*["'][^"']+["']\s*\)/g) || [];
+    expect(requireCalls.length).toBeGreaterThan(0);
+    for (const call of requireCalls) {
+      expect(call).not.toMatch(/desktop/);
+    }
+  });
+
+  it("never references the dev-only override env var's literal name", () => {
+    expect(otaCoreSource).not.toContain("HANA_ARTIFACT_MANIFEST");
+  });
+
+  it("desktop shell still holds the static dev-bypass require (vite alias contract)", () => {
+    const shellSource = fs.readFileSync(
+      path.join(__dirname, "..", "desktop", "src", "shared", "artifact-ota.cjs"),
+      "utf8",
+    );
+    expect(shellSource).toContain('require("./artifact-ota-dev-bypass.cjs")');
+  });
+
+  it("desktop shell's module.exports keys are exactly the pre-refactor set", () => {
+    const expectedKeys = [
+      "SEED_CHANNEL",
+      "FIRST_CHECK_DELAY_MS",
+      "RECHECK_INTERVAL_MS",
+      "ORIGIN_MANIFEST_RACE_TIMEOUT_MS",
+      "channelManifestUrls",
+      "isShellVersionSufficient",
+      "isPreloadContractSatisfied",
+      "computeRolloutBucket",
+      "isInRolloutBucket",
+      "ensureRolloutId",
+      "readOtaState",
+      "writeOtaChannelState",
+      "fetchWithRedirects",
+      "fetchBuffer",
+      "downloadToFile",
+      "fetchChannelManifest",
+      "checkOnce",
+      "downloadAndApplyArtifacts",
+      "scheduleBackgroundOtaChecks",
+      "hasDevOverrideConfigured",
+      "bothNextPointersReady",
+      "resolveStagedTrainStatus",
+      "readStagedTrainStatus",
+    ];
+    expect(Object.keys(ota).sort()).toEqual([...expectedKeys].sort());
+  });
+});
+
+// ── downloadAndApplyRendererArtifact: renderer-only pull for the
+//    self-hosted form (`hana bundle pull`) — exercised against ota-core
+//    directly (the desktop shell wrapper deliberately does not re-export
+//    it; the CLI is its only production consumer) ────────────────────────
+
+const otaCoreDirect = require("../shared/artifact-core/ota-core.cjs");
+
+/** devBypass stub pointing the core at a local fixture manifest — the CLI
+ * itself never passes one (NO_DEV_OVERRIDE default); tests inject this
+ * explicitly instead of going through the desktop shell's env-var wiring. */
+function bypassFor(manifestPath: string) {
+  return { hasDevOverride: () => true, resolveDevManifestOverride: () => manifestPath };
+}
+
+describe("artifact-ota core: isServerProtocolSatisfied (self-hosted serverProtocol gate)", () => {
+  it("passes when the manifest requires the same or a lower protocol", () => {
+    expect(otaCoreDirect.isServerProtocolSatisfied(1, 1)).toBe(true);
+    expect(otaCoreDirect.isServerProtocolSatisfied(1, 2)).toBe(true);
+  });
+
+  it("rejects when the manifest requires a newer protocol than this server speaks", () => {
+    expect(otaCoreDirect.isServerProtocolSatisfied(2, 1)).toBe(false);
+  });
+
+  it("passes read-time-compatibly when the manifest field is missing entirely (old manifest)", () => {
+    expect(otaCoreDirect.isServerProtocolSatisfied(undefined, 1)).toBe(true);
+    expect(otaCoreDirect.isServerProtocolSatisfied(null, 1)).toBe(true);
+  });
+});
+
+describe("artifact-ota core: downloadAndApplyRendererArtifact (renderer-only, self-hosted)", () => {
+  it("pulls, activates, and PROMOTES the renderer immediately; never touches the server pointer namespace", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, version: "2.0.0" });
+    const homeDir = path.join(root, "home");
+
+    const progressEvents: Array<{ phase: string; kind: string }> = [];
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      serverProtocolVersion: 1,
+      onProgress: (e: { phase: string; kind: string }) => progressEvents.push({ phase: e.phase, kind: e.kind }),
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result).toEqual({ ok: true, train: 1, version: "2.0.0" });
+
+    const rendererChannel = artifactBoot.rendererPointerChannel(SEED_CHANNEL);
+    // Promote already happened: `current` points at the new version and
+    // `next` is cleared — unlike the desktop pipeline, which leaves the
+    // promote for the next launch.
+    const rendererCurrent = await pointerStore.readPointer(homeDir, rendererChannel, "current");
+    expect(rendererCurrent).not.toBeNull();
+    expect(rendererCurrent.kind).toBe("renderer");
+    expect(rendererCurrent.version).toBe("2.0.0");
+    expect(fs.existsSync(path.join(rendererCurrent.versionDir, "index.html"))).toBe(true);
+    expect(await pointerStore.readPointer(homeDir, rendererChannel, "next")).toBeNull();
+
+    // The server pointer namespace is never touched — operator sovereignty.
+    expect(await pointerStore.readPointer(homeDir, SEED_CHANNEL, "current")).toBeNull();
+    expect(await pointerStore.readPointer(homeDir, SEED_CHANNEL, "next")).toBeNull();
+
+    // Progress only ever reports the renderer kind, in phase order.
+    expect(progressEvents.map((e) => `${e.phase}:${e.kind}`)).toEqual([
+      "downloading:renderer",
+      "verifying:renderer",
+      "activating:renderer",
+    ]);
+
+    const state = (await readOtaState(homeDir))[SEED_CHANNEL];
+    expect(state.lastStagedTrain).toBe(1);
+    expect(state.lastError).toBeNull();
+
+    // Staging is cleaned up after a successful run.
+    const leftovers = fs.existsSync(stagingDirFor(homeDir)) ? fs.readdirSync(stagingDirFor(homeDir)) : [];
+    expect(leftovers).toEqual([]);
+  });
+
+  it("short-circuits as alreadyCurrent without downloading when the renderer pointer's version matches the manifest", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 5, version: "2.0.0" });
+    const homeDir = path.join(root, "home");
+    const rendererChannel = artifactBoot.rendererPointerChannel(SEED_CHANNEL);
+    await pointerStore.writePointer(homeDir, rendererChannel, "current", {
+      train: 5,
+      kind: "renderer",
+      version: "2.0.0",
+      sha256: "b".repeat(64),
+    });
+
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      serverProtocolVersion: 1,
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result).toEqual({ ok: true, alreadyCurrent: true, version: "2.0.0" });
+    // Never reaches staging — nothing is downloaded for an alreadyCurrent
+    // short-circuit (an operator re-running `hana bundle pull` is normal,
+    // not an error).
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+    // The pre-existing pointer is untouched.
+    const current = await pointerStore.readPointer(homeDir, rendererChannel, "current");
+    expect(current.sha256).toBe("b".repeat(64));
+  });
+
+  it("rejects without downloading when the manifest's renderer version is OLDER than the activated one (never goes backward)", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 9, version: "0.389.0" });
+    const homeDir = path.join(root, "home");
+    const rendererChannel = artifactBoot.rendererPointerChannel(SEED_CHANNEL);
+    await pointerStore.writePointer(homeDir, rendererChannel, "current", {
+      train: 1,
+      kind: "renderer",
+      version: "0.446.20",
+      sha256: "b".repeat(64),
+    });
+
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      serverProtocolVersion: 1,
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result.ok).toBe(false);
+    // Message must be attributable: both versions plus the recall playbook.
+    expect(result.error).toContain("0.389.0");
+    expect(result.error).toContain("0.446.20");
+    expect(result.error).toMatch(/higher version number/i);
+    expect(await pointerStore.readPointer(homeDir, rendererChannel, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+  });
+
+  it("rejects when the train is not newer than the renderer pointer's train (replayed shelf)", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 3, version: "4.0.0" });
+    const homeDir = path.join(root, "home");
+    const rendererChannel = artifactBoot.rendererPointerChannel(SEED_CHANNEL);
+    await pointerStore.writePointer(homeDir, rendererChannel, "current", {
+      train: 5,
+      kind: "renderer",
+      version: "3.0.0",
+      sha256: "b".repeat(64),
+    });
+
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      serverProtocolVersion: 1,
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/not newer/i);
+    expect(await pointerStore.readPointer(homeDir, rendererChannel, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+  });
+
+  it("rejects when the manifest requires a newer server protocol than this server speaks; a missing field passes", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, contractServerProtocol: 2 });
+    const homeDir = path.join(root, "home");
+
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      serverProtocolVersion: 1,
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result.ok).toBe(false);
+    // Message must be attributable and actionable: required protocol,
+    // spoken protocol, and what to do about it.
+    expect(result.error).toMatch(/server protocol/i);
+    expect(result.error).toContain("2");
+    expect(result.error).toContain("1");
+    expect(result.error).toMatch(/upgrade the server first/i);
+    const rendererChannel = artifactBoot.rendererPointerChannel(SEED_CHANNEL);
+    expect(await pointerStore.readPointer(homeDir, rendererChannel, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+    // The missing-field read-time-compat half of this gate can't be
+    // reached through a schema-1 manifest (schema validation requires the
+    // field), so it's covered on the pure gate directly — see the
+    // isServerProtocolSatisfied describe block above.
+  });
+
+  it("rejects a quarantined train on the renderer pointer namespace", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 7, version: "2.0.0" });
+    const homeDir = path.join(root, "home");
+    const rendererChannel = artifactBoot.rendererPointerChannel(SEED_CHANNEL);
+    await pointerStore.appendQuarantine(homeDir, { channel: rendererChannel, train: 7 });
+
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      serverProtocolVersion: 1,
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/quarantined/i);
+    expect(await pointerStore.readPointer(homeDir, rendererChannel, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
+  });
+
+  it("rejects a signed-but-wrong-channel manifest (channel namespace assertion)", async () => {
+    const root = makeTempDir("hana-ota-renderer-");
+    const keys = makeKeys();
+    const { manifestPath } = await makeOtaFixture(root, keys, { train: 1, channel: "beta" });
+    const homeDir = path.join(root, "home");
+
+    const result = await otaCoreDirect.downloadAndApplyRendererArtifact({
+      homeDir,
+      keyset: keys.keyset,
+      channel: "stable",
+      serverProtocolVersion: 1,
+      log: () => {},
+      devBypass: bypassFor(manifestPath),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/channel mismatch/i);
+    const rendererChannel = artifactBoot.rendererPointerChannel("stable");
+    expect(await pointerStore.readPointer(homeDir, rendererChannel, "next")).toBeNull();
+    expect(fs.existsSync(stagingDirFor(homeDir))).toBe(false);
   });
 });
