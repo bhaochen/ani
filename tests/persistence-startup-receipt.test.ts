@@ -17,8 +17,11 @@ const STARTUP_RECEIPT_PATH = path.join(ROOT, "build", "persistence-startup-recei
 describe("persistence startup receipt", () => {
   it("uses the canonical phase order and records every registered store", () => {
     expect(STARTUP_PHASES).toEqual([
+      "desktop_bootstrap",
       "home_guard",
-      "epoch_preflight",
+      "epoch_read_preflight",
+      "epoch_transition",
+      "post_epoch_pre_bind",
       "transport_bind",
       "first_run_seed",
       "identity_seed",
@@ -26,7 +29,7 @@ describe("persistence startup receipt", () => {
       "engine_init_legacy_migrations",
       "runtime_ready",
     ]);
-    expect(FUTURE_EPOCH_COORDINATOR_PHASE).toBe("epoch_preflight");
+    expect(FUTURE_EPOCH_COORDINATOR_PHASE).toBe("epoch_transition");
 
     const receipt = buildStartupReceipt(PERSISTENT_STORES);
     expect(receipt.stores).toHaveLength(PERSISTENT_STORES.length);
@@ -51,9 +54,29 @@ describe("persistence startup receipt", () => {
     }
 
     const epochStamp = receipt.stores.find((store) => store.id === "data-epoch-stamp")!;
-    expect(epochStamp.firstPossibleOpenPhase).toBe("epoch_preflight");
-    expect(epochStamp.firstPossibleWritePhase).toBe("epoch_preflight");
+    expect(epochStamp.firstPossibleOpenPhase).toBe("epoch_read_preflight");
+    expect(epochStamp.firstPossibleWritePhase).toBe("epoch_transition");
     expect(epochStamp.breakingMigrationRequiresAccessMove).toBe(false);
+    const epochJournal = receipt.stores.find((store) => store.id === "data-epoch-transition-journal")!;
+    expect(epochJournal.firstPossibleOpenPhase).toBe("epoch_read_preflight");
+    expect(epochJournal.firstPossibleWritePhase).toBe("epoch_transition");
+
+    const preferences = receipt.stores.find((store) => store.id === "user-preferences")!;
+    expect(preferences.firstPossibleOpenPhase).toBe("desktop_bootstrap");
+    expect(preferences.preCoordinatorReadProjection).toMatchObject({
+      compatibility: "additive-only",
+      fields: expect.arrayContaining(["hardware_acceleration", "network_proxy", "keep_awake", "update_channel"]),
+    });
+
+    const network = receipt.stores.find((store) => store.id === "server-network-config")!;
+    expect(network.firstPossibleOpenPhase).toBe("post_epoch_pre_bind");
+    expect(network.firstPossibleWritePhase).toBe("post_epoch_pre_bind");
+
+    for (const id of ["server-node-identity", "user-studio-registries"]) {
+      const identity = receipt.stores.find((store) => store.id === id)!;
+      expect(identity.firstPossibleOpenPhase).toBe("identity_seed");
+      expect(identity.firstPossibleWritePhase).toBe("identity_seed");
+    }
   });
 
   it("matches the committed deterministic startup receipt", () => {
