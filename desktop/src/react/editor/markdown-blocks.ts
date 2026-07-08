@@ -1,5 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
+import { findMarkdownFrontMatterRange } from '../utils/markdown-document';
 
 export interface MarkdownBlock {
   readonly from: number;
@@ -19,6 +20,10 @@ export interface MarkdownBlockMove {
     readonly insert: string;
   };
   readonly selectionAnchor: number;
+  readonly movedRange: {
+    readonly from: number;
+    readonly to: number;
+  };
 }
 
 /**
@@ -26,10 +31,14 @@ export interface MarkdownBlockMove {
  */
 export function collectMarkdownBlocks(state: EditorState): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = [];
+  const protectedFrontMatter = findMarkdownFrontMatterRange(state.doc.toString());
   let node = syntaxTree(state).topNode.firstChild;
 
   while (node) {
-    if (node.to > node.from) {
+    const overlapsFrontMatter = protectedFrontMatter
+      ? node.from < protectedFrontMatter.to && node.to > protectedFrontMatter.from
+      : false;
+    if (node.to > node.from && !overlapsFrontMatter) {
       blocks.push({
         from: node.from,
         to: node.to,
@@ -69,19 +78,38 @@ export function buildMarkdownBlockMove(
   targetBlock: MarkdownBlock,
   placement: MarkdownBlockPlacement,
 ): MarkdownBlockMove | null {
+  return buildMarkdownBlockRangeMove(state, [sourceBlock], targetBlock, placement);
+}
+
+/**
+ * Move a contiguous range of top-level blocks without changing their source.
+ * The range is validated against the current parse so stale drag state cannot
+ * rewrite a newer document.
+ */
+export function buildMarkdownBlockRangeMove(
+  state: EditorState,
+  sourceBlocks: readonly MarkdownBlock[],
+  targetBlock: MarkdownBlock,
+  placement: MarkdownBlockPlacement,
+): MarkdownBlockMove | null {
   const blocks = collectMarkdownBlocks(state);
-  const sourceIndex = findMatchingBlock(blocks, sourceBlock);
+  if (sourceBlocks.length === 0) return null;
+  const sourceIndices = sourceBlocks.map(block => findMatchingBlock(blocks, block));
   const targetIndex = findMatchingBlock(blocks, targetBlock);
 
-  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return null;
+  if (targetIndex < 0 || sourceIndices.some(index => index < 0)) return null;
+  const sourceStart = sourceIndices[0];
+  const sourceEnd = sourceIndices[sourceIndices.length - 1];
+  if (sourceIndices.some((index, offset) => index !== sourceStart + offset)) return null;
+  if (targetIndex >= sourceStart && targetIndex <= sourceEnd) return null;
 
   const reordered = [...blocks];
-  const [movedBlock] = reordered.splice(sourceIndex, 1);
+  const movedBlocks = reordered.splice(sourceStart, sourceBlocks.length);
   const remainingTargetIndex = reordered.findIndex(block => blocksMatch(block, targetBlock));
-  if (!movedBlock || remainingTargetIndex < 0) return null;
+  if (movedBlocks.length !== sourceBlocks.length || remainingTargetIndex < 0) return null;
 
   const insertionIndex = remainingTargetIndex + (placement === 'after' ? 1 : 0);
-  reordered.splice(insertionIndex, 0, movedBlock);
+  reordered.splice(insertionIndex, 0, ...movedBlocks);
 
   let firstChanged = 0;
   while (firstChanged < blocks.length
@@ -103,10 +131,14 @@ export function buildMarkdownBlockMove(
 
   let insert = '';
   let selectionAnchor = blocks[firstChanged].from;
+  let selectionHead = selectionAnchor;
   for (let index = firstChanged; index <= lastChanged; index += 1) {
     const block = reordered[index];
-    if (block === movedBlock) selectionAnchor = blocks[firstChanged].from + insert.length;
+    if (block === movedBlocks[0]) selectionAnchor = blocks[firstChanged].from + insert.length;
     insert += block.source;
+    if (block === movedBlocks[movedBlocks.length - 1]) {
+      selectionHead = blocks[firstChanged].from + insert.length;
+    }
     if (index < lastChanged) insert += gaps[index - firstChanged];
   }
 
@@ -117,5 +149,9 @@ export function buildMarkdownBlockMove(
       insert,
     },
     selectionAnchor,
+    movedRange: {
+      from: selectionAnchor,
+      to: selectionHead,
+    },
   };
 }

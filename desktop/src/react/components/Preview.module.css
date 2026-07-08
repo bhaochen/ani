@@ -532,6 +532,7 @@
 
 :global(.preview-editor.mode-markdown) {
     --preview-markdown-editor-bottom-space: var(--preview-markdown-bottom-space, calc(var(--space-40) + var(--space-40) + var(--space-24) + var(--space-24)));
+    --editor-markdown-block-rail-space: 36px;
 }
 
 :global(.preview-editor .cm-editor) {
@@ -559,7 +560,9 @@
 }
 
 :global(.preview-editor.mode-markdown .cm-markdown-block-handle) {
-    width: 24px;
+    position: absolute;
+    left: 0;
+    width: 20px;
     height: 24px;
     display: flex;
     align-items: center;
@@ -573,6 +576,73 @@
     opacity: 0.55;
     touch-action: none;
     transition: opacity var(--duration-instant), background var(--duration-instant), color var(--duration-instant);
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-drag-preview) {
+    position: absolute;
+    z-index: 12;
+    overflow: visible;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.55;
+    will-change: transform;
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-drag-preview .cm-line) {
+    background: transparent;
+    box-shadow: none;
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-drag-count) {
+    position: absolute;
+    right: 0;
+    top: 0;
+    min-width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--overlay-medium);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    font-size: var(--fs-hint);
+    line-height: 1;
+    transform: translate(50%, -50%);
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-selection-layer) {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-selection-surface) {
+    position: absolute;
+    box-sizing: border-box;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    pointer-events: none;
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-selection-surface.is-clipped-top) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-selection-surface.is-clipped-bottom) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+:global(.preview-editor.mode-markdown .cm-editor.cm-markdown-block-marquee-zone .cm-content),
+:global(.preview-editor.mode-markdown .cm-editor.cm-markdown-block-marquee-zone .cm-content *) {
+    cursor: default !important;
 }
 
 :global(.preview-editor.mode-markdown .cm-markdown-block-handle:hover),
@@ -596,13 +666,37 @@
 }
 
 :global(.preview-editor.mode-markdown .cm-markdown-block-drop-indicator) {
-    position: absolute;
+    position: relative;
+    display: block;
     z-index: 11;
+    width: 100%;
+    max-width: var(--editor-markdown-content-width);
+    height: 0;
+    margin: 0 auto;
+    box-sizing: border-box;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity var(--duration-instant) var(--ease-out),
+        visibility 0s linear var(--duration-instant);
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-drop-indicator)::after {
+    content: '';
+    position: absolute;
+    left: var(--space-8);
+    right: var(--space-8);
+    top: -1px;
     height: 2px;
     border-radius: 999px;
     background: var(--accent);
-    pointer-events: none;
-    transform: translateY(-1px);
+}
+
+:global(.preview-editor.mode-markdown .cm-markdown-block-drop-indicator.is-visible) {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -734,8 +828,32 @@
     background: var(--overlay-subtle);
 }
 
+:global(.cm-blockquote-line-first) {
+    border-radius: 2px 2px 0 0;
+}
+
+:global(.cm-blockquote-line-last) {
+    border-radius: 0 0 2px 2px;
+}
+
+:global(.cm-blockquote-line-first.cm-blockquote-line-last) {
+    border-radius: 2px;
+}
+
 :global(.cm-codeblock-line) {
     background: var(--overlay-light);
+}
+
+:global(.cm-codeblock-line-first) {
+    border-radius: 2px 2px 0 0;
+}
+
+:global(.cm-codeblock-line-last) {
+    border-radius: 0 0 2px 2px;
+}
+
+:global(.cm-codeblock-line-first.cm-codeblock-line-last) {
+    border-radius: 2px;
 }
 
 :global(.cm-codeblock-toolbar) {

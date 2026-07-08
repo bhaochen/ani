@@ -3,7 +3,7 @@
  *
  * Obsidian 风格 markdown live preview：
  * - 衬线体渲染，无行号，无行高亮
- * - 语法标记仅在光标所在行可见（conceal）
+ * - 已成立的语法标记始终 conceal，未完成的输入保留源码
  * - H1 居中，标题/粗体/斜体等格式实时渲染
  *
  * 架构：
@@ -34,6 +34,7 @@ import {
   markdownBlockHandlePlugin,
   type MarkdownBlockMenuRequest,
 } from '../editor/markdown-block-handles';
+import { markdownBlockSelectionPlugin } from '../editor/markdown-block-selection';
 import { mermaidDecoField } from '../editor/mermaid-field';
 import { linkClickHandler } from '../editor/link-handler';
 import { tableDecoField } from '../editor/table-field';
@@ -830,9 +831,12 @@ export const PreviewEditor = forwardRef<PreviewEditorHandle, PreviewEditorProps>
           markdownBlockDecoField,
           mermaidDecoField,
         ] : []),
-        ...(isMd && !readOnly ? [markdownBlockHandlePlugin({
-          onOpenMenu: setBlockMenuRequest,
-        })] : []),
+        ...(isMd && !readOnly ? [
+          markdownBlockSelectionPlugin(),
+          markdownBlockHandlePlugin({
+            onOpenMenu: setBlockMenuRequest,
+          }),
+        ] : []),
         ...(isMd ? [tableDecoField] : []),
         ...(isCsv ? [csvTableField] : []),
         c.theme.of(isMd || isCsv ? markdownTheme : codeTheme),
