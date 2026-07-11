@@ -52,7 +52,7 @@ describe("createSandboxedTools on Windows", () => {
       agentDir: "C:\\hana\\agents\\hana",
       workspace: "C:\\work",
       workspaceFolders: [],
-      hanakoHome: "C:\\hana",
+      aniHome: "C:\\hana",
       getSandboxEnabled: () => true,
       getSandboxNetworkEnabled,
       getExternalReadPaths,
@@ -75,7 +75,7 @@ describe("createSandboxedTools on Windows", () => {
     expect(createWin32Exec).toHaveBeenCalledWith(expect.objectContaining({
       sandbox: expect.objectContaining({
         policy: expect.objectContaining({ mode: "standard" }),
-        hanakoHome: "C:\\hana",
+        aniHome: "C:\\hana",
         getExternalReadPaths,
         getSandboxNetworkEnabled,
       }),

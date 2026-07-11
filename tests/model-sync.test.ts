@@ -1583,7 +1583,7 @@ describe("syncModels", () => {
       "",
     ].join("\n"), "utf-8");
 
-    const mm = new ModelManager({ hanakoHome: tmpDir });
+    const mm = new ModelManager({ aniHome: tmpDir });
     mm._modelRegistry = {
       refresh: vi.fn(),
       getAvailable: vi.fn().mockResolvedValue([{ id: "llama3", provider: "ollama" }]),
@@ -1603,7 +1603,7 @@ describe("syncModels", () => {
     const { ModelManager } = await import("../core/model-manager.ts");
     fs.writeFileSync(path.join(tmpDir, "added-models.yaml"), "providers: {}\n", "utf-8");
 
-    const mm = new ModelManager({ hanakoHome: tmpDir });
+    const mm = new ModelManager({ aniHome: tmpDir });
     mm._modelRegistry = {
       refresh: vi.fn(),
       getAvailable: vi.fn().mockResolvedValue([
@@ -1640,7 +1640,7 @@ describe("syncModels", () => {
       "",
     ].join("\n"), "utf-8");
 
-    const mm = new ModelManager({ hanakoHome: tmpDir });
+    const mm = new ModelManager({ aniHome: tmpDir });
     mm._modelRegistry = {
       refresh: vi.fn(),
       getAvailable: vi.fn().mockResolvedValue([
@@ -1662,7 +1662,7 @@ describe("syncModels", () => {
     const { ModelManager } = await import("../core/model-manager.ts");
     fs.writeFileSync(path.join(tmpDir, "added-models.yaml"), "providers: {}\n", "utf-8");
 
-    const mm = new ModelManager({ hanakoHome: tmpDir });
+    const mm = new ModelManager({ aniHome: tmpDir });
     mm.providerRegistry.register({
       id: "legacy-sdk-oauth",
       displayName: "Legacy SDK OAuth",

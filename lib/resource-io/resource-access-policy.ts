@@ -29,7 +29,7 @@ type Options = {
   agentDir: string;
   workspace?: string | null;
   workspaceFolders?: string[];
-  hanakoHome: string;
+  aniHome: string;
   getAuthorizedFolders?: () => string[];
   getSandboxEnabled?: () => boolean;
   getExternalReadPaths?: () => string[];
@@ -40,7 +40,7 @@ export class ResourceAccessPolicy {
   declare agentDir: string;
   declare workspace: string | null;
   declare workspaceFolders: string[];
-  declare hanakoHome: string;
+  declare aniHome: string;
   declare getAuthorizedFolders: () => string[];
   declare getSandboxEnabled: () => boolean;
   declare getExternalReadPaths?: () => string[];
@@ -51,7 +51,7 @@ export class ResourceAccessPolicy {
     agentDir,
     workspace = null,
     workspaceFolders = [],
-    hanakoHome,
+    aniHome,
     getAuthorizedFolders = () => [],
     getSandboxEnabled = () => false,
     getExternalReadPaths,
@@ -60,11 +60,11 @@ export class ResourceAccessPolicy {
     this.agentDir = agentDir;
     this.workspace = workspace;
     this.workspaceFolders = Array.isArray(workspaceFolders) ? workspaceFolders : [];
-    this.hanakoHome = hanakoHome;
+    this.aniHome = aniHome;
     this.getAuthorizedFolders = getAuthorizedFolders;
     this.getSandboxEnabled = getSandboxEnabled;
     this.getExternalReadPaths = getExternalReadPaths;
-    this.checkManagedConfigWrite = createManagedConfigWriteGuard({ hanakoHome });
+    this.checkManagedConfigWrite = createManagedConfigWriteGuard({ aniHome });
   }
 
   check(absolutePath: string, operation: Operation): ResourceAccessDecision {
@@ -94,7 +94,7 @@ export class ResourceAccessPolicy {
         ...this.workspaceFolders,
         ...this.resolveAuthorizedFolders(),
       ],
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       mode: "standard",
     });
   }

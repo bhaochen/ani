@@ -18,17 +18,17 @@ describe("sandbox workspace roots", () => {
 
   it("grants full access to explicit extra workspace folders and read-only access to ordinary external paths", () => {
     const agentDir = path.join(tempRoot, "agents", "hana");
-    const hanakoHome = path.join(tempRoot, "home");
+    const aniHome = path.join(tempRoot, "home");
     const primary = path.join(tempRoot, "project");
     const extra = path.join(tempRoot, "reference");
     const sibling = path.join(tempRoot, "private");
-    for (const dir of [agentDir, hanakoHome, primary, extra, sibling]) {
+    for (const dir of [agentDir, aniHome, primary, extra, sibling]) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
     const policy = deriveSandboxPolicy({
       agentDir,
-      hanakoHome,
+      aniHome,
       workspace: primary,
       workspaceFolders: [extra],
       mode: "standard",
@@ -48,35 +48,35 @@ describe("sandbox workspace roots", () => {
 
   it("lets agents read session files but blocks writing runtime copies", () => {
     const agentDir = path.join(tempRoot, "agents", "hana");
-    const hanakoHome = path.join(tempRoot, "home");
+    const aniHome = path.join(tempRoot, "home");
     const workspace = path.join(tempRoot, "project");
-    const sessionFile = path.join(hanakoHome, "session-files", "abc123", "SKILL.md");
+    const sessionFile = path.join(aniHome, "session-files", "abc123", "SKILL.md");
     fs.mkdirSync(path.dirname(sessionFile), { recursive: true });
     fs.writeFileSync(sessionFile, "---\nname: demo\n---\n", "utf-8");
     fs.mkdirSync(workspace, { recursive: true });
 
     const policy = deriveSandboxPolicy({
       agentDir,
-      hanakoHome,
+      aniHome,
       workspace,
       workspaceFolders: [],
       mode: "standard",
     });
     const guard = new PathGuard(policy);
 
-    expect(policy.writablePaths).not.toContain(path.join(hanakoHome, "session-files"));
+    expect(policy.writablePaths).not.toContain(path.join(aniHome, "session-files"));
     expect(guard.getAccessLevel(sessionFile)).toBe(AccessLevel.READ_ONLY);
     expect(guard.check(sessionFile, "read").allowed).toBe(true);
     expect(guard.check(sessionFile, "write").allowed).toBe(false);
   });
 
-  it("honors read-all semantics for non-secret HANA_HOME paths while keeping writes scoped", () => {
+  it("honors read-all semantics for non-secret ANI_HOME paths while keeping writes scoped", () => {
     const agentDir = path.join(tempRoot, "home", "agents", "hana");
-    const hanakoHome = path.join(tempRoot, "home");
+    const aniHome = path.join(tempRoot, "home");
     const workspace = path.join(tempRoot, "project");
-    const pluginSkill = path.join(hanakoHome, "plugins", "demo", "skills", "reader", "SKILL.md");
-    const pluginSource = path.join(hanakoHome, "plugins", "demo", "index.js");
-    const blockedAuth = path.join(hanakoHome, "auth.json");
+    const pluginSkill = path.join(aniHome, "plugins", "demo", "skills", "reader", "SKILL.md");
+    const pluginSource = path.join(aniHome, "plugins", "demo", "index.js");
+    const blockedAuth = path.join(aniHome, "auth.json");
     fs.mkdirSync(path.dirname(pluginSkill), { recursive: true });
     fs.writeFileSync(pluginSkill, "---\nname: reader\n---\n", "utf-8");
     fs.writeFileSync(pluginSource, "export default {};\n", "utf-8");
@@ -86,7 +86,7 @@ describe("sandbox workspace roots", () => {
 
     const policy = deriveSandboxPolicy({
       agentDir,
-      hanakoHome,
+      aniHome,
       workspace,
       workspaceFolders: [],
       mode: "standard",
@@ -104,17 +104,17 @@ describe("sandbox workspace roots", () => {
 
   it("treats cwd and explicit runtime roots as scoped write roots", () => {
     const agentDir = path.join(tempRoot, "agents", "hana");
-    const hanakoHome = path.join(tempRoot, "home");
+    const aniHome = path.join(tempRoot, "home");
     const workspace = path.join(tempRoot, "project");
     const cwd = path.join(tempRoot, "scratch");
     const runtimeRoot = path.join(tempRoot, "runtime-cache");
-    for (const dir of [agentDir, hanakoHome, workspace, cwd, runtimeRoot]) {
+    for (const dir of [agentDir, aniHome, workspace, cwd, runtimeRoot]) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
     const policy = deriveSandboxPolicy({
       agentDir,
-      hanakoHome,
+      aniHome,
       workspace,
       workspaceFolders: [],
       cwd,

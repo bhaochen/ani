@@ -4,7 +4,7 @@
  * Electron 环境下这些操作走 IPC（preload.cjs），
  * Web / 云部署环境下前端通过这些 HTTP 端点读取文件。
  *
- * 安全：路径限定在 ~/.hanako/ 和 desk 工作台内。
+ * 安全：路径限定在 ~/.ani/ 和 desk 工作台内。
  */
 
 import fs from "fs";
@@ -63,11 +63,11 @@ function escapeHtmlCell(value) {
 
 export function createFsRoute(engine) {
   const route = new Hono();
-  const hanakoHome = path.resolve(engine.hanakoHome);
+  const aniHome = path.resolve(engine.aniHome);
 
   // 收集允许的根目录
   function getAllowedRoots(c) {
-    const roots = [hanakoHome];
+    const roots = [aniHome];
     // desk 工作台目录（用户可能配在 ~/.hanako 外面）
     const agent = resolveAgent(engine, c);
     const deskHome = agent?.config?.desk?.home_folder || engine.getHomeCwd?.(agent?.id);

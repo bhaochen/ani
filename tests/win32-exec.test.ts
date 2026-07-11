@@ -1,3 +1,4 @@
+import path from "path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const spawnAndStream = vi.fn<(...args: any[]) => Promise<{ exitCode: number }>>(async (cmd, _args, opts) => {
@@ -469,7 +470,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],
@@ -615,7 +616,7 @@ describe("createWin32Exec", () => {
     prepareSandboxRuntime.mockImplementation((runtimeInfo, options) => {
       expect(options).toEqual(expect.objectContaining({
         kind: "git",
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
       }));
       return {
         ...runtimeInfo,
@@ -634,7 +635,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],
@@ -886,7 +887,7 @@ describe("createWin32Exec", () => {
     prepareSandboxRuntime.mockImplementation((runtimeInfo, options) => {
       expect(options).toEqual(expect.objectContaining({
         kind: "node",
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
       }));
       return {
         ...runtimeInfo,
@@ -904,7 +905,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],
@@ -1157,6 +1158,7 @@ describe("createWin32Exec", () => {
   it("keeps sandbox helper cwd separate from policy write roots", async () => {
     classifyWin32Command.mockReturnValue({ runner: "cmd", reason: "windows-native-utility" });
     const helper = "C:\\Hanako\\resources\\sandbox\\windows\\hana-win-sandbox.exe";
+    const workspaceRoot = path.resolve("/workspace");
     existsSync.mockImplementation((p) => p === helper);
     const createWin32Exec = await loadExecFactory();
     const exec = createWin32Exec({
@@ -1183,7 +1185,7 @@ describe("createWin32Exec", () => {
       "--cwd",
       "C:\\read-only-reference",
       "--writable-root",
-      "/workspace",
+      workspaceRoot,
     ]));
     const writableRootIndexes = helperArgs
       .map((arg, index) => arg === "--writable-root" || arg === "--writable-root-optional" ? index + 1 : -1)
@@ -1254,7 +1256,7 @@ describe("createWin32Exec", () => {
     prepareSandboxRuntime.mockImplementation((runtimeInfo, options) => {
       expect(options).toEqual(expect.objectContaining({
         kind: "bash",
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
       }));
       return {
         ...runtimeInfo,
@@ -1273,7 +1275,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],
@@ -1347,7 +1349,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],
@@ -1372,8 +1374,8 @@ describe("createWin32Exec", () => {
 
     const diagnostic = chunks.join("");
     expect(diagnostic).toContain("STATUS_DLL_INIT_FAILED");
-    expect(diagnostic).toContain("<HANA_HOME>\\.ephemeral\\win32-sandbox-runtime\\bash-cache\\bin\\bash.exe");
-    expect(diagnostic).toContain("HANA_HOME: <HANA_HOME>");
+    expect(diagnostic).toContain("<ANI_HOME>\\.ephemeral\\win32-sandbox-runtime\\bash-cache\\bin\\bash.exe");
+    expect(diagnostic).toContain("ANI_HOME: <ANI_HOME>");
     expect(diagnostic).not.toContain("C:\\Users\\Hana");
     expect(diagnostic).not.toContain(cachedShell);
     expect(diagnostic).toContain("Default PowerShell/cmd/terminal execution is not changed");
@@ -1432,7 +1434,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],
@@ -1448,7 +1450,7 @@ describe("createWin32Exec", () => {
         PATH: "C:\\Windows\\System32",
         COMSPEC: systemCmdExe,
         SystemRoot: "C:\\Windows",
-        HANA_HOME: "C:\\Users\\Hana\\.hanako",
+        ANI_HOME: "C:\\Users\\Hana\\.hanako",
       },
     });
 
@@ -1456,7 +1458,7 @@ describe("createWin32Exec", () => {
     const diagnostic = chunks.join("");
     expect(diagnostic).toContain("Route: runner=cmd reason=cmd-builtin mode=sandbox-helper sandbox=true");
     expect(diagnostic).toContain(`Helper: ${helper}`);
-    expect(diagnostic).toContain("HANA_HOME: <HANA_HOME>");
+    expect(diagnostic).toContain("ANI_HOME: <ANI_HOME>");
     expect(diagnostic).not.toContain("C:\\Users\\Hana");
     expect(spawnAndStream).toHaveBeenCalledTimes(1);
   });
@@ -1479,7 +1481,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work\\project"],
@@ -1495,7 +1497,7 @@ describe("createWin32Exec", () => {
         PATH: "C:\\Windows\\System32",
         COMSPEC: systemCmdExe,
         SystemRoot: "C:\\Windows",
-        HANA_HOME: "C:\\Users\\Hana\\.hanako",
+        ANI_HOME: "C:\\Users\\Hana\\.hanako",
         USERPROFILE: "C:\\Users\\Hana",
       },
     });
@@ -1527,7 +1529,7 @@ describe("createWin32Exec", () => {
     const exec = createWin32Exec({
       sandbox: {
         helperPath: helper,
-        hanakoHome: "C:\\Users\\Hana\\.hanako",
+        aniHome: "C:\\Users\\Hana\\.hanako",
         grants: {
           readPaths: [],
           writePaths: ["C:\\work"],

@@ -281,7 +281,7 @@ export class UniversalMediaManager {
   declare _store: any;
 
   constructor({
-    hanakoHome,
+    aniHome,
     providerRegistry,
     preferences,
     speechRecognition = null,
@@ -290,7 +290,7 @@ export class UniversalMediaManager {
     onProviderChanged,
     logger = log,
   }: any = {}) {
-    if (!hanakoHome) throw new Error("UniversalMediaManager requires hanakoHome");
+    if (!aniHome) throw new Error("UniversalMediaManager requires aniHome");
     if (!providerRegistry) throw new Error("UniversalMediaManager requires providerRegistry");
     if (!preferences) throw new Error("UniversalMediaManager requires preferences");
     if (typeof registerSessionFile !== "function") throw new Error("UniversalMediaManager requires registerSessionFile");
@@ -302,7 +302,7 @@ export class UniversalMediaManager {
     this._registerSessionFile = registerSessionFile;
     this._onProviderChanged = typeof onProviderChanged === "function" ? onProviderChanged : async () => {};
     this._log = logger;
-    this._dataDir = path.join(hanakoHome, "plugin-data", "image-gen");
+    this._dataDir = path.join(aniHome, "plugin-data", "image-gen");
     this._generatedDir = path.join(this._dataDir, "generated");
     fs.mkdirSync(this._generatedDir, { recursive: true });
 

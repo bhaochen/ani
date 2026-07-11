@@ -56,7 +56,7 @@ Debug order: install the local folder, inspect Settings diagnostics, finish READ
 
 - **Drag-and-drop**: Drag a plugin folder or .zip into Settings → Plugins install area
 - **File picker**: Click the install area and select a plugin folder or .zip via the file picker
-- **Manual**: Place the plugin directory in `${HANA_HOME}/plugins/`. The actual path is shown in Settings → Plugins or via `/api/plugins/settings` as `plugins_dir`
+- **Manual**: Place the plugin directory in `${ANI_HOME}/plugins/`. The actual path is shown in Settings → Plugins or via `/api/plugins/settings` as `plugins_dir`
 
 ### Management
 
@@ -68,7 +68,7 @@ All operations take effect immediately, no restart required:
 
 ### Plugin Data
 
-Plugin private data is stored in `${HANA_HOME}/plugin-data/{pluginId}/`. This directory is preserved when the plugin is deleted, so config persists across reinstalls.
+Plugin private data is stored in `${ANI_HOME}/plugin-data/{pluginId}/`. This directory is preserved when the plugin is deleted, so config persists across reinstalls.
 
 ## Directory Structure
 
@@ -1102,7 +1102,7 @@ Developer overrides remain available:
 - `HANA_PLUGIN_MARKETPLACE_FILE=/path/to/marketplace.json`
 - `HANA_PLUGIN_MARKETPLACE_URL=https://.../marketplace.json`
 
-Without either environment variable, Hana first tries `${HANA_HOME}/plugin-marketplace/marketplace.json` for local development. If it does not exist, Hana reads the official `OH-Plugins` URL. The marketplace index shape matches the `OH-Plugins` repository:
+Without either environment variable, Hana first tries `${ANI_HOME}/plugin-marketplace/marketplace.json` for local development. If it does not exist, Hana reads the official `OH-Plugins` URL. The marketplace index shape matches the `OH-Plugins` repository:
 
 ```json
 {
@@ -1144,7 +1144,7 @@ The marketplace UI shows the plugin list and README in a wider settings subpage.
 
 Marketplace version management uses `versions[]` as the long-term contract: each item declares `version`, that version's `compatibility.minAppVersion`, and its own `distribution`. If `versions[]` is absent, Hana treats the root-level `version` / `compatibility` / `distribution` as a single version entry. The client chooses the highest SemVer version compatible with the current app, while exposing `latestVersion`, `selectedVersion`, `installedVersion`, `updateAvailable`, `downgrade`, `reinstall`, `compatible`, `installAction`, and `canInstall` for UI state.
 
-If the installed version is newer than the highest compatible marketplace version, the action is marked as `downgrade` and install requires explicit `allowDowngrade: true`. Drag-and-drop / local path installs also reject implicit downgrades. Updates back up the previous plugin directory under `${HANA_HOME}/plugin-backups/<pluginId>/`; if the new version fails to load, Hana restores and reloads the old directory. Successful installs are recorded in `${HANA_HOME}/plugin-installs.json` with source, version, release URL, and sha256 so later marketplace state is explicit.
+If the installed version is newer than the highest compatible marketplace version, the action is marked as `downgrade` and install requires explicit `allowDowngrade: true`. Drag-and-drop / local path installs also reject implicit downgrades. Updates back up the previous plugin directory under `${ANI_HOME}/plugin-backups/<pluginId>/`; if the new version fails to load, Hana restores and reloads the old directory. Successful installs are recorded in `${ANI_HOME}/plugin-installs.json` with source, version, release URL, and sha256 so later marketplace state is explicit.
 
 ## Forward Compatibility
 

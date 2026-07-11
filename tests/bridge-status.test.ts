@@ -39,14 +39,14 @@ describe("BridgeManager platform status", () => {
     createWechatAdapter.mockReturnValue({ stop: vi.fn() });
 
     const engine = {
-      hanakoHome: os.tmpdir(),
+      aniHome: os.tmpdir(),
       agent: null,
       getAgent: vi.fn(() => null),
     };
     const hub = { eventBus: { emit: vi.fn() } };
     const bm = new BridgeManager({ engine, hub });
 
-    bm.startPlatform("wechat", { botToken: "wx-token", hanaHome: os.tmpdir() }, "hana");
+    bm.startPlatform("wechat", { botToken: "wx-token", aniHome: os.tmpdir() }, "hana");
 
     expect(bm.getStatus("hana").wechat).toMatchObject({ status: "connecting", error: null });
   });
@@ -59,7 +59,7 @@ describe("BridgeManager platform status", () => {
     createWechatAdapter.mockReset();
 
     const engine = {
-      hanakoHome: os.tmpdir(),
+      aniHome: os.tmpdir(),
       agent: null,
       getAgent: vi.fn(() => null),
     };
@@ -83,7 +83,7 @@ describe("BridgeManager platform status", () => {
   it("does not start DingTalk when the new token contract is missing corpId", () => {
     createDingTalkAdapter.mockReset();
     const engine = {
-      hanakoHome: os.tmpdir(),
+      aniHome: os.tmpdir(),
       agent: null,
       getAgent: vi.fn(() => null),
     };
@@ -107,7 +107,7 @@ describe("BridgeManager platform status", () => {
   it("does not revive a legacy QQ token after canonical appSecret was cleared", () => {
     createQQAdapter.mockReset();
     const engine = {
-      hanakoHome: os.tmpdir(),
+      aniHome: os.tmpdir(),
       agent: null,
       getAgent: vi.fn(() => null),
     };

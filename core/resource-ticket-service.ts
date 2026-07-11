@@ -20,14 +20,14 @@ export class ResourceTicketError extends Error {
 }
 
 export function issueResourceTicket({
-  hanakoHome,
+  aniHome,
   resourceId,
   studioId,
   principalId,
   now = new Date().toISOString(),
   ttlMs = DEFAULT_RESOURCE_TICKET_TTL_MS,
 }: any = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(resourceId, "resourceId");
   assertNonEmpty(studioId, "studioId");
   assertNonEmpty(principalId, "principalId");
@@ -45,7 +45,7 @@ export function issueResourceTicket({
     expiresAt: new Date(issuedAtMs + safeTtlMs).toISOString(),
   };
   const body = base64UrlEncode(JSON.stringify(payload));
-  const signature = signBody(hanakoHome, body);
+  const signature = signBody(aniHome, body);
   return {
     ...payload,
     ticket: `${body}.${signature}`,
@@ -53,12 +53,12 @@ export function issueResourceTicket({
 }
 
 export function verifyResourceTicket({
-  hanakoHome,
+  aniHome,
   ticket,
   resourceId,
   now = new Date().toISOString(),
 }: any = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(resourceId, "resourceId");
   if (typeof ticket !== "string" || !ticket.trim()) {
     throw new ResourceTicketError("resource ticket required");
@@ -67,7 +67,7 @@ export function verifyResourceTicket({
   if (!body || !signature || extra !== undefined) {
     throw new ResourceTicketError("resource ticket malformed");
   }
-  const expected = signBody(hanakoHome, body);
+  const expected = signBody(aniHome, body);
   if (!timingSafeEqual(signature, expected)) {
     throw new ResourceTicketError("resource ticket signature invalid");
   }
@@ -104,20 +104,20 @@ export function verifyResourceTicket({
   });
 }
 
-export function resourceTicketKeyPath(hanakoHome: any) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
-  return path.join(hanakoHome, "security", RESOURCE_TICKET_KEY_FILE);
+export function resourceTicketKeyPath(aniHome: any) {
+  assertNonEmpty(aniHome, "aniHome");
+  return path.join(aniHome, "security", RESOURCE_TICKET_KEY_FILE);
 }
 
-function signBody(hanakoHome: any, body: any) {
+function signBody(aniHome: any, body: any) {
   return crypto
-    .createHmac("sha256", readOrCreateTicketKey(hanakoHome))
+    .createHmac("sha256", readOrCreateTicketKey(aniHome))
     .update(body)
     .digest("base64url");
 }
 
-function readOrCreateTicketKey(hanakoHome: any) {
-  const filePath = resourceTicketKeyPath(hanakoHome);
+function readOrCreateTicketKey(aniHome: any) {
+  const filePath = resourceTicketKeyPath(aniHome);
   try {
     const existing = fs.readFileSync(filePath, "utf-8").trim();
     if (existing) return existing;

@@ -4,7 +4,7 @@ import os from "os";
 import path from "path";
 
 import {
-  resolveHanakoHome,
+  resolveAniHome,
   resolveHanaPiSdkManagedBinDir,
   resolveHanaPiSdkResourceLoaderAgentDir,
   resolveHanaPiSdkResourceLoaderCwd,
@@ -13,34 +13,34 @@ import {
 } from "../shared/hana-runtime-paths.ts";
 
 describe("Hana runtime path contracts", () => {
-  it("derives Hana-owned Pi SDK runtime paths from HANA_HOME", () => {
-    const hanakoHome = path.join(os.tmpdir(), "hana-runtime-paths", ".hanako-dev");
-    const runtimeRoot = path.join(hanakoHome, "runtime", "pi-sdk");
+  it("derives Hana-owned Pi SDK runtime paths from ANI_HOME", () => {
+    const aniHome = path.join(os.tmpdir(), "hana-runtime-paths", ".ani-dev");
+    const runtimeRoot = path.join(aniHome, "runtime", "pi-sdk");
 
-    expect(resolveHanaPiSdkRuntimeRoot(hanakoHome)).toBe(runtimeRoot);
-    expect(resolveHanaPiSdkManagedBinDir(hanakoHome)).toBe(path.join(runtimeRoot, "bin"));
-    expect(resolveHanaPiSdkResourceLoaderCwd(hanakoHome)).toBe(path.join(runtimeRoot, "resource-loader", "project"));
-    expect(resolveHanaPiSdkResourceLoaderAgentDir(hanakoHome)).toBe(path.join(runtimeRoot, "resource-loader", "agent"));
+    expect(resolveHanaPiSdkRuntimeRoot(aniHome)).toBe(runtimeRoot);
+    expect(resolveHanaPiSdkManagedBinDir(aniHome)).toBe(path.join(runtimeRoot, "bin"));
+    expect(resolveHanaPiSdkResourceLoaderCwd(aniHome)).toBe(path.join(runtimeRoot, "resource-loader", "project"));
+    expect(resolveHanaPiSdkResourceLoaderAgentDir(aniHome)).toBe(path.join(runtimeRoot, "resource-loader", "agent"));
   });
 
-  it("normalizes HANA_HOME before deriving Pi SDK paths", () => {
+  it("normalizes ANI_HOME before deriving Pi SDK paths", () => {
     const homeDir = path.join(os.tmpdir(), "hana-runtime-home");
 
-    expect(resolveHanakoHome("~/.hanako-dev", homeDir)).toBe(path.join(homeDir, ".hanako-dev"));
+    expect(resolveAniHome("~/.ani-dev", homeDir)).toBe(path.join(homeDir, ".ani-dev"));
   });
 
   it("keeps legacy Pi binary lookup explicit without creating either tree", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-runtime-dirs-"));
-    const hanakoHome = path.join(root, ".hanako");
+    const aniHome = path.join(root, ".ani");
 
-    expect(resolveLegacyPiSdkManagedBinDir(hanakoHome)).toBe(
-      path.join(hanakoHome, ".pi", "agent", "bin"),
+    expect(resolveLegacyPiSdkManagedBinDir(aniHome)).toBe(
+      path.join(aniHome, ".pi", "agent", "bin"),
     );
-    expect(resolveHanaPiSdkManagedBinDir(hanakoHome)).toBe(
-      path.join(hanakoHome, "runtime", "pi-sdk", "bin"),
+    expect(resolveHanaPiSdkManagedBinDir(aniHome)).toBe(
+      path.join(aniHome, "runtime", "pi-sdk", "bin"),
     );
 
-    expect(fs.existsSync(hanakoHome)).toBe(false);
+    expect(fs.existsSync(aniHome)).toBe(false);
     fs.rmSync(root, { recursive: true, force: true });
   });
 });

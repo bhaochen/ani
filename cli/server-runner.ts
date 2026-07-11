@@ -43,15 +43,15 @@ export type RendererDistPointer = { distDir: string; version: string | null; val
  * mode on its own.
  */
 export async function resolveRendererDistPointer({
-  hanaHome,
+  aniHome,
   channel = "stable",
-}: { hanaHome: string; channel?: string }): Promise<RendererDistPointer | null> {
+}: { aniHome: string; channel?: string }): Promise<RendererDistPointer | null> {
   const rendererChannel = rendererPointerChannel(channel);
-  const boot = await activation.resolveBoot(rendererChannel, hanaHome);
+  const boot = await activation.resolveBoot(rendererChannel, aniHome);
   if (boot) {
     return { distDir: boot.pointer.versionDir, version: boot.pointer.version ?? null, valid: true };
   }
-  const current = await pointerStore.readPointer(hanaHome, rendererChannel, "current");
+  const current = await pointerStore.readPointer(aniHome, rendererChannel, "current");
   if (current && typeof current.versionDir === "string") {
     return { distDir: current.versionDir, version: current.version ?? null, valid: false };
   }
@@ -75,7 +75,7 @@ export async function resolveServerSpawnSpec({
       : null
   );
 
-  const rendererDist = await resolveRendererDistPointer({ hanaHome: resolveCliHanaHome(env), channel });
+  const rendererDist = await resolveRendererDistPointer({ aniHome: resolveCliHanaHome(env), channel });
 
   if (packagedRoot) {
     const spawnEnv: NodeJS.ProcessEnv = {
@@ -106,7 +106,7 @@ export async function resolveServerSpawnSpec({
 
 /**
  * Pre-spawn check for the "同宅互斥" gate's CLI-side entry point. Reads
- * whatever server-info.json is on disk for `hanaHome` (regardless of
+ * whatever server-info.json is on disk for `aniHome` (regardless of
  * whether its recorded PID looks alive — `probeImpl` is the actual source
  * of truth, not the PID) and probes it with the shared token-authenticated
  * probe. Returns a structured decision instead of printing/exiting itself
@@ -120,10 +120,10 @@ export async function resolveServerSpawnSpec({
  * even spawns a child process.
  */
 export async function guardAgainstForeignServer({
-  hanaHome,
+  aniHome,
   probeImpl = probeServerInfo,
-}: { hanaHome: string; probeImpl?: typeof probeServerInfo }): Promise<{ blocked: boolean; message: string | null }> {
-  const local = readLocalServerInfo({ hanaHome, checkProcess: false });
+}: { aniHome: string; probeImpl?: typeof probeServerInfo }): Promise<{ blocked: boolean; message: string | null }> {
+  const local = readLocalServerInfo({ aniHome, checkProcess: false });
   if (!local.ok) return { blocked: false, message: null };
   const probe = await probeImpl({ info: local.info });
   if (!isForeignServerBlocking(probe.status)) return { blocked: false, message: null };
@@ -172,7 +172,7 @@ export async function spawnServerForeground({
   probeImpl?: typeof probeServerInfo;
   exit?: (code?: number) => any;
 } = {}) {
-  const guard = await guardAgainstForeignServer({ hanaHome: resolveCliHanaHome(env), probeImpl });
+  const guard = await guardAgainstForeignServer({ aniHome: resolveCliHanaHome(env), probeImpl });
   if (guard.blocked) {
     console.error(`${ansi.red}${guard.message}${ansi.reset}`);
     return exit(1);
@@ -197,8 +197,8 @@ export async function startLocalServerAndWait({
   timeoutMs = 30000,
   intervalMs = 250,
 }: { projectRoot?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number; intervalMs?: number } = {}) {
-  const hanaHome = resolveCliHanaHome(env);
-  const existing = readLocalServerInfo({ hanaHome });
+  const aniHome = resolveCliHanaHome(env);
+  const existing = readLocalServerInfo({ aniHome });
   if (existing.ok) return existing;
 
   const spec = await resolveServerSpawnSpec({ projectRoot, env, extraArgs: [] });
@@ -211,7 +211,7 @@ export async function startLocalServerAndWait({
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
-    const info = readLocalServerInfo({ hanaHome });
+    const info = readLocalServerInfo({ aniHome });
     if (info.ok) return { ...info, started: true, serverMode: spec.mode };
     await delay(intervalMs);
   }

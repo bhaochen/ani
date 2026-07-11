@@ -411,7 +411,7 @@ export function createDeskRoute(engine, hub) {
   function fileServiceForRequest(c, defaultRootOverride = null) {
     const requestContext = createRequestContext(c, engine);
     return new MountAwareFileService({
-      hanakoHome: engine.hanakoHome,
+      aniHome: engine.aniHome,
       defaultRoot: defaultRootOverride || defaultDeskDir(engine),
       studioId: requestContext?.studioId || engine.getRuntimeContext?.()?.studioId || null,
       createCheckpoint: typeof engine.createUserEditCheckpoint === "function"
@@ -539,7 +539,7 @@ export function createDeskRoute(engine, hub) {
       ? image.filename.trim()
       : typeof image.name === "string" && image.name.trim() ? image.name.trim() : "cover.png";
     const ext = path.extname(filename).toLowerCase() || ".png";
-    const uploadRoot = path.join(engine.hanakoHome || os.tmpdir(), "tmp", "markdown-cover-uploads");
+    const uploadRoot = path.join(engine.aniHome || os.tmpdir(), "tmp", "markdown-cover-uploads");
     fs.mkdirSync(uploadRoot, { recursive: true });
     const tempDir = fs.mkdtempSync(path.join(uploadRoot, "cover-"));
     const filePath = path.join(tempDir, `upload-${crypto.randomBytes(4).toString("hex")}${ext}`);
@@ -1316,7 +1316,7 @@ export function createDeskRoute(engine, hub) {
               results.push({ src: srcPath, error: "invalid path" });
               continue;
             }
-            if (isSensitivePath(srcPath, engine.hanakoHome)) {
+            if (isSensitivePath(srcPath, engine.aniHome)) {
               results.push({ src: srcPath, error: "sensitive path blocked" });
               continue;
             }

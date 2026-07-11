@@ -82,7 +82,7 @@ function isSafeRunFileId(value) {
 }
 
 export class StudioCronService {
-  declare _hanakoHome: string;
+  declare _aniHome: string;
   declare _agentsDir: string;
   declare _getStudioId: () => string;
   declare _store: CronStore;
@@ -90,15 +90,15 @@ export class StudioCronService {
 
   /**
    * @param {object} opts
-   * @param {string} opts.hanakoHome
+   * @param {string} opts.aniHome
    * @param {string} opts.agentsDir
    * @param {() => string} opts.getStudioId
    */
-  constructor({ hanakoHome, agentsDir, getStudioId }) {
-    if (!hanakoHome) throw new Error("StudioCronService requires hanakoHome");
+  constructor({ aniHome, agentsDir, getStudioId }) {
+    if (!aniHome) throw new Error("StudioCronService requires aniHome");
     if (!agentsDir) throw new Error("StudioCronService requires agentsDir");
     if (typeof getStudioId !== "function") throw new Error("StudioCronService requires getStudioId");
-    this._hanakoHome = hanakoHome;
+    this._aniHome = aniHome;
     this._agentsDir = agentsDir;
     this._getStudioId = getStudioId;
     this._store = null;
@@ -152,7 +152,7 @@ export class StudioCronService {
   _getStore() {
     const studioId = assertValidPathSegment(this._getStudioId(), "studioId");
     if (!this._store || this._storeStudioId !== studioId) {
-      const deskDir = path.join(this._hanakoHome, "studios", studioId, "desk");
+      const deskDir = path.join(this._aniHome, "studios", studioId, "desk");
       this._store = new CronStore(
         path.join(deskDir, "cron-jobs.json"),
         path.join(deskDir, "cron-runs"),
@@ -165,7 +165,7 @@ export class StudioCronService {
   }
 
   _importLegacyJobs(store, studioId) {
-    const studioRunsDir = path.join(this._hanakoHome, "studios", studioId, "desk", "cron-runs");
+    const studioRunsDir = path.join(this._aniHome, "studios", studioId, "desk", "cron-runs");
     const existingLegacyJobs = new Map();
     for (const job of store.listJobs()) {
       const refKey = legacyRefKey(job.legacyRef);

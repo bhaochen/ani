@@ -192,11 +192,11 @@ export class Hub {
     // 在路由之前统一处理，所有消息路径（WS / Bridge DM / Bridge Group）共享
     if (
       o.images?.length
-      && this._engine.hanakoHome
+      && this._engine.aniHome
       && !o.inboundFiles?.length
       && !hasDisplayImageAttachments(o.displayMessage)
     ) {
-      const attachDir = path.join(this._engine.hanakoHome, "attachments");
+      const attachDir = path.join(this._engine.aniHome, "attachments");
       await fs.promises.mkdir(attachDir, { recursive: true });
       const savedPaths = [];
       for (const img of o.images) {
@@ -216,11 +216,11 @@ export class Hub {
     }
     if (
       o.videos?.length
-      && this._engine.hanakoHome
+      && this._engine.aniHome
       && !o.inboundFiles?.length
       && !hasDisplayVideoAttachments(o.displayMessage)
     ) {
-      const attachDir = path.join(this._engine.hanakoHome, "attachments");
+      const attachDir = path.join(this._engine.aniHome, "attachments");
       await fs.promises.mkdir(attachDir, { recursive: true });
       const savedPaths = [];
       for (const video of o.videos) {

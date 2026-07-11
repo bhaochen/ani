@@ -19,6 +19,7 @@ import type {
   MarkdownBlockMenuRequest,
   MarkdownBlockMenuTarget,
 } from '../../editor/markdown-block-handles';
+import { copyMarkdownSource } from '../../editor/markdown-block-selection';
 import { EditorFormatMenu } from './EditorFormatMenu';
 
 function label(key: string, fallback: string): string {
@@ -48,6 +49,13 @@ function editorCanUndo(view: EditorView): boolean {
 
 function editorCanRedo(view: EditorView): boolean {
   return redo({ state: view.state, dispatch: () => {} });
+}
+
+function eventTargetClosest(target: EventTarget | null, selector: string): Element | null {
+  if (!target || typeof target !== 'object' || !('nodeType' in target)) return null;
+  const node = target as Node;
+  const element = node.nodeType === 1 ? node as Element : node.parentElement;
+  return element?.closest(selector) ?? null;
 }
 
 interface Props {
@@ -158,6 +166,10 @@ export function EditorContextMenu({
     };
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current?.contains(e.target as Node)) return;
+      // The Grabber owns its toggle. Closing here during capture would clear
+      // the request before the button's click handler runs, making that same
+      // click open a fresh menu instead of closing the current one.
+      if (menu.blockTarget && eventTargetClosest(e.target, '.cm-markdown-block-handle')) return;
       close();
     };
     const handleCtx = (e: MouseEvent) => {
@@ -208,6 +220,15 @@ export function EditorContextMenu({
     const view = getView();
     if (!view) return;
     const target = menu?.blockTarget;
+    if (target && command === 'copy') {
+      if (view.state.sliceDoc(target.from, target.to) !== target.source) return;
+      try {
+        await copyMarkdownSource(view, target.source);
+      } catch (err) {
+        console.warn('[EditorContextMenu] copy block source failed:', err);
+      }
+      return;
+    }
     if (target && command !== 'selectAll') {
       const selection = command === 'paste' ? 'end' : 'block';
       if (!selectBlockTarget(view, target, selection)) return;

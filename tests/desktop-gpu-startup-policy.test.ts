@@ -29,21 +29,21 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
-function writePrefs(hanakoHome, prefs) {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+function writePrefs(aniHome, prefs) {
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   fs.mkdirSync(path.dirname(prefsPath), { recursive: true });
   fs.writeFileSync(prefsPath, JSON.stringify(prefs, null, 2) + "\n", "utf-8");
 }
 
-function writeGpuState(hanakoHome, state) {
-  const statePath = path.join(hanakoHome, "user", "gpu-startup.json");
+function writeGpuState(aniHome, state) {
+  const statePath = path.join(aniHome, "user", "gpu-startup.json");
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
   fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n", "utf-8");
 }
 
-function readPrefs(hanakoHome) {
+function readPrefs(aniHome) {
   try {
-    return readJson(path.join(hanakoHome, "user", "preferences.json"));
+    return readJson(path.join(aniHome, "user", "preferences.json"));
   } catch {
     return {};
   }
@@ -59,10 +59,10 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("keeps hardware acceleration enabled by default", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -74,11 +74,11 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("honors the user hardware acceleration preference", () => {
-    const hanakoHome = makeHome();
-    writePrefs(hanakoHome, { hardware_acceleration: false });
+    const aniHome = makeHome();
+    writePrefs(aniHome, { hardware_acceleration: false });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -90,9 +90,9 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("defers legacy automatic safe-mode preference cleanup until the server gate passes", () => {
-    const hanakoHome = makeHome();
-    writePrefs(hanakoHome, { locale: "zh-CN", hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    const aniHome = makeHome();
+    writePrefs(aniHome, { locale: "zh-CN", hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: {
         enabled: true,
@@ -103,7 +103,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -117,21 +117,21 @@ describe("desktop GPU startup policy", () => {
       sourceReason: "previous-startup-incomplete",
       sourceUpdatedAt: "2026-05-19T01:00:00.000Z",
     });
-    expect(readPrefs(hanakoHome)).toEqual({ locale: "zh-CN", hardware_acceleration: false });
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json"))).toMatchObject({
+    expect(readPrefs(aniHome)).toEqual({ locale: "zh-CN", hardware_acceleration: false });
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json"))).toMatchObject({
       safeMode: { reason: "previous-startup-incomplete" },
       legacySafeModeMigration: { status: "prepared" },
     });
 
-    writePrefs(hanakoHome, { locale: "zh-CN" });
+    writePrefs(aniHome, { locale: "zh-CN" });
     settleLegacyGpuPreferenceMigration({
-      hanakoHome,
+      aniHome,
       intent: policy.legacyPreferenceCleanup,
       preferenceStatus: "deleted",
       now: "2026-05-21T01:00:01.000Z",
     });
 
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "gpu-sandbox-compat",
       reason: "legacy-auto-safe-mode-migration",
       previousMode: "software-safe",
@@ -139,10 +139,10 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("settles an exact legacy GPU child crash marker after preference cleanup", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { locale: "zh-CN", hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { locale: "zh-CN", hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: {
         enabled: true,
@@ -159,7 +159,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const firstPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -171,21 +171,21 @@ describe("desktop GPU startup policy", () => {
       hardwareAccelerationEnabled: true,
       reason: "legacy-auto-safe-mode-migration",
     });
-    expect(readPrefs(hanakoHome)).toEqual({ locale: "zh-CN", hardware_acceleration: false });
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json"))).toMatchObject({
+    expect(readPrefs(aniHome)).toEqual({ locale: "zh-CN", hardware_acceleration: false });
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json"))).toMatchObject({
       safeMode: { reason: "gpu-child-process-gone" },
       legacySafeModeMigration: { status: "prepared" },
     });
 
-    writePrefs(hanakoHome, { locale: "zh-CN" });
+    writePrefs(aniHome, { locale: "zh-CN" });
     settleLegacyGpuPreferenceMigration({
-      hanakoHome,
+      aniHome,
       intent: firstPolicy.legacyPreferenceCleanup,
       preferenceStatus: "deleted",
       now: "2026-05-21T01:00:01.000Z",
     });
 
-    const migratedState = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const migratedState = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(migratedState.safeMode).toBeUndefined();
     expect(migratedState.lastGpuCrash).toMatchObject({ at: crashAt, exitCode: -2147483645 });
     expect(migratedState.autoGpuMode).toMatchObject({
@@ -200,7 +200,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const secondPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -208,13 +208,13 @@ describe("desktop GPU startup policy", () => {
     });
 
     expect(secondPolicy.mode).toBe("gpu-sandbox-compat");
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json"))).toEqual(migratedState);
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json"))).toEqual(migratedState);
   });
 
   it("migrates an exact legacy GPU child marker while preserving an enabled preference", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { locale: "zh-CN", hardware_acceleration: true });
+    writePrefs(aniHome, { locale: "zh-CN", hardware_acceleration: true });
     const lastGpuCrash = {
       type: "GPU",
       reason: "crashed",
@@ -222,7 +222,7 @@ describe("desktop GPU startup policy", () => {
       platform: "win32",
       at: crashAt,
     };
-    writeGpuState(hanakoHome, {
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: {
         enabled: true,
@@ -234,7 +234,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -247,8 +247,8 @@ describe("desktop GPU startup policy", () => {
       reason: "legacy-auto-safe-mode-migration",
     });
     expect(policy.legacyPreferenceCleanup).toBeUndefined();
-    expect(readPrefs(hanakoHome)).toEqual({ locale: "zh-CN", hardware_acceleration: true });
-    const migratedState = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    expect(readPrefs(aniHome)).toEqual({ locale: "zh-CN", hardware_acceleration: true });
+    const migratedState = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(migratedState.safeMode).toBeUndefined();
     expect(migratedState.lastGpuCrash).toEqual(lastGpuCrash);
     expect(migratedState.autoGpuMode).toMatchObject({
@@ -346,41 +346,41 @@ describe("desktop GPU startup policy", () => {
       }),
     },
   ])("does not apply the enabled-preference migration when $name", ({ prefs, mutateState }) => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, prefs);
+    writePrefs(aniHome, prefs);
     const sourceState = {
       version: 1,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
     };
-    writeGpuState(hanakoHome, mutateState(sourceState));
+    writeGpuState(aniHome, mutateState(sourceState));
 
     resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
       now: "2026-05-21T01:00:00.000Z",
     });
 
-    expect(readPrefs(hanakoHome)).toEqual(prefs);
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    expect(readPrefs(aniHome)).toEqual(prefs);
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.legacySafeModeMigration?.preferenceStatus).not.toBe("preserved-enabled");
   });
 
   it("does not apply the enabled-preference migration outside Windows", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { hardware_acceleration: true });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { hardware_acceleration: true });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "darwin",
       argv: ["Hanako"],
       env: {},
@@ -388,17 +388,17 @@ describe("desktop GPU startup policy", () => {
     });
 
     expect(policy).toMatchObject({ mode: "hardware", reason: "default" });
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(true);
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(true);
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.safeMode).toBeDefined();
     expect(state.autoGpuMode).toBeUndefined();
     expect(state.legacySafeModeMigration).toBeUndefined();
   });
 
   it("does not migrate a user hardware preference without an exact legacy GPU crash marker", () => {
-    const hanakoHome = makeHome();
-    writePrefs(hanakoHome, { hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    const aniHome = makeHome();
+    writePrefs(aniHome, { hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: {
         enabled: true,
@@ -415,46 +415,46 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
     });
 
     expect(policy).toMatchObject({ mode: "software-safe", reason: "preference" });
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(false);
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(false);
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.safeMode.reason).toBe("gpu-child-process-gone");
     expect(state.autoGpuMode).toBeUndefined();
     expect(state.legacySafeModeMigration).toBeUndefined();
   });
 
   it("does not migrate legacy GPU child crash state outside Windows", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "darwin",
       argv: ["Hanako"],
       env: {},
     });
 
     expect(policy).toMatchObject({ mode: "software-safe", reason: "preference" });
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(false);
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(false);
   });
 
   it("keeps an explicit hardware preference authoritative when current auto GPU state exists", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 2,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       autoGpuMode: {
@@ -467,30 +467,30 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
     });
 
     expect(policy).toMatchObject({ mode: "software-safe", reason: "preference" });
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(false);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).legacySafeModeMigration).toBeUndefined();
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(false);
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).legacySafeModeMigration).toBeUndefined();
   });
 
   it("resumes settlement after the preference was removed but the GPU state write failed", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    const statePath = path.join(hanakoHome, "user", "gpu-startup.json");
+    const statePath = path.join(aniHome, "user", "gpu-startup.json");
     const blockedTmpPath = `${statePath}.${process.pid}.tmp`;
-    writePrefs(hanakoHome, { hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
     });
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -507,12 +507,12 @@ describe("desktop GPU startup policy", () => {
       sourceUpdatedAt: crashAt,
       status: "prepared",
     });
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(false);
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(false);
 
-    writePrefs(hanakoHome, {});
+    writePrefs(aniHome, {});
     fs.mkdirSync(blockedTmpPath);
     expect(() => settleLegacyGpuPreferenceMigration({
-      hanakoHome,
+      aniHome,
       intent: policy.legacyPreferenceCleanup,
       preferenceStatus: "deleted",
       now: "2026-05-21T01:01:00.000Z",
@@ -521,24 +521,24 @@ describe("desktop GPU startup policy", () => {
 
     fs.rmSync(blockedTmpPath, { recursive: true, force: true });
     const result = settleLegacyGpuPreferenceMigration({
-      hanakoHome,
+      aniHome,
       intent: policy.legacyPreferenceCleanup,
       preferenceStatus: "already-absent",
       now: "2026-05-21T01:01:00.000Z",
     });
 
     expect(result.status).toBe("completed");
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBeUndefined();
+    expect(readPrefs(aniHome).hardware_acceleration).toBeUndefined();
     const completedState = readJson(statePath);
     expect(completedState.safeMode).toBeUndefined();
     expect(completedState.legacySafeModeMigration.status).toBe("completed");
   });
 
   it("finishes a prepared legacy GPU migration after the preference was already cleared", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { locale: "zh-CN" });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { locale: "zh-CN" });
+    writeGpuState(aniHome, {
       version: 2,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
@@ -552,7 +552,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -560,18 +560,18 @@ describe("desktop GPU startup policy", () => {
     });
 
     expect(policy.mode).toBe("gpu-sandbox-compat");
-    expect(readPrefs(hanakoHome)).toEqual({ locale: "zh-CN" });
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).legacySafeModeMigration.status)
+    expect(readPrefs(aniHome)).toEqual({ locale: "zh-CN" });
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).legacySafeModeMigration.status)
       .toBe("prepared");
 
     settleLegacyGpuPreferenceMigration({
-      hanakoHome,
+      aniHome,
       intent: policy.legacyPreferenceCleanup,
       preferenceStatus: "already-absent",
       now: "2026-05-21T01:01:00.000Z",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.safeMode).toBeUndefined();
     expect(state.legacySafeModeMigration).toMatchObject({
       status: "completed",
@@ -581,34 +581,34 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("cancels legacy cleanup when the preference changed after preparation", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    writePrefs(hanakoHome, { hardware_acceleration: false });
-    writeGpuState(hanakoHome, {
+    writePrefs(aniHome, { hardware_acceleration: false });
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
       now: "2026-05-21T01:00:00.000Z",
     });
-    writePrefs(hanakoHome, { hardware_acceleration: true });
+    writePrefs(aniHome, { hardware_acceleration: true });
 
     const result = settleLegacyGpuPreferenceMigration({
-      hanakoHome,
+      aniHome,
       intent: policy.legacyPreferenceCleanup,
       preferenceStatus: "value-changed",
       now: "2026-05-21T01:01:00.000Z",
     });
 
     expect(result.status).toBe("cancelled");
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(true);
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(true);
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.safeMode).toBeUndefined();
     expect(state.autoGpuMode).toBeUndefined();
     expect(state.legacySafeModeMigration).toMatchObject({
@@ -618,13 +618,13 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("fails explicitly when Windows GPU startup state is malformed", () => {
-    const hanakoHome = makeHome();
-    const statePath = path.join(hanakoHome, "user", "gpu-startup.json");
+    const aniHome = makeHome();
+    const statePath = path.join(aniHome, "user", "gpu-startup.json");
     fs.mkdirSync(path.dirname(statePath), { recursive: true });
     fs.writeFileSync(statePath, "{ invalid json\n", "utf-8");
 
     expect(() => resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -632,14 +632,14 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("lets explicit safe mode bypass malformed Windows GPU persistence", () => {
-    const hanakoHome = makeHome();
-    const userDir = path.join(hanakoHome, "user");
+    const aniHome = makeHome();
+    const userDir = path.join(aniHome, "user");
     fs.mkdirSync(userDir, { recursive: true });
     fs.writeFileSync(path.join(userDir, "gpu-startup.json"), "{ invalid state\n", "utf-8");
     fs.writeFileSync(path.join(userDir, "preferences.json"), "{ invalid prefs\n", "utf-8");
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-safe-mode"],
       env: {},
@@ -653,13 +653,13 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("keeps the legacy preference fallback when no GPU migration evidence exists", () => {
-    const hanakoHome = makeHome();
-    const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+    const aniHome = makeHome();
+    const prefsPath = path.join(aniHome, "user", "preferences.json");
     fs.mkdirSync(path.dirname(prefsPath), { recursive: true });
     fs.writeFileSync(prefsPath, "{ invalid prefs\n", "utf-8");
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -669,10 +669,10 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("fails explicitly on malformed preferences for an exact legacy GPU migration", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const crashAt = "2026-05-19T01:02:00.000Z";
-    const prefsPath = path.join(hanakoHome, "user", "preferences.json");
-    writeGpuState(hanakoHome, {
+    const prefsPath = path.join(aniHome, "user", "preferences.json");
+    writeGpuState(aniHome, {
       version: 1,
       safeMode: { enabled: true, reason: "gpu-child-process-gone", updatedAt: crashAt },
       lastGpuCrash: { type: "GPU", reason: "crashed", platform: "win32", at: crashAt },
@@ -680,7 +680,7 @@ describe("desktop GPU startup policy", () => {
     fs.writeFileSync(prefsPath, "{ invalid prefs\n", "utf-8");
 
     expect(() => resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -688,9 +688,9 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("turns on GPU sandbox compatibility on Windows after an incomplete early startup", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "launching-splash",
       startupId: "previous-launch",
@@ -698,7 +698,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -710,8 +710,8 @@ describe("desktop GPU startup policy", () => {
     expect(policy.shouldApplyGpuSandboxCompatSwitches).toBe(true);
     expect(policy.mode).toBe("gpu-sandbox-compat");
     expect(policy.reason).toBe("previous-startup-incomplete");
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBeUndefined();
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    expect(readPrefs(aniHome).hardware_acceleration).toBeUndefined();
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.autoGpuMode).toMatchObject({
       mode: "gpu-sandbox-compat",
       reason: "previous-startup-incomplete",
@@ -719,22 +719,22 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("does not turn a stale server startup marker into GPU recovery", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "previous-launch",
       now: "2026-05-19T01:00:00.000Z",
     });
-    const statePath = path.join(hanakoHome, "user", "gpu-startup.json");
+    const statePath = path.join(aniHome, "user", "gpu-startup.json");
     const state = readJson(statePath);
     state.startup.phase = "server-starting";
     delete state.startup.gpuRecovery;
-    writeGpuState(hanakoHome, state);
+    writeGpuState(aniHome, state);
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -748,16 +748,16 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("clears pre-UI GPU recovery eligibility when startup reaches server without visible UI", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "previous-launch",
       now: "2026-05-19T01:00:00.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-starting",
       startupId: "previous-launch",
@@ -765,14 +765,14 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
       now: "2026-05-19T01:01:00.000Z",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(policy.mode).toBe("hardware");
     expect(policy.reason).toBe("default");
     expect(state.startup.gpuRecovery).toMatchObject({
@@ -783,37 +783,37 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("preserves GPU recovery eligibility when server startup follows a visible splash", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "previous-launch",
       now: "2026-05-19T01:00:00.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "launching-splash",
       startupId: "previous-launch",
       now: "2026-05-19T01:00:01.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "splash-ready",
       startupId: "previous-launch",
       now: "2026-05-19T01:00:02.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-starting",
       startupId: "previous-launch",
       now: "2026-05-19T01:00:03.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-ready",
       startupId: "previous-launch",
@@ -821,14 +821,14 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
       now: "2026-05-19T01:01:00.000Z",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(policy.mode).toBe("gpu-sandbox-compat");
     expect(policy.reason).toBe("previous-startup-incomplete");
     expect(state.autoGpuMode).toMatchObject({
@@ -845,30 +845,30 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("re-enables GPU recovery eligibility when hidden startup creates the main window after server boot", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "hidden-launch",
       now: "2026-05-19T01:00:00.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-starting",
       startupId: "hidden-launch",
       now: "2026-05-19T01:00:01.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-ready",
       startupId: "hidden-launch",
       now: "2026-05-19T01:00:02.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "main-window-created",
       startupId: "hidden-launch",
@@ -876,14 +876,14 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
       now: "2026-05-19T01:01:00.000Z",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(policy.mode).toBe("gpu-sandbox-compat");
     expect(policy.reason).toBe("previous-startup-incomplete");
     expect(state.autoGpuMode).toMatchObject({
@@ -900,30 +900,30 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("re-enables GPU recovery eligibility when hidden startup begins the main window after server boot", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "hidden-launch",
       now: "2026-05-19T01:00:00.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-starting",
       startupId: "hidden-launch",
       now: "2026-05-19T01:00:01.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-ready",
       startupId: "hidden-launch",
       now: "2026-05-19T01:00:02.000Z",
     });
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "main-window-starting",
       startupId: "hidden-launch",
@@ -931,14 +931,14 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
       now: "2026-05-19T01:01:00.000Z",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(policy.mode).toBe("gpu-sandbox-compat");
     expect(policy.reason).toBe("previous-startup-incomplete");
     expect(state.autoGpuMode).toMatchObject({
@@ -961,8 +961,8 @@ describe("desktop GPU startup policy", () => {
     ["deep-compat", false, false],
     ["diagnostic-failed", false, false],
   ])("still applies existing auto GPU mode %s when a server marker is stale", (mode, hardwareAccelerationEnabled, backendCompat) => {
-    const hanakoHome = makeHome();
-    writeGpuState(hanakoHome, {
+    const aniHome = makeHome();
+    writeGpuState(aniHome, {
       version: 2,
       autoGpuMode: {
         mode,
@@ -981,7 +981,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -992,23 +992,23 @@ describe("desktop GPU startup policy", () => {
     expect(policy.reason).toBe("gpu-child-process-gone");
     expect(policy.hardwareAccelerationEnabled).toBe(hardwareAccelerationEnabled);
     expect(policy.shouldApplyGpuBackendCompatSwitches).toBe(backendCompat);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode,
       reason: "gpu-child-process-gone",
     });
   });
 
   it("escalates a stale pending GPU sandbox launch into backend compatibility", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const compatPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-sandbox-compat"],
       env: {},
     });
 
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "compat-launch",
@@ -1017,7 +1017,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1028,7 +1028,7 @@ describe("desktop GPU startup policy", () => {
     expect(policy.hardwareAccelerationEnabled).toBe(true);
     expect(policy.shouldApplyGpuBackendCompatSwitches).toBe(true);
     expect(policy.reason).toBe("previous-startup-incomplete");
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "gpu-backend-compat",
       reason: "previous-startup-incomplete",
       previousMode: "gpu-sandbox-compat",
@@ -1041,16 +1041,16 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("escalates a stale pending GPU backend compatibility launch into software safe mode", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const backendPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-backend-compat"],
       env: {},
     });
 
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "electron-starting",
       startupId: "backend-launch",
@@ -1059,7 +1059,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1070,7 +1070,7 @@ describe("desktop GPU startup policy", () => {
     expect(policy.hardwareAccelerationEnabled).toBe(false);
     expect(policy.shouldDisableHardwareAcceleration).toBe(true);
     expect(policy.reason).toBe("previous-startup-incomplete");
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "software-safe",
       reason: "previous-startup-incomplete",
       previousMode: "gpu-backend-compat",
@@ -1083,8 +1083,8 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("escalates a stale deep compatibility startup into diagnostic failed mode", () => {
-    const hanakoHome = makeHome();
-    writeGpuState(hanakoHome, {
+    const aniHome = makeHome();
+    writeGpuState(aniHome, {
       version: 2,
       autoGpuMode: {
         mode: "deep-compat",
@@ -1112,7 +1112,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1122,7 +1122,7 @@ describe("desktop GPU startup policy", () => {
     expect(policy.mode).toBe("diagnostic-failed");
     expect(policy.hardwareAccelerationEnabled).toBe(false);
     expect(policy.shouldApplyDeepCompatSwitches).toBe(true);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "diagnostic-failed",
       reason: "previous-startup-incomplete",
       previousMode: "deep-compat",
@@ -1130,9 +1130,9 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("does not auto-disable hardware acceleration for non-Windows stale startup markers", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "darwin",
       phase: "launching-splash",
       startupId: "previous-launch",
@@ -1140,7 +1140,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "darwin",
       argv: ["Hanako"],
       env: {},
@@ -1151,17 +1151,17 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("records GPU child process crashes as next-launch GPU sandbox compatibility", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
 
     recordGpuChildProcessGone({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       details: { type: "GPU", reason: "crashed", exitCode: -2147483645 },
       now: "2026-05-19T01:02:00.000Z",
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1172,20 +1172,20 @@ describe("desktop GPU startup policy", () => {
     expect(policy.shouldApplyGpuSandboxCompatSwitches).toBe(true);
     expect(policy.reason).toBe("gpu-child-process-gone");
     expect(policy.mode).toBe("gpu-sandbox-compat");
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBeUndefined();
+    expect(readPrefs(aniHome).hardware_acceleration).toBeUndefined();
   });
 
   it("escalates a GPU crash from sandbox compatibility into backend compatibility", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-sandbox-compat"],
       env: {},
     });
 
     recordGpuChildProcessGone({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       policy,
       details: { type: "GPU", reason: "crashed", exitCode: -2147483645 },
@@ -1193,7 +1193,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const nextPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1202,7 +1202,7 @@ describe("desktop GPU startup policy", () => {
     expect(nextPolicy.hardwareAccelerationEnabled).toBe(true);
     expect(nextPolicy.mode).toBe("gpu-backend-compat");
     expect(nextPolicy.shouldApplyGpuBackendCompatSwitches).toBe(true);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "gpu-backend-compat",
       reason: "gpu-child-process-gone",
       previousMode: "gpu-sandbox-compat",
@@ -1210,16 +1210,16 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("escalates a GPU crash from backend compatibility into software safe mode", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-backend-compat"],
       env: {},
     });
 
     recordGpuChildProcessGone({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       policy,
       details: { type: "GPU", reason: "crashed", exitCode: -2147483645 },
@@ -1227,7 +1227,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const nextPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1236,7 +1236,7 @@ describe("desktop GPU startup policy", () => {
     expect(nextPolicy.hardwareAccelerationEnabled).toBe(false);
     expect(nextPolicy.mode).toBe("software-safe");
     expect(nextPolicy.shouldDisableHardwareAcceleration).toBe(true);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "software-safe",
       reason: "gpu-child-process-gone",
       previousMode: "gpu-backend-compat",
@@ -1244,17 +1244,17 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("escalates a software-safe GPU crash to deep compatibility without changing the user preference", () => {
-    const hanakoHome = makeHome();
-    writePrefs(hanakoHome, { hardware_acceleration: false });
+    const aniHome = makeHome();
+    writePrefs(aniHome, { hardware_acceleration: false });
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
     });
 
     recordGpuChildProcessGone({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       policy,
       details: { type: "GPU", reason: "crashed", exitCode: -2147483645 },
@@ -1262,7 +1262,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const nextPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1271,8 +1271,8 @@ describe("desktop GPU startup policy", () => {
     expect(nextPolicy.hardwareAccelerationEnabled).toBe(false);
     expect(nextPolicy.mode).toBe("deep-compat");
     expect(nextPolicy.shouldApplyDeepCompatSwitches).toBe(true);
-    expect(readPrefs(hanakoHome).hardware_acceleration).toBe(false);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readPrefs(aniHome).hardware_acceleration).toBe(false);
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "deep-compat",
       reason: "gpu-child-process-gone",
       previousMode: "software-safe",
@@ -1280,43 +1280,43 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("clears the pending marker when startup reaches app-ready", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "launching-splash",
       startupId: "launch-1",
     });
 
     markGpuStartupReady({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       startupId: "launch-1",
       phase: "app-ready",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.startup.status).toBe("ready");
     expect(state.startup.phase).toBe("app-ready");
   });
 
   it("marks startup failures without converting them into GPU safe mode", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "server-starting",
       startupId: "launch-1",
     });
     markGpuStartupFailed({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       startupId: "launch-1",
       reason: "server-start-failed",
     });
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1396,9 +1396,9 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("allows explicit GPU backend compatibility without global no-sandbox", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-backend-compat"],
       env: {},
@@ -1411,9 +1411,9 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("allows explicit GPU sandbox compatibility without global no-sandbox", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-sandbox-compat"],
       env: {},
@@ -1426,9 +1426,9 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("applies global no-sandbox only for explicit unsafe GPU diagnostics", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-unsafe-no-sandbox"],
       env: {},
@@ -1451,16 +1451,16 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("does not persist explicit unsafe no-sandbox after a GPU crash", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-unsafe-no-sandbox"],
       env: {},
     });
 
     recordGpuChildProcessGone({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       policy,
       details: { type: "GPU", reason: "crashed", exitCode: -2147483645 },
@@ -1468,7 +1468,7 @@ describe("desktop GPU startup policy", () => {
     });
 
     const nextPolicy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
@@ -1476,7 +1476,7 @@ describe("desktop GPU startup policy", () => {
 
     expect(nextPolicy.mode).toBe("gpu-backend-compat");
     expect(nextPolicy.shouldApplyUnsafeNoSandboxSwitch).toBe(false);
-    expect(readJson(path.join(hanakoHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
+    expect(readJson(path.join(aniHome, "user", "gpu-startup.json")).autoGpuMode).toMatchObject({
       mode: "gpu-backend-compat",
       reason: "gpu-child-process-gone",
       previousMode: "gpu-sandbox-compat",
@@ -1508,16 +1508,16 @@ describe("desktop GPU startup policy", () => {
   });
 
   it("records backend policy and recovery classification in diagnostics", () => {
-    const hanakoHome = makeHome();
+    const aniHome = makeHome();
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe", "--hana-gpu-backend-compat"],
       env: {},
     });
 
     markGpuStartupPending({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       phase: "launching-splash",
       startupId: "backend-launch",
@@ -1525,22 +1525,22 @@ describe("desktop GPU startup policy", () => {
       now: "2026-05-19T01:00:00.000Z",
     });
 
-    const state = readJson(path.join(hanakoHome, "user", "gpu-startup.json"));
+    const state = readJson(path.join(aniHome, "user", "gpu-startup.json"));
     expect(state.startup.policy).toMatchObject({
       mode: "gpu-backend-compat",
       shouldApplyGpuBackendCompatSwitches: true,
       shouldApplyUnsafeNoSandboxSwitch: false,
     });
 
-    const diagnostics = buildGpuStartupDiagnostics({ hanakoHome, policy });
+    const diagnostics = buildGpuStartupDiagnostics({ aniHome, policy });
     expect(diagnostics).toContain("GPU backend compatibility switches enabled: true");
     expect(diagnostics).toContain("GPU sandbox disabled by policy: true");
     expect(diagnostics).toContain("Incomplete startup classification: gpu-recovery");
   });
 
   it("classifies suspected sandbox init failure without persisting unsafe no-sandbox", () => {
-    const hanakoHome = makeHome();
-    const statePath = path.join(hanakoHome, "user", "gpu-startup.json");
+    const aniHome = makeHome();
+    const statePath = path.join(aniHome, "user", "gpu-startup.json");
     fs.mkdirSync(path.dirname(statePath), { recursive: true });
     fs.writeFileSync(statePath, JSON.stringify({
       version: 2,
@@ -1553,12 +1553,12 @@ describe("desktop GPU startup policy", () => {
     }, null, 2));
 
     const policy = resolveGpuStartupPolicy({
-      hanakoHome,
+      aniHome,
       platform: "win32",
       argv: ["Hanako.exe"],
       env: {},
     });
-    const diagnostics = buildGpuStartupDiagnostics({ hanakoHome, policy });
+    const diagnostics = buildGpuStartupDiagnostics({ aniHome, policy });
 
     expect(policy.mode).toBe("diagnostic-failed");
     expect(policy.shouldApplyUnsafeNoSandboxSwitch).toBe(false);

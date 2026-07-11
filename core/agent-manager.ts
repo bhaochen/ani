@@ -941,9 +941,9 @@ export class AgentManager {
       log.warn(`subagent 线程账本清理失败 (${agentId}): ${err.message}`);
     }
 
-    if (this._d.hanakoHome) {
+    if (this._d.aniHome) {
       try {
-        detachAgentFromBundles({ hanakoHome: this._d.hanakoHome }, agentId);
+        detachAgentFromBundles({ aniHome: this._d.aniHome }, agentId);
       } catch (err) {
         log.error(`Skill Bundle 解耦失败 (${agentId}): ${err.message}`);
       }

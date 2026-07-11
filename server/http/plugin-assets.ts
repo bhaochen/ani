@@ -62,7 +62,7 @@ export function verifyPluginAssetSessionForHostRequest(c, engine, { requireSessi
     });
   }
   return verifyPluginAssetSession({
-    hanakoHome: engine.hanakoHome,
+    aniHome: engine.aniHome,
     pluginId: parsed.pluginId,
     token,
   });

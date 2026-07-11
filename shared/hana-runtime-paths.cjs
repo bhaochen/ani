@@ -10,41 +10,41 @@ function expandHome(input, homeDir = os.homedir()) {
   return input;
 }
 
-function resolveHanakoHome(input, homeDir = os.homedir()) {
-  const raw = input || path.join(homeDir, ".hanako");
+function resolveAniHome(input, homeDir = os.homedir()) {
+  const raw = input || path.join(homeDir, ".ani");
   return path.resolve(expandHome(raw, homeDir));
 }
 
-function assertHanakoHome(hanakoHome, caller) {
-  if (!hanakoHome || typeof hanakoHome !== "string") {
-    throw new Error(`${caller}: hanakoHome is required`);
+function assertAniHome(aniHome, caller) {
+  if (!aniHome || typeof aniHome !== "string") {
+    throw new Error(`${caller}: aniHome is required`);
   }
 }
 
-function resolveHanaPiSdkRuntimeRoot(hanakoHome) {
-  assertHanakoHome(hanakoHome, "resolveHanaPiSdkRuntimeRoot");
-  return path.join(hanakoHome, "runtime", "pi-sdk");
+function resolveHanaPiSdkRuntimeRoot(aniHome) {
+  assertAniHome(aniHome, "resolveHanaPiSdkRuntimeRoot");
+  return path.join(aniHome, "runtime", "pi-sdk");
 }
 
-function resolveHanaPiSdkManagedBinDir(hanakoHome) {
-  return path.join(resolveHanaPiSdkRuntimeRoot(hanakoHome), "bin");
+function resolveHanaPiSdkManagedBinDir(aniHome) {
+  return path.join(resolveHanaPiSdkRuntimeRoot(aniHome), "bin");
 }
 
-function resolveHanaPiSdkResourceLoaderCwd(hanakoHome) {
-  return path.join(resolveHanaPiSdkRuntimeRoot(hanakoHome), "resource-loader", "project");
+function resolveHanaPiSdkResourceLoaderCwd(aniHome) {
+  return path.join(resolveHanaPiSdkRuntimeRoot(aniHome), "resource-loader", "project");
 }
 
-function resolveHanaPiSdkResourceLoaderAgentDir(hanakoHome) {
-  return path.join(resolveHanaPiSdkRuntimeRoot(hanakoHome), "resource-loader", "agent");
+function resolveHanaPiSdkResourceLoaderAgentDir(aniHome) {
+  return path.join(resolveHanaPiSdkRuntimeRoot(aniHome), "resource-loader", "agent");
 }
 
-function resolveLegacyPiSdkManagedBinDir(hanakoHome) {
-  assertHanakoHome(hanakoHome, "resolveLegacyPiSdkManagedBinDir");
-  return path.join(hanakoHome, ".pi", "agent", "bin");
+function resolveLegacyPiSdkManagedBinDir(aniHome) {
+  assertAniHome(aniHome, "resolveLegacyPiSdkManagedBinDir");
+  return path.join(aniHome, ".pi", "agent", "bin");
 }
 
 module.exports = {
-  resolveHanakoHome,
+  resolveAniHome,
   resolveHanaPiSdkManagedBinDir,
   resolveHanaPiSdkResourceLoaderAgentDir,
   resolveHanaPiSdkResourceLoaderCwd,

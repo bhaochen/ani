@@ -159,12 +159,12 @@ const ADAPTER_REGISTRY = {
   wechat: {
     create: (creds, onMessage, hooks, agentId) => createWechatAdapter({
       botToken: creds.botToken,
-      hanaHome: creds.hanaHome,
+      aniHome: creds.aniHome,
       agentId,
       onMessage,
       onStatus: hooks?.onStatus,
     }),
-    getCredentials: (cfg) => cfg?.enabled && cfg?.botToken ? { botToken: cfg.botToken, hanaHome: cfg._hanaHome || "" } : null,
+    getCredentials: (cfg) => cfg?.enabled && cfg?.botToken ? { botToken: cfg.botToken, aniHome: cfg._hanaHome || "" } : null,
     ownerSessionKey: (userId, agentId) => `wx_dm_${userId}@${agentId}`,
     connectsAsync: true,
   },
@@ -848,7 +848,7 @@ export class BridgeManager {
       if (!bridgeCfg) continue;
       for (const [platform, spec] of Object.entries(ADAPTER_REGISTRY)) {
         const cfg = { ...(bridgeCfg[platform] || {}) };
-        if (platform === "wechat") cfg._hanaHome = this.engine.hanakoHome;
+        if (platform === "wechat") cfg._hanaHome = this.engine.aniHome;
         let creds = null;
         try {
           creds = spec.getCredentials(cfg);
@@ -870,7 +870,7 @@ export class BridgeManager {
   startPlatformFromConfig(platform, cfg, agentId) {
     const spec = ADAPTER_REGISTRY[platform];
     if (!spec) return;
-    if (platform === "wechat") cfg._hanaHome = this.engine.hanakoHome;
+    if (platform === "wechat") cfg._hanaHome = this.engine.aniHome;
     let creds = null;
     try {
       creds = spec.getCredentials(cfg);

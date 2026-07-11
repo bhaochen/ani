@@ -472,16 +472,16 @@ export class ProviderRegistry {
   declare _builtinPlugins: any;
   declare _catalog: ProviderCatalogStore;
   declare _entries: any;
-  declare _hanakoHome: any;
+  declare _aniHome: any;
   declare _localProviderPlugins: LocalProviderPluginStore;
   declare _plugins: any;
   /**
-   * @param {string} hanakoHome - 用户数据根目录（如 ~/.hanako-dev）
+   * @param {string} aniHome - 用户数据根目录（如 ~/.ani-dev）
    */
-  constructor(hanakoHome) {
-    this._hanakoHome = hanakoHome;
-    this._catalog = new ProviderCatalogStore(hanakoHome);
-    this._localProviderPlugins = new LocalProviderPluginStore(hanakoHome);
+  constructor(aniHome) {
+    this._aniHome = aniHome;
+    this._catalog = new ProviderCatalogStore(aniHome);
+    this._localProviderPlugins = new LocalProviderPluginStore(aniHome);
     /** @type {Map<string, ProviderPlugin>} id → plugin */
     this._plugins = new Map();
     this._builtinPlugins = new Map();
@@ -1300,7 +1300,7 @@ export class ProviderRegistry {
    */
   _readOAuthEntry(authJsonKey) {
     try {
-      const authPath = path.join(this._hanakoHome, "auth.json");
+      const authPath = path.join(this._aniHome, "auth.json");
       // mtime 缓存：auth.json 只在 OAuth 回调写入时变化
       const mtime = fs.statSync(authPath).mtimeMs;
       if (!this._authJsonCache || mtime !== this._authJsonMtime) {

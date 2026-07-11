@@ -420,7 +420,7 @@
         "unstampedHomeSafePaths": []
       },
       "preCoordinatorReadProjection": null,
-      "identityContract": "One high-water stamp belongs to one canonical HANA_HOME.",
+      "identityContract": "One high-water stamp belongs to one canonical ANI_HOME.",
       "exemption": null
     },
     {
@@ -462,7 +462,7 @@
       "affectedByEpochMigration": false,
       "bootstrapSafety": null,
       "preCoordinatorReadProjection": null,
-      "identityContract": "transitionId identifies one in-progress transition for one canonical HANA_HOME.",
+      "identityContract": "transitionId identifies one in-progress transition for one canonical ANI_HOME.",
       "exemption": null
     },
     {
@@ -942,7 +942,7 @@
       "affectedByEpochMigration": true,
       "bootstrapSafety": null,
       "preCoordinatorReadProjection": null,
-      "identityContract": "The credential belongs to the local userId in the same HANA_HOME.",
+      "identityContract": "The credential belongs to the local userId in the same ANI_HOME.",
       "exemption": null
     },
     {
@@ -1448,7 +1448,7 @@
       "affectedByEpochMigration": true,
       "bootstrapSafety": null,
       "preCoordinatorReadProjection": null,
-      "identityContract": "One network configuration belongs to one HANA_HOME server.",
+      "identityContract": "One network configuration belongs to one ANI_HOME server.",
       "exemption": null
     },
     {
@@ -1480,12 +1480,12 @@
       "firstPossibleOpenPhase": "identity_seed",
       "firstPossibleWritePhase": "identity_seed",
       "epochPolicy": "epoch-managed",
-      "checkpointPolicy": "Include with the identity registries for the same HANA_HOME.",
+      "checkpointPolicy": "Include with the identity registries for the same ANI_HOME.",
       "restorePolicy": "Restore before remote transport accepts identity-bound requests.",
       "affectedByEpochMigration": true,
       "bootstrapSafety": null,
       "preCoordinatorReadProjection": null,
-      "identityContract": "serverNodeId is the stable identity of one HANA_HOME server node.",
+      "identityContract": "serverNodeId is the stable identity of one ANI_HOME server node.",
       "exemption": null
     },
     {
@@ -1525,7 +1525,7 @@
         "unstampedHomeSafePaths": []
       },
       "preCoordinatorReadProjection": null,
-      "identityContract": "At most one current server discovery record per HANA_HOME.",
+      "identityContract": "At most one current server discovery record per ANI_HOME.",
       "exemption": null
     },
     {
@@ -2007,7 +2007,7 @@
       "affectedByEpochMigration": true,
       "bootstrapSafety": null,
       "preCoordinatorReadProjection": null,
-      "identityContract": "Usage buckets are keyed by their runtime dimensions inside one HANA_HOME ledger.",
+      "identityContract": "Usage buckets are keyed by their runtime dimensions inside one ANI_HOME ledger.",
       "exemption": null
     },
     {
@@ -2059,7 +2059,7 @@
         ],
         "reason": "Desktop startup reads only these named optional fields before the epoch transition; removal or semantic reinterpretation requires moving the read behind the coordinator."
       },
-      "identityContract": "One preferences document belongs to the local user in one HANA_HOME.",
+      "identityContract": "One preferences document belongs to the local user in one ANI_HOME.",
       "exemption": null
     },
     {
@@ -2174,7 +2174,7 @@
       "affectedByEpochMigration": false,
       "bootstrapSafety": null,
       "preCoordinatorReadProjection": null,
-      "identityContract": "Each fixed marker records completion for one HANA_HOME.",
+      "identityContract": "Each fixed marker records completion for one ANI_HOME.",
       "exemption": null
     },
     {
@@ -2409,7 +2409,7 @@
     },
     {
       "sourceFile": "core/bridge-session-manager.ts",
-      "line": 557,
+      "line": 593,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(dir, { recursive: true })",
       "reason": "Writes a session-owned sidecar or bridge index.",
@@ -2418,7 +2418,7 @@
     },
     {
       "sourceFile": "core/bridge-session-manager.ts",
-      "line": 558,
+      "line": 594,
       "kind": "atomic-write",
       "excerpt": "atomicWriteSync(this._indexPath(agent), JSON.stringify(index, null, 2) + \"\\n\")",
       "reason": "Writes a session-owned sidecar or bridge index.",
@@ -2427,7 +2427,7 @@
     },
     {
       "sourceFile": "core/bridge-session-manager.ts",
-      "line": 913,
+      "line": 956,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(sessionDir, { recursive: true })",
       "reason": "Writes a session-owned sidecar or bridge index.",
@@ -2436,7 +2436,7 @@
     },
     {
       "sourceFile": "core/bridge-session-manager.ts",
-      "line": 1250,
+      "line": 1304,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(sessionDir, { recursive: true })",
       "reason": "Writes a session-owned sidecar or bridge index.",
@@ -2501,7 +2501,7 @@
       "sourceFile": "core/device-registry.ts",
       "line": 255,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, DEVICES_FILE), registries.devices)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, DEVICES_FILE), registries.devices)",
       "reason": "Writes one member of the device-access registry set.",
       "storeId": "device-access-registries",
       "exemptionId": null
@@ -2510,7 +2510,7 @@
       "sourceFile": "core/device-registry.ts",
       "line": 256,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, DEVICE_CREDENTIALS_FILE), registries.credentials)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, DEVICE_CREDENTIALS_FILE), registries.credentials)",
       "reason": "Writes one member of the device-access registry set.",
       "storeId": "device-access-registries",
       "exemptionId": null
@@ -2519,7 +2519,7 @@
       "sourceFile": "core/device-registry.ts",
       "line": 257,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, PAIRING_SESSIONS_FILE), registries.pairingSessions)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, PAIRING_SESSIONS_FILE), registries.pairingSessions)",
       "reason": "Writes one member of the device-access registry set.",
       "storeId": "device-access-registries",
       "exemptionId": null
@@ -2544,7 +2544,7 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 291,
+      "line": 296,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(this.channelsDir, { recursive: true })",
       "reason": "Creates the channel root.",
@@ -2553,7 +2553,7 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 337,
+      "line": 342,
       "kind": "persistent-store-constructor",
       "excerpt": "new PreferencesManager({ userDir: this.userDir, agentsDir: this.agentsDir })",
       "reason": "Constructs the preferences owner.",
@@ -2562,16 +2562,16 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 338,
+      "line": 343,
       "kind": "persistent-store-constructor",
-      "excerpt": "new InputDraftsStore({ hanakoHome: this.hanakoHome })",
+      "excerpt": "new InputDraftsStore({ aniHome: this.aniHome })",
       "reason": "Constructs draft/project stores.",
       "storeId": "session-drafts-and-projects",
       "exemptionId": null
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 355,
+      "line": 360,
       "kind": "persistent-store-constructor",
       "excerpt": "new SessionProjectCatalogStore({ userDir: this.userDir })",
       "reason": "Constructs draft/project stores.",
@@ -2580,16 +2580,16 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 536,
+      "line": 542,
       "kind": "persistent-store-constructor",
-      "excerpt": "new TaskRegistry({ persistencePath: path.join(this.hanakoHome, \".ephemeral\", \"plugin-tasks.json\"), getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath), })",
+      "excerpt": "new TaskRegistry({ persistencePath: path.join(this.aniHome, \".ephemeral\", \"plugin-tasks.json\"), getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath), })",
       "reason": "Constructs the plugin task registry.",
       "storeId": "plugin-task-registry",
       "exemptionId": null
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 1034,
+      "line": 1082,
       "kind": "persistent-store-constructor",
       "excerpt": "new SessionManifestStore({ dbPath })",
       "reason": "Constructs the manifest store during engine construction.",
@@ -2598,7 +2598,7 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 1055,
+      "line": 1103,
       "kind": "persistent-store-constructor",
       "excerpt": "new SessionManifestStore({ dbPath })",
       "reason": "Constructs the manifest store during engine construction.",
@@ -2607,7 +2607,7 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 1923,
+      "line": 1971,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(skillsDir, { recursive: true })",
       "reason": "Creates the user skill root.",
@@ -2616,7 +2616,7 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 2105,
+      "line": 2153,
       "kind": "remove-path",
       "excerpt": "fs.unlinkSync(filePath)",
       "reason": "Deletes an expired legacy ephemeral session JSONL locator.",
@@ -2625,7 +2625,7 @@
     },
     {
       "sourceFile": "core/engine.ts",
-      "line": 2159,
+      "line": 2207,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(pluginDevSourcesDir, { recursive: true })",
       "reason": "Creates the plugin development source root.",
@@ -2645,7 +2645,7 @@
       "sourceFile": "core/execution-lease-registry.ts",
       "line": 75,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(executionLeaseRegistryPath(hanakoHome), registry)",
+      "excerpt": "writeJsonAtomic(executionLeaseRegistryPath(aniHome), registry)",
       "reason": "Writes the execution lease registry.",
       "storeId": "execution-leases",
       "exemptionId": null
@@ -2672,7 +2672,7 @@
       "sourceFile": "core/first-run.ts",
       "line": 54,
       "kind": "mkdir",
-      "excerpt": "fs.mkdirSync(path.join(hanakoHome, \"agents\"), { recursive: true })",
+      "excerpt": "fs.mkdirSync(path.join(aniHome, \"agents\"), { recursive: true })",
       "reason": "First-run seeds several registered stores from packaged templates. Flow-sensitive attribution moves into the future coordinator; this exact composition file is not ignored by directory.",
       "storeId": null,
       "exemptionId": "cross-store-first-run-bootstrap"
@@ -2681,7 +2681,7 @@
       "sourceFile": "core/first-run.ts",
       "line": 55,
       "kind": "mkdir",
-      "excerpt": "fs.mkdirSync(path.join(hanakoHome, \"user\"), { recursive: true })",
+      "excerpt": "fs.mkdirSync(path.join(aniHome, \"user\"), { recursive: true })",
       "reason": "First-run seeds several registered stores from packaged templates. Flow-sensitive attribution moves into the future coordinator; this exact composition file is not ignored by directory.",
       "storeId": null,
       "exemptionId": "cross-store-first-run-bootstrap"
@@ -2843,7 +2843,7 @@
       "sourceFile": "core/grant-registry.ts",
       "line": 99,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(grantRegistryPath(hanakoHome), registry)",
+      "excerpt": "writeJsonAtomic(grantRegistryPath(aniHome), registry)",
       "reason": "Writes, repairs, or quarantines the grant registry.",
       "storeId": "security-grants",
       "exemptionId": null
@@ -2960,7 +2960,7 @@
       "sourceFile": "core/local-user-account.ts",
       "line": 41,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, USERS_FILE), users)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, USERS_FILE), users)",
       "reason": "Updates the local user record in users.json.",
       "storeId": "user-studio-registries",
       "exemptionId": null
@@ -2969,7 +2969,7 @@
       "sourceFile": "core/local-user-account.ts",
       "line": 73,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, LOCAL_USER_AUTH_FILE), auth)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, LOCAL_USER_AUTH_FILE), auth)",
       "reason": "Writes the local user authentication record.",
       "storeId": "local-user-auth",
       "exemptionId": null
@@ -2978,7 +2978,7 @@
       "sourceFile": "core/local-user-account.ts",
       "line": 84,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, LOCAL_USER_AUTH_FILE), auth)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, LOCAL_USER_AUTH_FILE), auth)",
       "reason": "Writes the local user authentication record.",
       "storeId": "local-user-auth",
       "exemptionId": null
@@ -3572,7 +3572,7 @@
       "sourceFile": "core/migrations.ts",
       "line": 3188,
       "kind": "persistent-store-constructor",
-      "excerpt": "new SubagentRunStore(path.join(hanakoHome, \"subagent-runs.json\"))",
+      "excerpt": "new SubagentRunStore(path.join(aniHome, \"subagent-runs.json\"))",
       "reason": "The legacy migration orchestrator mutates many registered targets. Each target is inventoried, while exact-site flow attribution remains prerequisite work for the coordinator.",
       "storeId": null,
       "exemptionId": "cross-store-legacy-migrations"
@@ -3581,7 +3581,7 @@
       "sourceFile": "core/migrations.ts",
       "line": 3281,
       "kind": "persistent-store-constructor",
-      "excerpt": "new SubagentThreadStore(path.join(hanakoHome, \"subagent-threads.json\"))",
+      "excerpt": "new SubagentThreadStore(path.join(aniHome, \"subagent-threads.json\"))",
       "reason": "The legacy migration orchestrator mutates many registered targets. Each target is inventoried, while exact-site flow attribution remains prerequisite work for the coordinator.",
       "storeId": null,
       "exemptionId": "cross-store-legacy-migrations"
@@ -3590,7 +3590,7 @@
       "sourceFile": "core/migrations.ts",
       "line": 3282,
       "kind": "persistent-store-constructor",
-      "excerpt": "new SubagentRunStore(path.join(hanakoHome, \"subagent-runs.json\"))",
+      "excerpt": "new SubagentRunStore(path.join(aniHome, \"subagent-runs.json\"))",
       "reason": "The legacy migration orchestrator mutates many registered targets. Each target is inventoried, while exact-site flow attribution remains prerequisite work for the coordinator.",
       "storeId": null,
       "exemptionId": "cross-store-legacy-migrations"
@@ -3687,7 +3687,7 @@
     },
     {
       "sourceFile": "core/model-sync.ts",
-      "line": 442,
+      "line": 467,
       "kind": "atomic-write",
       "excerpt": "atomicWriteSync(modelsJsonPath, newStr)",
       "reason": "Owns provider catalog, authentication, model compatibility, or local provider plugin state.",
@@ -3699,7 +3699,7 @@
       "line": 376,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(this._defaultRoot, { recursive: true })",
-      "reason": "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by HANA_HOME path inventory.",
+      "reason": "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by ANI_HOME path inventory.",
       "storeId": null,
       "exemptionId": "external-mount-writes"
     },
@@ -3708,7 +3708,7 @@
       "line": 395,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(rootPath, { recursive: true })",
-      "reason": "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by HANA_HOME path inventory.",
+      "reason": "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by ANI_HOME path inventory.",
       "storeId": null,
       "exemptionId": "external-mount-writes"
     },
@@ -3887,7 +3887,7 @@
       "sourceFile": "core/provider-auth-migration.ts",
       "line": 223,
       "kind": "mkdir",
-      "excerpt": "fs.mkdirSync(hanakoHome, { recursive: true })",
+      "excerpt": "fs.mkdirSync(aniHome, { recursive: true })",
       "reason": "Owns provider catalog, authentication, model compatibility, or local provider plugin state.",
       "storeId": "provider-state",
       "exemptionId": null
@@ -4058,7 +4058,7 @@
       "sourceFile": "core/server-network-config.ts",
       "line": 39,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, SERVER_NETWORK_FILE), normalized)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, SERVER_NETWORK_FILE), normalized)",
       "reason": "Writes validated server network configuration.",
       "storeId": "server-network-config",
       "exemptionId": null
@@ -4083,7 +4083,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 2176,
+      "line": 2215,
       "kind": "remove-path",
       "excerpt": "fsp.rm(createdSessionPath, { force: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4092,7 +4092,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4347,
+      "line": 4398,
       "kind": "write-file",
       "excerpt": "fsp.writeFile(titlePath, JSON.stringify(titles, null, 2), \"utf-8\")",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4101,7 +4101,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4455,
+      "line": 4506,
       "kind": "write-file",
       "excerpt": "fsp.writeFile(titlePath, JSON.stringify(titles, null, 2), \"utf-8\")",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4110,7 +4110,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4752,
+      "line": 4803,
       "kind": "write-file",
       "excerpt": "fsp.writeFile(metaPath, JSON.stringify(compactedMeta, null, 2))",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4119,7 +4119,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4760,
+      "line": 4811,
       "kind": "mkdir",
       "excerpt": "fsp.mkdir(path.dirname(metaPath), { recursive: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4128,7 +4128,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4808,
+      "line": 4859,
       "kind": "rename",
       "excerpt": "fsp.rename(metaPath, backupPath)",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4137,7 +4137,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4835,
+      "line": 4886,
       "kind": "write-file",
       "excerpt": "fsp.writeFile(metaPath, JSON.stringify(budgeted, null, 2))",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4146,7 +4146,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4907,
+      "line": 4958,
       "kind": "mkdir",
       "excerpt": "fsp.mkdir(path.dirname(absPath), { recursive: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4155,7 +4155,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 4908,
+      "line": 4959,
       "kind": "write-file",
       "excerpt": "fsp.writeFile(absPath, encoded, \"utf-8\")",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4164,7 +4164,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 5083,
+      "line": 5134,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(agent.sessionDir, { recursive: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4173,7 +4173,7 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 5084,
+      "line": 5135,
       "kind": "rename",
       "excerpt": "fs.renameSync(oldPath, newPath)",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4182,7 +4182,16 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 5145,
+      "line": 5151,
+      "kind": "rename",
+      "excerpt": "fs.renameSync(newPath, oldPath)",
+      "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
+      "storeId": "session-jsonl",
+      "exemptionId": null
+    },
+    {
+      "sourceFile": "core/session-coordinator.ts",
+      "line": 5242,
       "kind": "remove-path",
       "excerpt": "fs.unlinkSync(sp)",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4191,18 +4200,18 @@
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 5150,
-      "kind": "mkdir",
-      "excerpt": "fs.mkdirSync(sessionDir, { recursive: true })",
+      "line": 5253,
+      "kind": "remove-path",
+      "excerpt": "fs.unlinkSync(candidate)",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
       "storeId": "session-jsonl",
       "exemptionId": null
     },
     {
       "sourceFile": "core/session-coordinator.ts",
-      "line": 5486,
-      "kind": "remove-path",
-      "excerpt": "fs.unlinkSync(sessionPath)",
+      "line": 5258,
+      "kind": "mkdir",
+      "excerpt": "fs.mkdirSync(sessionDir, { recursive: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
       "storeId": "session-jsonl",
       "exemptionId": null
@@ -4290,7 +4299,7 @@
     },
     {
       "sourceFile": "core/session-manifest/legacy-migration.ts",
-      "line": 261,
+      "line": 661,
       "kind": "write-file",
       "excerpt": "fs.writeFileSync(titlesPath, JSON.stringify(titles, null, 2))",
       "reason": "Opens, migrates, or manages files for session-manifest.db.",
@@ -4299,7 +4308,7 @@
     },
     {
       "sourceFile": "core/session-manifest/store.ts",
-      "line": 179,
+      "line": 235,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(path.dirname(opts.dbPath), { recursive: true })",
       "reason": "Opens, migrates, or manages files for session-manifest.db.",
@@ -4308,7 +4317,7 @@
     },
     {
       "sourceFile": "core/session-manifest/store.ts",
-      "line": 181,
+      "line": 237,
       "kind": "database-open",
       "excerpt": "new Database(opts.dbPath)",
       "reason": "Opens, migrates, or manages files for session-manifest.db.",
@@ -4400,7 +4409,7 @@
       "sourceFile": "core/studio-mounts.ts",
       "line": 58,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, STUDIO_MOUNTS_FILE), registry)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, STUDIO_MOUNTS_FILE), registry)",
       "reason": "Writes the studio mount registry.",
       "storeId": "studio-mount-registry",
       "exemptionId": null
@@ -4409,7 +4418,7 @@
       "sourceFile": "core/studio-mounts.ts",
       "line": 82,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, STUDIO_MOUNTS_FILE), registry)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, STUDIO_MOUNTS_FILE), registry)",
       "reason": "Writes the studio mount registry.",
       "storeId": "studio-mount-registry",
       "exemptionId": null
@@ -4472,7 +4481,7 @@
       "sourceFile": "core/web-session-store.ts",
       "line": 130,
       "kind": "atomic-write",
-      "excerpt": "writeJsonAtomic(path.join(hanakoHome, WEB_SESSIONS_FILE), registry)",
+      "excerpt": "writeJsonAtomic(path.join(aniHome, WEB_SESSIONS_FILE), registry)",
       "reason": "Writes the web session registry.",
       "storeId": "web-session-registry",
       "exemptionId": null
@@ -4536,7 +4545,7 @@
       "line": 414,
       "kind": "remove-path",
       "excerpt": "fs.unlinkSync(wrongFile)",
-      "reason": "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active HANA_HOME.",
+      "reason": "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active ANI_HOME.",
       "storeId": null,
       "exemptionId": "desktop-legacy-update-path-cleanup"
     },
@@ -4545,7 +4554,7 @@
       "line": 417,
       "kind": "remove-path",
       "excerpt": "fs.rmdirSync(wrongDir)",
-      "reason": "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active HANA_HOME.",
+      "reason": "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active ANI_HOME.",
       "storeId": null,
       "exemptionId": "desktop-legacy-update-path-cleanup"
     },
@@ -4617,7 +4626,7 @@
       "line": 49,
       "kind": "write-file",
       "excerpt": "fs.writeFileSync(filePath, content, \"utf-8\")",
-      "reason": "Writes an absolute artifact/editor path explicitly selected by the caller, outside any implied HANA_HOME store.",
+      "reason": "Writes an absolute artifact/editor path explicitly selected by the caller, outside any implied ANI_HOME store.",
       "storeId": null,
       "exemptionId": "desktop-external-text-file"
     },
@@ -4652,7 +4661,7 @@
       "sourceFile": "desktop/main.cjs",
       "line": 2087,
       "kind": "mkdir",
-      "excerpt": "fs.mkdirSync(hanakoHome, { recursive: true })",
+      "excerpt": "fs.mkdirSync(aniHome, { recursive: true })",
       "reason": "Writes desktop crash or browser-command diagnostics.",
       "storeId": "desktop-diagnostics",
       "exemptionId": null
@@ -4715,7 +4724,7 @@
       "sourceFile": "desktop/main.cjs",
       "line": 4063,
       "kind": "append-file",
-      "excerpt": "require(\"fs\").appendFileSync(require(\"path\").join(hanakoHome, \"browser-cmd.log\"), `${new Date().toISOString()} ${redactMainLogText(line)}\\n`)",
+      "excerpt": "require(\"fs\").appendFileSync(require(\"path\").join(aniHome, \"browser-cmd.log\"), `${new Date().toISOString()} ${redactMainLogText(line)}\\n`)",
       "reason": "Writes desktop crash or browser-command diagnostics.",
       "storeId": "desktop-diagnostics",
       "exemptionId": null
@@ -4752,7 +4761,7 @@
       "line": 5385,
       "kind": "write-file",
       "excerpt": "fs.writeFileSync(filePath, content, \"utf-8\")",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4761,7 +4770,7 @@
       "line": 5407,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(path.dirname(resolved), { recursive: true })",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4770,7 +4779,7 @@
       "line": 5408,
       "kind": "write-file",
       "excerpt": "fs.writeFileSync(resolved, Buffer.from(base64Data, \"base64\"))",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4779,7 +4788,7 @@
       "line": 5419,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(path.dirname(destinationPath), { recursive: true })",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4788,7 +4797,7 @@
       "line": 5420,
       "kind": "copy-file",
       "excerpt": "fs.copyFileSync(sourcePath, destinationPath)",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4797,7 +4806,7 @@
       "line": 5453,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(dir, { recursive: true })",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4806,7 +4815,7 @@
       "line": 5454,
       "kind": "write-file",
       "excerpt": "fs.writeFileSync(filePath, pngBuffer)",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "desktop-caller-selected-output"
     },
@@ -4814,7 +4823,7 @@
       "sourceFile": "desktop/main.cjs",
       "line": 5976,
       "kind": "remove-path",
-      "excerpt": "fs.unlinkSync(path.join(hanakoHome, \"server-info.json\"))",
+      "excerpt": "fs.unlinkSync(path.join(aniHome, \"server-info.json\"))",
       "reason": "Deletes stale desktop server discovery state before or after a server lifecycle.",
       "storeId": "server-runtime-info",
       "exemptionId": null
@@ -4922,7 +4931,7 @@
       "sourceFile": "desktop/src/shared/gpu-startup-policy.cjs",
       "line": 104,
       "kind": "atomic-write",
-      "excerpt": "writeJson(getGpuStartupStatePath(hanakoHome), { ...state, version: STATE_VERSION, })",
+      "excerpt": "writeJson(getGpuStartupStatePath(aniHome), { ...state, version: STATE_VERSION, })",
       "reason": "Atomically writes desktop GPU startup state.",
       "storeId": "desktop-gpu-startup-state",
       "exemptionId": null
@@ -4965,7 +4974,7 @@
     },
     {
       "sourceFile": "hub/agent-executor.ts",
-      "line": 207,
+      "line": 226,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(sessionDir, { recursive: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -4974,16 +4983,16 @@
     },
     {
       "sourceFile": "hub/agent-executor.ts",
-      "line": 291,
+      "line": 341,
       "kind": "remove-path",
-      "excerpt": "fs.unlinkSync(sessionPath)",
+      "excerpt": "fs.unlinkSync(sessionRef.sessionPath)",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
       "storeId": "session-jsonl",
       "exemptionId": null
     },
     {
       "sourceFile": "hub/agent-executor.ts",
-      "line": 346,
+      "line": 405,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(sessionDir, { recursive: true })",
       "reason": "Creates, repairs, archives, restores, or appends session JSONL locators.",
@@ -5382,7 +5391,7 @@
       "line": 28,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(full, { recursive: true })",
-      "reason": "Compatibility check creates a fixed set of registered HANA_HOME roots; flow attribution remains with the first-run coordinator.",
+      "reason": "Compatibility check creates a fixed set of registered ANI_HOME roots; flow attribution remains with the first-run coordinator.",
       "storeId": null,
       "exemptionId": "compat-directory-seeding"
     },
@@ -5760,7 +5769,7 @@
       "line": 256,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(path.dirname(finalTargetPath), { recursive: true })",
-      "reason": "Writes an explicit tool output path supplied by the caller; no HANA_HOME store is implied.",
+      "reason": "Writes an explicit tool output path supplied by the caller; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "external-file-ref-io"
     },
@@ -5769,7 +5778,7 @@
       "line": 257,
       "kind": "copy-file",
       "excerpt": "fs.copyFileSync(resolved.filePath, finalTargetPath)",
-      "reason": "Writes an explicit tool output path supplied by the caller; no HANA_HOME store is implied.",
+      "reason": "Writes an explicit tool output path supplied by the caller; no ANI_HOME store is implied.",
       "storeId": null,
       "exemptionId": "external-file-ref-io"
     },
@@ -7415,7 +7424,7 @@
       "sourceFile": "server/index.ts",
       "line": 444,
       "kind": "persistent-store-constructor",
-      "excerpt": "new DeferredResultStore( hub.eventBus, path.join(hanakoHome, \".ephemeral\", \"deferred-tasks.json\"), { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null }, )",
+      "excerpt": "new DeferredResultStore( hub.eventBus, path.join(aniHome, \".ephemeral\", \"deferred-tasks.json\"), { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null }, )",
       "reason": "Constructs the deferred result store.",
       "storeId": "deferred-result-state",
       "exemptionId": null
@@ -7433,7 +7442,7 @@
       "sourceFile": "server/index.ts",
       "line": 649,
       "kind": "persistent-store-constructor",
-      "excerpt": "new SubagentRunStore( path.join(hanakoHome, \"subagent-runs.json\"), { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null }, )",
+      "excerpt": "new SubagentRunStore( path.join(aniHome, \"subagent-runs.json\"), { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null }, )",
       "reason": "Constructs subagent stores.",
       "storeId": "subagent-state",
       "exemptionId": null
@@ -7442,7 +7451,7 @@
       "sourceFile": "server/index.ts",
       "line": 655,
       "kind": "persistent-store-constructor",
-      "excerpt": "new SubagentThreadStore( path.join(hanakoHome, \"subagent-threads.json\"), { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null }, )",
+      "excerpt": "new SubagentThreadStore( path.join(aniHome, \"subagent-threads.json\"), { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null }, )",
       "reason": "Constructs subagent stores.",
       "storeId": "subagent-state",
       "exemptionId": null
@@ -7451,7 +7460,7 @@
       "sourceFile": "server/index.ts",
       "line": 666,
       "kind": "persistent-store-constructor",
-      "excerpt": "new WorkflowActivityStore( path.join(hanakoHome, \"workflow-activity.json\"), )",
+      "excerpt": "new WorkflowActivityStore( path.join(aniHome, \"workflow-activity.json\"), )",
       "reason": "Constructs the workflow activity store.",
       "storeId": "workflow-state",
       "exemptionId": null
@@ -7478,7 +7487,7 @@
       "sourceFile": "server/index.ts",
       "line": 1301,
       "kind": "remove-path",
-      "excerpt": "fs.unlinkSync(path.join(hanakoHome, \"server-info.json\"))",
+      "excerpt": "fs.unlinkSync(path.join(aniHome, \"server-info.json\"))",
       "reason": "Writes or deletes live server discovery state.",
       "storeId": "server-runtime-info",
       "exemptionId": null
@@ -7722,7 +7731,7 @@
       "line": 428,
       "kind": "remove-path",
       "excerpt": "fs.rmSync(cleanupPath, { recursive: true, force: true })",
-      "reason": "One bounded cleanup list contains both HANA_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
+      "reason": "One bounded cleanup list contains both ANI_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
       "storeId": null,
       "exemptionId": "conditional-plugin-install-cleanup"
     },
@@ -7758,7 +7767,7 @@
       "line": 562,
       "kind": "remove-path",
       "excerpt": "fs.rmSync(cleanupPath, { recursive: true, force: true })",
-      "reason": "One bounded cleanup list contains both HANA_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
+      "reason": "One bounded cleanup list contains both ANI_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
       "storeId": null,
       "exemptionId": "conditional-plugin-install-cleanup"
     },
@@ -7809,7 +7818,52 @@
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 646,
+      "line": 632,
+      "kind": "rename",
+      "excerpt": "fs.rename(sessionPath, stagedPath)",
+      "reason": "Archives, restores, or deletes a session JSONL locator.",
+      "storeId": "session-jsonl",
+      "exemptionId": null
+    },
+    {
+      "sourceFile": "server/routes/sessions.ts",
+      "line": 636,
+      "kind": "rename",
+      "excerpt": "fs.rename(stagedPath, sessionPath)",
+      "reason": "Archives, restores, or deletes a session JSONL locator.",
+      "storeId": "session-jsonl",
+      "exemptionId": null
+    },
+    {
+      "sourceFile": "server/routes/sessions.ts",
+      "line": 650,
+      "kind": "rename",
+      "excerpt": "fs.rename(stagedPath, sessionPath)",
+      "reason": "Archives, restores, or deletes a session JSONL locator.",
+      "storeId": "session-jsonl",
+      "exemptionId": null
+    },
+    {
+      "sourceFile": "server/routes/sessions.ts",
+      "line": 655,
+      "kind": "remove-path",
+      "excerpt": "fs.unlink(stagedPath)",
+      "reason": "Archives, restores, or deletes a session JSONL locator.",
+      "storeId": "session-jsonl",
+      "exemptionId": null
+    },
+    {
+      "sourceFile": "server/routes/sessions.ts",
+      "line": 665,
+      "kind": "rename",
+      "excerpt": "fs.rename(stagedPath, sessionPath)",
+      "reason": "Archives, restores, or deletes a session JSONL locator.",
+      "storeId": "session-jsonl",
+      "exemptionId": null
+    },
+    {
+      "sourceFile": "server/routes/sessions.ts",
+      "line": 695,
       "kind": "remove-path",
       "excerpt": "fs.unlink(destPath)",
       "reason": "Archives, restores, or deletes a session JSONL locator.",
@@ -7818,25 +7872,16 @@
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 2069,
+      "line": 2118,
       "kind": "append-file",
-      "excerpt": "appendFileSync(path.join(engine.hanakoHome, \"switch-error.log\"), `${new Date().toISOString()}\\n${errDetail}\\n---\\n`)",
+      "excerpt": "appendFileSync(path.join(engine.aniHome, \"switch-error.log\"), `${new Date().toISOString()}\\n${errDetail}\\n---\\n`)",
       "reason": "Appends switch failure diagnostics.",
       "storeId": "runtime-diagnostics",
       "exemptionId": null
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 2191,
-      "kind": "remove-path",
-      "excerpt": "fs.unlink(fp)",
-      "reason": "Archives, restores, or deletes a session JSONL locator.",
-      "storeId": "session-jsonl",
-      "exemptionId": null
-    },
-    {
-      "sourceFile": "server/routes/sessions.ts",
-      "line": 2254,
+      "line": 2302,
       "kind": "mkdir",
       "excerpt": "fs.mkdir(archiveDir, { recursive: true })",
       "reason": "Archives, restores, or deletes a session JSONL locator.",
@@ -7845,7 +7890,7 @@
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 2262,
+      "line": 2310,
       "kind": "rename",
       "excerpt": "fs.rename(sessionPath, destPath)",
       "reason": "Archives, restores, or deletes a session JSONL locator.",
@@ -7854,7 +7899,7 @@
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 2328,
+      "line": 2376,
       "kind": "rename",
       "excerpt": "fs.rename(sessionPath, destPath)",
       "reason": "Archives, restores, or deletes a session JSONL locator.",
@@ -7863,7 +7908,7 @@
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 2340,
+      "line": 2388,
       "kind": "mkdir",
       "excerpt": "fs.mkdir(archDir, { recursive: true })",
       "reason": "Archives, restores, or deletes a session JSONL locator.",
@@ -7872,18 +7917,9 @@
     },
     {
       "sourceFile": "server/routes/sessions.ts",
-      "line": 2341,
+      "line": 2389,
       "kind": "rename",
       "excerpt": "fs.rename(destPath, sessionPath)",
-      "reason": "Archives, restores, or deletes a session JSONL locator.",
-      "storeId": "session-jsonl",
-      "exemptionId": null
-    },
-    {
-      "sourceFile": "server/routes/sessions.ts",
-      "line": 2374,
-      "kind": "remove-path",
-      "excerpt": "fs.unlink(sessionPath)",
       "reason": "Archives, restores, or deletes a session JSONL locator.",
       "storeId": "session-jsonl",
       "exemptionId": null
@@ -8496,7 +8532,7 @@
       "line": 20,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(workspacePath, { recursive: true })",
-      "reason": "Creates the user-selected default workspace outside HANA_HOME.",
+      "reason": "Creates the user-selected default workspace outside ANI_HOME.",
       "storeId": null,
       "exemptionId": "external-default-workspace"
     },
@@ -8505,7 +8541,7 @@
       "line": 38,
       "kind": "mkdir",
       "excerpt": "fs.mkdirSync(defaultPath, { recursive: true })",
-      "reason": "Creates the user-selected default workspace outside HANA_HOME.",
+      "reason": "Creates the user-selected default workspace outside ANI_HOME.",
       "storeId": null,
       "exemptionId": "external-default-workspace"
     },
@@ -8626,7 +8662,7 @@
       "id": "compat-directory-seeding",
       "ownerModule": "lib/compat/checks/dirs.ts",
       "sourceFile": "lib/compat/checks/dirs.ts",
-      "reason": "Compatibility check creates a fixed set of registered HANA_HOME roots; flow attribution remains with the first-run coordinator.",
+      "reason": "Compatibility check creates a fixed set of registered ANI_HOME roots; flow attribution remains with the first-run coordinator.",
       "expiresOn": "2026-10-31",
       "kinds": [
         "database-open",
@@ -8645,7 +8681,7 @@
       "id": "conditional-plugin-install-cleanup",
       "ownerModule": "server/routes/plugins.ts",
       "sourceFile": "server/routes/plugins.ts",
-      "reason": "One bounded cleanup list contains both HANA_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
+      "reason": "One bounded cleanup list contains both ANI_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
       "expiresOn": "2026-10-31",
       "kinds": [
         "remove-path"
@@ -8739,7 +8775,7 @@
       "id": "desktop-caller-selected-output",
       "ownerModule": "desktop/main.cjs",
       "sourceFile": "desktop/main.cjs",
-      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+      "reason": "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
       "expiresOn": "2027-01-31",
       "kinds": [
         "mkdir",
@@ -8763,7 +8799,7 @@
       "id": "desktop-external-text-file",
       "ownerModule": "desktop/file-text-io.cjs",
       "sourceFile": "desktop/file-text-io.cjs",
-      "reason": "Writes an absolute artifact/editor path explicitly selected by the caller, outside any implied HANA_HOME store.",
+      "reason": "Writes an absolute artifact/editor path explicitly selected by the caller, outside any implied ANI_HOME store.",
       "expiresOn": "2027-01-31",
       "kinds": [
         "database-open",
@@ -8795,7 +8831,7 @@
       "id": "desktop-legacy-update-path-cleanup",
       "ownerModule": "desktop/auto-updater.cjs",
       "sourceFile": "desktop/auto-updater.cjs",
-      "reason": "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active HANA_HOME.",
+      "reason": "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active ANI_HOME.",
       "expiresOn": "2026-10-31",
       "kinds": [
         "remove-path"
@@ -8867,7 +8903,7 @@
       "id": "external-default-workspace",
       "ownerModule": "shared/default-workspace.ts",
       "sourceFile": "shared/default-workspace.ts",
-      "reason": "Creates the user-selected default workspace outside HANA_HOME.",
+      "reason": "Creates the user-selected default workspace outside ANI_HOME.",
       "expiresOn": "2027-01-31",
       "kinds": [
         "database-open",
@@ -8897,7 +8933,7 @@
       "id": "external-file-ref-io",
       "ownerModule": "lib/file-ref/resource-io.ts",
       "sourceFile": "lib/file-ref/resource-io.ts",
-      "reason": "Writes an explicit tool output path supplied by the caller; no HANA_HOME store is implied.",
+      "reason": "Writes an explicit tool output path supplied by the caller; no ANI_HOME store is implied.",
       "expiresOn": "2027-01-31",
       "kinds": [
         "database-open",
@@ -8935,7 +8971,7 @@
       "id": "external-mount-writes",
       "ownerModule": "core/mount-aware-file-service.ts",
       "sourceFile": "core/mount-aware-file-service.ts",
-      "reason": "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by HANA_HOME path inventory.",
+      "reason": "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by ANI_HOME path inventory.",
       "expiresOn": "2027-01-31",
       "kinds": [
         "database-open",

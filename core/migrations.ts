@@ -94,7 +94,7 @@ const migrations = {
   16: migrateVideoCapabilityProjection,
   // bridge sessionKey 引入 @agentId 后，修补旧 index 中无 agent 维度的 key
   17: migrateBridgeSessionKeysToAgentScoped,
-  // Studio 基础身份：为旧 HANA_HOME 补齐 server / legacy owner / default Studio registry
+  // Studio 基础身份：为旧 ANI_HOME 补齐 server / legacy owner / default Studio registry
   18: migrateLocalIdentityRegistries,
   // API-key provider 凭证真相源迁移：auth.json → added-models.yaml
   19: migrateLegacyApiKeyAuthEntriesToProviders,
@@ -154,7 +154,7 @@ const migrations = {
 
 /**
  * @param {object} ctx
- * @param {string}   ctx.hanakoHome
+ * @param {string}   ctx.aniHome
  * @param {string}   ctx.agentsDir
  * @param {import('./preferences-manager.ts').PreferencesManager} ctx.prefs
  * @param {import('./provider-registry.ts').ProviderRegistry}     ctx.providerRegistry
@@ -402,7 +402,7 @@ function migrateBridgeToPerAgent(ctx) {
 }
 
 function migrateSubagentExecutorMetadata(ctx) {
-  const { agentsDir, hanakoHome, log } = ctx;
+  const { agentsDir, aniHome, log } = ctx;
   const agentSnapshots = new Map();
   const childSessionCandidates = new Map();
 
@@ -561,7 +561,7 @@ function migrateSubagentExecutorMetadata(ctx) {
     log(`[migrations] subagent session sidecar patched: ${metaPath}`);
   }
 
-  const deferredTasksPath = path.join(hanakoHome, ".ephemeral", "deferred-tasks.json");
+  const deferredTasksPath = path.join(aniHome, ".ephemeral", "deferred-tasks.json");
   try {
     if (!fs.existsSync(deferredTasksPath)) return;
     const deferredTasks = JSON.parse(fs.readFileSync(deferredTasksPath, "utf-8"));
@@ -1043,8 +1043,8 @@ function normalizeProviderUrlForMigration(value) {
  * 代理或非官方 URL 时不猜测。
  */
 function migrateMiniMaxTokenPlanAnthropicEndpoint(ctx) {
-  const { hanakoHome, log } = ctx;
-  const ymlPath = path.join(hanakoHome, "added-models.yaml");
+  const { aniHome, log } = ctx;
+  const ymlPath = path.join(aniHome, "added-models.yaml");
   const raw = safeReadYAMLSync(ymlPath, null, YAML);
   if (!raw?.providers || typeof raw.providers !== "object") {
     log?.("[migrations] #35: MiniMax Token Plan endpoint migration skipped (no providers)");
@@ -1099,19 +1099,19 @@ function migrateMiniMaxTokenPlanAnthropicEndpoint(ctx) {
  * 运行时层只保留 input 数组。
  *
  * 覆盖位置：
- *   1. ~/.hanako/added-models.yaml 的 providers.*.models[] 数组（用户主战场）
- *   2. ~/.hanako/agents/*\/config.yaml 的 models.overrides（历史残留兜底）
+ *   1. ~/.ani/added-models.yaml 的 providers.*.models[] 数组（用户主战场）
+ *   2. ~/.ani/agents/*\/config.yaml 的 models.overrides（历史残留兜底）
  *
  * 幂等：只在发现 vision 字段时改写；image 已存在时保留不覆盖。
  * 配合读时兼容（model-sync.js、provider-registry.js）形成双保险。
  */
 function migrateVisionToImage(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
+  const { aniHome, agentsDir, log } = ctx;
   let ymlCount = 0;
   let overrideCount = 0;
 
   // ── 1. added-models.yaml ──
-  const ymlPath = path.join(hanakoHome, "added-models.yaml");
+  const ymlPath = path.join(aniHome, "added-models.yaml");
   const raw = safeReadYAMLSync(ymlPath, null, YAML);
   if (raw?.providers && typeof raw.providers === "object") {
     let changed = false;
@@ -1289,10 +1289,10 @@ function repairCronJobModelRefs(ctx) {
  * trigger + executor。迁移只补字段，不删除 type / schedule / prompt 等旧字段。
  */
 function migrateCronJobsToAutomationReadModel(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
+  const { aniHome, agentsDir, log } = ctx;
   const paths = [];
 
-  const studiosDir = path.join(hanakoHome, "studios");
+  const studiosDir = path.join(aniHome, "studios");
   try {
     for (const entry of fs.readdirSync(studiosDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
@@ -1343,8 +1343,8 @@ function patchCronJobsFileForAutomation(jobsPath, log) {
 }
 
 function migrateProviderCatalogV2Cutover(ctx) {
-  const { hanakoHome, providerRegistry, log } = ctx;
-  const store = providerRegistry?._catalog || new ProviderCatalogStore(hanakoHome);
+  const { aniHome, providerRegistry, log } = ctx;
+  const store = providerRegistry?._catalog || new ProviderCatalogStore(aniHome);
   const catalog = store.cutoverFromLegacy();
   if (providerRegistry) {
     providerRegistry._addedModelsCache = null;
@@ -1357,7 +1357,7 @@ function migrateProviderCatalogV2Cutover(ctx) {
 const CODEX_IMAGE_PROVIDER_ID = "openai-codex-oauth";
 
 function migrateCodexImageGenerationDefaultsToResolutionSchema(ctx) {
-  const { hanakoHome, prefs, log } = ctx;
+  const { aniHome, prefs, log } = ctx;
   const preferences = prefs.getPreferences();
   const prefsChanged = removeCodexImageSizeDefault(
     preferences?.imageGeneration?.providerDefaults,
@@ -1366,7 +1366,7 @@ function migrateCodexImageGenerationDefaultsToResolutionSchema(ctx) {
     prefs.savePreferences(preferences);
   }
 
-  const pluginChanged = removeCodexImageSizeDefaultFromPluginConfig(hanakoHome, log);
+  const pluginChanged = removeCodexImageSizeDefaultFromPluginConfig(aniHome, log);
   log?.(`[migrations] #43: Codex stale image size defaults removed (preferences=${prefsChanged}, pluginConfig=${pluginChanged})`);
 }
 
@@ -1410,8 +1410,8 @@ function nonEmptyMigrationModels(config) {
 }
 
 function migrateOAuthModelsToProviderCatalog(ctx) {
-  const { hanakoHome, prefs, providerRegistry, log } = ctx;
-  const store = providerRegistry?._catalog || new ProviderCatalogStore(hanakoHome);
+  const { aniHome, prefs, providerRegistry, log } = ctx;
+  const store = providerRegistry?._catalog || new ProviderCatalogStore(aniHome);
   const catalog = store.load();
   const providers = structuredClone(catalog.providers || {});
   const preferences = prefs.getPreferences();
@@ -1487,8 +1487,8 @@ function removeCodexImageSizeDefault(providerDefaults) {
   return true;
 }
 
-function removeCodexImageSizeDefaultFromPluginConfig(hanakoHome, log) {
-  const configPath = path.join(hanakoHome, "plugin-data", "image-gen", "config.json");
+function removeCodexImageSizeDefaultFromPluginConfig(aniHome, log) {
+  const configPath = path.join(aniHome, "plugin-data", "image-gen", "config.json");
   if (!fs.existsSync(configPath)) return false;
 
   let config;
@@ -1507,10 +1507,10 @@ function removeCodexImageSizeDefaultFromPluginConfig(hanakoHome, log) {
 }
 
 function migrateDirectNotifyAutomationsToAgentRuns(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
+  const { aniHome, agentsDir, log } = ctx;
   const paths = [];
 
-  const studiosDir = path.join(hanakoHome, "studios");
+  const studiosDir = path.join(aniHome, "studios");
   try {
     for (const entry of fs.readdirSync(studiosDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
@@ -1537,10 +1537,10 @@ function migrateDirectNotifyAutomationsToAgentRuns(ctx) {
 }
 
 function repairAutomationOwnershipAfterAgentRunConsolidation(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
+  const { aniHome, agentsDir, log } = ctx;
   const stores = [];
 
-  const studiosDir = path.join(hanakoHome, "studios");
+  const studiosDir = path.join(aniHome, "studios");
   try {
     for (const entry of fs.readdirSync(studiosDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
@@ -1833,13 +1833,13 @@ function enableSkillForAgentConfig(configPath, skillNames) {
  *
  * 旧结构把 Agent 自学技能放在 `agents/<id>/learned-skills/`，这会让“经验”、
  * “反省”和“技能安装”混在一起，也让列表刷新出现多条来源链。新结构只有一个
- * 全局 skill pool：迁移时复制旧技能到 `{HANA_HOME}/skills`，并只把复制后的
+ * 全局 skill pool：迁移时复制旧技能到 `{ANI_HOME}/skills`，并只把复制后的
  * skill name 写入来源 Agent 的 enabled 列表。为避免未来新 Agent 默认打开这些
  * 个性化技能，迁移出的 SKILL.md 会显式写入 `default-enabled: false`。
  */
 function migrateLearnedSkillsToGlobalSkillPool(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
-  const skillsDir = path.join(hanakoHome, "skills");
+  const { aniHome, agentsDir, log } = ctx;
+  const skillsDir = path.join(aniHome, "skills");
   fs.mkdirSync(skillsDir, { recursive: true });
 
   let migrated = 0;
@@ -2069,11 +2069,11 @@ function cleanupSummarizerCompilerRemnants(ctx) {
  * path 回填 block 的生命周期字段。
  */
 function backfillLegacySessionFiles(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
-  if (!hanakoHome || !agentsDir) return;
+  const { aniHome, agentsDir, log } = ctx;
+  if (!aniHome || !agentsDir) return;
 
   const registry = new SessionFileRegistry({
-    managedCacheRoot: path.join(hanakoHome, "session-files"),
+    managedCacheRoot: path.join(aniHome, "session-files"),
   });
   const sessionPaths = collectLegacySessionJsonlPaths(agentsDir);
   let registered = 0;
@@ -2103,7 +2103,7 @@ function backfillLegacySessionFiles(ctx) {
       if (entry?.type !== "message" || msg?.role !== "toolResult") continue;
 
       for (const ref of legacySessionFileRefs(msg)) {
-        const ok = registerLegacySessionFile({ registry, sessionId, sessionPath, ref, hanakoHome, log });
+        const ok = registerLegacySessionFile({ registry, sessionId, sessionPath, ref, aniHome, log });
         if (ok) registered++;
         else skipped++;
       }
@@ -2112,7 +2112,7 @@ function backfillLegacySessionFiles(ctx) {
       if (screenshot?.base64) {
         try {
           persistBrowserScreenshotFileSync({
-            hanakoHome,
+            aniHome,
             sessionId,
             sessionPath,
             base64: screenshot.base64,
@@ -2168,8 +2168,8 @@ function classifyOfficialGeminiBaseUrl(value) {
 }
 
 function migrateGeminiOpenAICompatToNative(ctx) {
-  const { hanakoHome, log } = ctx;
-  const ymlPath = path.join(hanakoHome, "added-models.yaml");
+  const { aniHome, log } = ctx;
+  const ymlPath = path.join(aniHome, "added-models.yaml");
   const raw = safeReadYAMLSync(ymlPath, null, YAML);
   if (!raw?.providers || typeof raw.providers !== "object") {
     log?.("[migrations] #14: Gemini native API migration skipped (no providers)");
@@ -2415,7 +2415,7 @@ function serializeBridgeIndexEntryForMigration(previousRaw, entry) {
 }
 
 function repairModelsJsonPiInputSchema(ctx) {
-  const modelsJsonPath = path.join(ctx.hanakoHome, "models.json");
+  const modelsJsonPath = path.join(ctx.aniHome, "models.json");
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(modelsJsonPath, "utf-8"));
@@ -2507,8 +2507,8 @@ function ensureHanaVideoInputCompat(record) {
 }
 
 function promoteAgentVideoOverrides(ctx) {
-  const { hanakoHome, agentsDir } = ctx;
-  const ymlPath = path.join(hanakoHome, "added-models.yaml");
+  const { aniHome, agentsDir } = ctx;
+  const ymlPath = path.join(aniHome, "added-models.yaml");
   const raw = safeReadYAMLSync(ymlPath, null, YAML);
   if (!raw?.providers || typeof raw.providers !== "object") return 0;
 
@@ -2864,8 +2864,8 @@ function defaultDeepSeekModelsForMigration(ctx, providerId) {
 }
 
 function repairLegacyDeepSeekProviderModelIds(ctx) {
-  const { hanakoHome, log } = ctx;
-  const ymlPath = path.join(hanakoHome, "added-models.yaml");
+  const { aniHome, log } = ctx;
+  const ymlPath = path.join(aniHome, "added-models.yaml");
   const raw = safeReadYAMLSync(ymlPath, null, YAML);
   if (!raw?.providers || typeof raw.providers !== "object") return 0;
 
@@ -3106,7 +3106,7 @@ function pushLegacyFileRef(refs, candidate, defaults: any = {}) {
   });
 }
 
-function registerLegacySessionFile({ registry, sessionId = null, sessionPath, ref, hanakoHome, log }) {
+function registerLegacySessionFile({ registry, sessionId = null, sessionPath, ref, aniHome, log }) {
   if (!ref?.filePath || !path.isAbsolute(ref.filePath)) return false;
   if (!fs.existsSync(ref.filePath)) return false;
 
@@ -3117,7 +3117,7 @@ function registerLegacySessionFile({ registry, sessionId = null, sessionPath, re
       filePath: ref.filePath,
       label: ref.label || path.basename(ref.filePath),
       origin: ref.origin || "unknown",
-      storageKind: normalizeLegacyStorageKind(ref, hanakoHome),
+      storageKind: normalizeLegacyStorageKind(ref, aniHome),
     });
     return true;
   } catch (err) {
@@ -3126,11 +3126,11 @@ function registerLegacySessionFile({ registry, sessionId = null, sessionPath, re
   }
 }
 
-function normalizeLegacyStorageKind(ref, hanakoHome) {
+function normalizeLegacyStorageKind(ref, aniHome) {
   const storageKind = ref.storageKind || "external";
   if (storageKind !== "managed_cache") return storageKind;
 
-  const managedRoot = path.join(hanakoHome, "session-files");
+  const managedRoot = path.join(aniHome, "session-files");
   const resolved = normalizeExistingOrResolvedPathForMigration(ref.filePath);
   const root = normalizeExistingOrResolvedPathForMigration(managedRoot);
   const rel = path.relative(root, resolved);
@@ -3164,28 +3164,28 @@ function legacyBrowserScreenshot(msg) {
 }
 
 function migrateLocalIdentityRegistries(ctx) {
-  const { hanakoHome, log } = ctx;
-  const { created, migratedFromLegacySpaces } = ensureLocalIdentityRegistries(hanakoHome);
+  const { aniHome, log } = ctx;
+  const { created, migratedFromLegacySpaces } = ensureLocalIdentityRegistries(aniHome);
   log?.(`[migrations] #18: local identity registries ready${created.length ? ` (created=${created.join(",")})` : ""}`);
   if (migratedFromLegacySpaces) log?.("[migrations] #18: legacy spaces.json mapped to studios.json");
 }
 
 function migrateStudioIdentityRegistries(ctx) {
-  const { hanakoHome, log } = ctx;
-  const { created, migratedFromLegacySpaces } = ensureLocalIdentityRegistries(hanakoHome);
+  const { aniHome, log } = ctx;
+  const { created, migratedFromLegacySpaces } = ensureLocalIdentityRegistries(aniHome);
   log?.(`[migrations] #26: studio identity registries ready${created.length ? ` (created=${created.join(",")})` : ""}`);
   if (migratedFromLegacySpaces) log?.("[migrations] #26: legacy spaces.json mapped to studios.json");
 }
 
 function migrateRemoteAccessFoundationRegistries(ctx) {
-  const { hanakoHome, log } = ctx;
-  const { created } = ensureRemoteAccessFoundationRegistries(hanakoHome);
+  const { aniHome, log } = ctx;
+  const { created } = ensureRemoteAccessFoundationRegistries(aniHome);
   log?.(`[migrations] #27: remote access foundation registries ready${created.length ? ` (created=${created.join(",")})` : ""}`);
 }
 
 function migrateDurableSubagentRunRegistry(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
-  const store = new SubagentRunStore(path.join(hanakoHome, "subagent-runs.json"));
+  const { aniHome, agentsDir, log } = ctx;
+  const store = new SubagentRunStore(path.join(aniHome, "subagent-runs.json"));
   let imported = 0;
 
   for (const sessionPath of collectAgentParentSessionJsonlPaths(agentsDir)) {
@@ -3228,7 +3228,7 @@ function migrateDurableSubagentRunRegistry(ctx) {
     }
   }
 
-  const deferredTasksPath = path.join(hanakoHome, ".ephemeral", "deferred-tasks.json");
+  const deferredTasksPath = path.join(aniHome, ".ephemeral", "deferred-tasks.json");
   try {
     if (fs.existsSync(deferredTasksPath)) {
       const deferredTasks = JSON.parse(fs.readFileSync(deferredTasksPath, "utf-8"));
@@ -3277,9 +3277,9 @@ function normalizeMigratedRunStatus(status) {
 }
 
 function migrateSubagentThreadRegistry(ctx) {
-  const { hanakoHome, log } = ctx;
-  const threadStore = new SubagentThreadStore(path.join(hanakoHome, "subagent-threads.json"));
-  const runStore = new SubagentRunStore(path.join(hanakoHome, "subagent-runs.json"));
+  const { aniHome, log } = ctx;
+  const threadStore = new SubagentThreadStore(path.join(aniHome, "subagent-threads.json"));
+  const runStore = new SubagentRunStore(path.join(aniHome, "subagent-runs.json"));
   let importedRuns = 0;
   let importedReusable = 0;
 
@@ -3309,7 +3309,7 @@ function migrateSubagentThreadRegistry(ctx) {
     importedRuns += 1;
   }
 
-  const reusableRaw = readJsonForMigration(path.join(hanakoHome, "reusable-subagents.json"));
+  const reusableRaw = readJsonForMigration(path.join(aniHome, "reusable-subagents.json"));
   const instances = reusableRaw?.instances && typeof reusableRaw.instances === "object"
     ? reusableRaw.instances
     : {};
@@ -3347,9 +3347,9 @@ function pickLegacySubagentLabel(rec) {
 }
 
 function migrateSubagentDirectThreadSemantics(ctx) {
-  const { hanakoHome, log } = ctx;
-  const threadsPath = path.join(hanakoHome, "subagent-threads.json");
-  const runsPath = path.join(hanakoHome, "subagent-runs.json");
+  const { aniHome, log } = ctx;
+  const threadsPath = path.join(aniHome, "subagent-threads.json");
+  const runsPath = path.join(aniHome, "subagent-runs.json");
   let threadCount = 0;
   let runCount = 0;
 
@@ -3403,8 +3403,8 @@ function migrateLegacyApiKeyAuthEntriesToProviders(ctx) {
 }
 
 function migrateChannelPhoneSettingsDefaults(ctx) {
-  const { hanakoHome, log } = ctx;
-  const channelsDir = path.join(hanakoHome, "channels");
+  const { aniHome, log } = ctx;
+  const channelsDir = path.join(aniHome, "channels");
   if (!fs.existsSync(channelsDir)) {
     log?.("[migrations] #22: no channels dir");
     return;
@@ -3427,7 +3427,7 @@ function migrateChannelPhoneSettingsDefaults(ctx) {
 }
 
 function removeAgentPhoneReplyInstructions(ctx) {
-  const { hanakoHome, agentsDir, log } = ctx;
+  const { aniHome, agentsDir, log } = ctx;
   let channelPatched = 0;
   let projectionPatched = 0;
 
@@ -3441,7 +3441,7 @@ function removeAgentPhoneReplyInstructions(ctx) {
     return true;
   };
 
-  const channelsDir = path.join(hanakoHome, "channels");
+  const channelsDir = path.join(aniHome, "channels");
   if (fs.existsSync(channelsDir)) {
     for (const entry of fs.readdirSync(channelsDir, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
@@ -3468,8 +3468,8 @@ function removeAgentPhoneReplyInstructions(ctx) {
 }
 
 function migrateChannelPhoneGuardLimitDefaults(ctx) {
-  const { hanakoHome, log } = ctx;
-  const channelsDir = path.join(hanakoHome, "channels");
+  const { aniHome, log } = ctx;
+  const channelsDir = path.join(aniHome, "channels");
   if (!fs.existsSync(channelsDir)) {
     log?.("[migrations] #24: no channels dir");
     return;
@@ -3492,8 +3492,8 @@ function migrateChannelPhoneGuardLimitDefaults(ctx) {
 }
 
 function migrateChannelPhoneProactiveDefaults(ctx) {
-  const { hanakoHome, log } = ctx;
-  const channelsDir = path.join(hanakoHome, "channels");
+  const { aniHome, log } = ctx;
+  const channelsDir = path.join(aniHome, "channels");
   if (!fs.existsSync(channelsDir)) {
     log?.("[migrations] #25: no channels dir");
     return;

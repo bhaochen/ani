@@ -51,13 +51,13 @@ export function createPluginAssetSessionCookie({
 }
 
 export function issuePluginAssetSession({
-  hanakoHome,
+  aniHome,
   pluginId,
   principalId,
   now = new Date().toISOString(),
   ttlMs = DEFAULT_PLUGIN_ASSET_SESSION_TTL_MS,
-}: { hanakoHome?: string; pluginId?: string; principalId?: string; now?: string; ttlMs?: number } = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+}: { aniHome?: string; pluginId?: string; principalId?: string; now?: string; ttlMs?: number } = {}) {
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(pluginId, "pluginId");
   assertNonEmpty(principalId, "principalId");
   const issuedAtMs = Date.parse(now);
@@ -73,7 +73,7 @@ export function issuePluginAssetSession({
     expiresAt: new Date(issuedAtMs + safeTtlMs).toISOString(),
   };
   const body = base64UrlEncode(JSON.stringify(payload));
-  const signature = signBody(hanakoHome, body);
+  const signature = signBody(aniHome, body);
   return {
     ...payload,
     token: `${body}.${signature}`,
@@ -82,12 +82,12 @@ export function issuePluginAssetSession({
 }
 
 export function verifyPluginAssetSession({
-  hanakoHome,
+  aniHome,
   pluginId,
   token,
   now = new Date().toISOString(),
-}: { hanakoHome?: string; pluginId?: string; token?: string; now?: string } = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+}: { aniHome?: string; pluginId?: string; token?: string; now?: string } = {}) {
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(pluginId, "pluginId");
   if (typeof token !== "string" || !token.trim()) {
     throw new PluginAssetSessionError("plugin asset session required", {
@@ -98,7 +98,7 @@ export function verifyPluginAssetSession({
   if (!body || !signature || extra !== undefined) {
     throw new PluginAssetSessionError("plugin asset session malformed");
   }
-  const expected = signBody(hanakoHome, body);
+  const expected = signBody(aniHome, body);
   if (!timingSafeEqual(signature, expected)) {
     throw new PluginAssetSessionError("plugin asset session signature invalid");
   }
@@ -136,20 +136,20 @@ export function verifyPluginAssetSession({
   });
 }
 
-function pluginAssetSessionKeyPath(hanakoHome) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
-  return path.join(hanakoHome, "security", PLUGIN_ASSET_SESSION_KEY_FILE);
+function pluginAssetSessionKeyPath(aniHome) {
+  assertNonEmpty(aniHome, "aniHome");
+  return path.join(aniHome, "security", PLUGIN_ASSET_SESSION_KEY_FILE);
 }
 
-function signBody(hanakoHome, body) {
+function signBody(aniHome, body) {
   return crypto
-    .createHmac("sha256", readOrCreateSessionKey(hanakoHome))
+    .createHmac("sha256", readOrCreateSessionKey(aniHome))
     .update(body)
     .digest("base64url");
 }
 
-function readOrCreateSessionKey(hanakoHome) {
-  const filePath = pluginAssetSessionKeyPath(hanakoHome);
+function readOrCreateSessionKey(aniHome) {
+  const filePath = pluginAssetSessionKeyPath(aniHome);
   try {
     const existing = fs.readFileSync(filePath, "utf-8").trim();
     if (existing) return existing;

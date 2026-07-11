@@ -131,7 +131,7 @@ describe("server startup diagnostics contract", () => {
       SERVER_FORCE_KILL_WAIT_MS: 1,
       fs: { unlinkSync() {} },
       path: { join: () => "server-info.json" },
-      hanakoHome: "C:\\hana",
+      aniHome: "C:\\hana",
     });
     vm.runInContext(`
       let serverProcess = ownedProc;
@@ -167,7 +167,7 @@ describe("server startup diagnostics contract", () => {
       SERVER_FORCE_KILL_WAIT_MS: 1,
       fs: { unlinkSync() {} },
       path: { join: () => "server-info.json" },
-      hanakoHome: "C:\\hana",
+      aniHome: "C:\\hana",
     });
     vm.runInContext(`
       let serverProcess = null;
@@ -204,7 +204,7 @@ describe("server startup diagnostics contract", () => {
       SERVER_FORCE_KILL_WAIT_MS: 1,
       fs: { unlinkSync() {} },
       path: { join: () => "server-info.json" },
-      hanakoHome: "C:\\hana",
+      aniHome: "C:\\hana",
     });
     vm.runInContext(`
       let serverProcess = failedGuardian;

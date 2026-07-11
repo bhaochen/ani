@@ -6,6 +6,7 @@ import {
 } from '@codemirror/state';
 import {
   EditorView,
+  keymap,
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
@@ -85,6 +86,29 @@ export function selectedMarkdownBlocks(state: EditorState): MarkdownBlock[] {
   return blocks.slice(Math.min(anchorIndex, headIndex), Math.max(anchorIndex, headIndex) + 1);
 }
 
+function selectedMarkdownBlockSource(state: EditorState): string | null {
+  const blocks = selectedMarkdownBlocks(state);
+  if (blocks.length === 0) return null;
+  return state.sliceDoc(blocks[0].from, blocks[blocks.length - 1].to);
+}
+
+export function copyMarkdownSource(view: EditorView, source: string): Promise<void> {
+  const clipboard = view.dom.ownerDocument.defaultView?.navigator.clipboard;
+  if (!clipboard?.writeText) {
+    return Promise.reject(new Error('Clipboard API is unavailable for this editor window.'));
+  }
+  return clipboard.writeText(source);
+}
+
+function copySelectedMarkdownBlocks(view: EditorView): boolean {
+  const source = selectedMarkdownBlockSource(view.state);
+  if (source === null) return false;
+  void copyMarkdownSource(view, source).catch((error: unknown) => {
+    console.warn('[markdown-block-selection] copy failed:', error);
+  });
+  return true;
+}
+
 function eventTargetNode(target: EventTarget | null): Node | null {
   return target && typeof target === 'object' && 'nodeType' in target
     ? target as Node
@@ -122,35 +146,9 @@ function contentColumnBounds(view: EditorView): ContentColumnBounds {
   return { left: contentRect.left, right: contentRect.right };
 }
 
-function isTopLevelBlockGap(view: EditorView, x: number, y: number): boolean {
+function isMarqueeOrigin(view: EditorView, x: number, _y: number): boolean {
   const bounds = contentColumnBounds(view);
-  if (x < bounds.left || x > bounds.right) return false;
-  const blocks = blocksForState(view.state);
-  if (blocks.length < 2) return false;
-  const position = view.posAtCoords({ x: (bounds.left + bounds.right) / 2, y }, false);
-  if (position === null) return false;
-  const nextIndex = firstBlockAfter(blocks, position);
-  const neighborhoodStart = Math.max(0, nextIndex - 2);
-  const neighborhoodEnd = Math.min(blocks.length - 1, neighborhoodStart + 3);
-  // A source-owned blank line remains an editable CodeMirror line. Only the
-  // measured CSS space between two rendered top-level blocks is a marquee
-  // origin; treating blank source as that gap steals its native I-beam.
-  if (view.state.doc.lineAt(position).text.trim() === '') return false;
-  for (let index = neighborhoodStart; index < neighborhoodEnd; index += 1) {
-    const current = blockVerticalBounds(view, blocks[index]);
-    const next = blockVerticalBounds(view, blocks[index + 1]);
-    if (next.top > current.bottom && y >= current.bottom && y <= next.top) return true;
-  }
-  if (blocks.slice(neighborhoodStart, neighborhoodEnd + 1).some(block => {
-    const blockBounds = blockVerticalBounds(view, block);
-    return y >= blockBounds.top && y <= blockBounds.bottom;
-  })) return false;
-  return false;
-}
-
-function isMarqueeOrigin(view: EditorView, x: number, y: number): boolean {
-  const bounds = contentColumnBounds(view);
-  return x < bounds.left || x > bounds.right || isTopLevelBlockGap(view, x, y);
+  return x < bounds.left || x > bounds.right;
 }
 
 function blockIndexAtCoords(
@@ -174,11 +172,17 @@ function blockIndexAtCoords(
 }
 
 function blockVerticalBounds(view: EditorView, block: MarkdownBlock): { top: number; bottom: number } {
-  const start = view.lineBlockAt(block.from);
-  const end = view.lineBlockAt(Math.max(block.from, block.to - 1));
+  const endPosition = Math.max(block.from, block.to - 1);
+  const startCoordinates = view.coordsAtPos(block.from, 1);
+  const endCoordinates = view.coordsAtPos(endPosition, -1);
+  const startBlock = view.lineBlockAt(block.from);
+  const endBlock = view.lineBlockAt(endPosition);
   return {
-    top: view.documentTop + (start.top * view.scaleY),
-    bottom: view.documentTop + (end.bottom * view.scaleY),
+    // A block widget immediately before a line (notably the top cover) can
+    // make lineBlockAt() report a compound block that starts at the widget.
+    // Visible caret coordinates belong to the rendered Markdown line itself.
+    top: startCoordinates?.top ?? view.documentTop + (startBlock.top * view.scaleY),
+    bottom: endCoordinates?.bottom ?? view.documentTop + (endBlock.bottom * view.scaleY),
   };
 }
 
@@ -453,6 +457,10 @@ class MarkdownBlockSelectionView {
 export function markdownBlockSelectionPlugin(): Extension {
   return [
     markdownBlockSelectionField,
+    keymap.of([
+      { key: 'Meta-c', run: copySelectedMarkdownBlocks },
+      { key: 'Ctrl-c', run: copySelectedMarkdownBlocks },
+    ]),
     ViewPlugin.define(view => new MarkdownBlockSelectionView(view)),
   ];
 }

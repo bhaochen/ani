@@ -117,7 +117,7 @@ describe("runMigrations runner", () => {
     });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -150,7 +150,7 @@ describe("runMigrations runner", () => {
     writeAgentConfig(agentsDir, "hana", { api: { provider: "" } });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -168,7 +168,7 @@ describe("runMigrations runner", () => {
     writeAgentConfig(agentsDir, "hana", { api: { provider: "ghost-provider" } });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -219,7 +219,7 @@ describe("migration #11: repairCronJobModelRefs", () => {
     ]);
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({
@@ -290,7 +290,7 @@ describe("migration #30: cron jobs to automation read model", () => {
     }]);
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -351,7 +351,7 @@ describe("migration #42: provider catalog v2 cutover", () => {
     );
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -409,7 +409,7 @@ describe("migration #42: provider catalog v2 cutover", () => {
     );
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -479,7 +479,7 @@ describe("migration #43: Codex image generation defaults follow mode schema", ()
     });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -558,7 +558,7 @@ describe("migration #44: OAuth models converge into Provider Catalog", () => {
     });
     const registry = new ProviderRegistry(tmpDir);
 
-    runMigrations({ hanakoHome: tmpDir, agentsDir, prefs, providerRegistry: registry, log: () => {} });
+    runMigrations({ aniHome: tmpDir, agentsDir, prefs, providerRegistry: registry, log: () => {} });
 
     const catalog = readJson(path.join(tmpDir, "provider-catalog.json"));
     expect(catalog.providers).not.toHaveProperty("openai-codex");
@@ -592,7 +592,7 @@ describe("migration #44: OAuth models converge into Provider Catalog", () => {
     });
     const registry = new ProviderRegistry(tmpDir);
 
-    runMigrations({ hanakoHome: tmpDir, agentsDir, prefs, providerRegistry: registry, log: () => {} });
+    runMigrations({ aniHome: tmpDir, agentsDir, prefs, providerRegistry: registry, log: () => {} });
 
     const catalog = readJson(path.join(tmpDir, "provider-catalog.json"));
     const ids = catalog.providers["openai-codex-oauth"].models.map((model) => typeof model === "object" ? model.id : model);
@@ -620,7 +620,7 @@ describe("migration #44: OAuth models converge into Provider Catalog", () => {
     });
     const registry = new ProviderRegistry(tmpDir);
 
-    runMigrations({ hanakoHome: tmpDir, agentsDir, prefs, providerRegistry: registry, log: () => {} });
+    runMigrations({ aniHome: tmpDir, agentsDir, prefs, providerRegistry: registry, log: () => {} });
 
     const catalog = readJson(path.join(tmpDir, "provider-catalog.json"));
     expect(catalog.providers["openai-codex-oauth"]).not.toHaveProperty("models");
@@ -690,7 +690,7 @@ describe("migration #38: direct notify automations become Agent runs", () => {
     }]);
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -763,7 +763,7 @@ describe("migration #39: repair automation ownership after Agent-run consolidati
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 38 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -966,7 +966,7 @@ describe("migration #31: learned skills converge into the global skill pool", ()
     );
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -1011,7 +1011,7 @@ describe("migration #12: backfill legacy session files into sidecars", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 11 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -1113,7 +1113,7 @@ describe("migration #13: normalize recent legacy compatibility state", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 12 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({
@@ -1231,7 +1231,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     const prefs = makePrefs(userDir);
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -1248,7 +1248,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     const prefs = makePrefs(userDir);
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -1265,7 +1265,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     const prefs = makePrefs(userDir);
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -1282,7 +1282,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     const prefs = makePrefs(userDir);
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -1298,7 +1298,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     const prefs = makePrefs(userDir);
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry([]),
       log: () => {},
     });
@@ -1316,7 +1316,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     fs.mkdirSync(agentsDir, { recursive: true });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry([]),
       log: () => {},
     });
@@ -1334,7 +1334,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     fs.mkdirSync(agentsDir, { recursive: true });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -1353,7 +1353,7 @@ describe("migration #1: cleanDanglingProviderRefs", () => {
     const prefs = makePrefs(userDir);
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -1386,7 +1386,7 @@ describe("migration #2: migrateBridgeToPerAgent", () => {
     prefs.savePreferences(p);
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -1586,7 +1586,7 @@ describe("migration #3 — migrateWorkspaceToPerAgent", () => {
     p._dataVersion = 2;
     prefs.savePreferences(p);
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -1787,7 +1787,7 @@ describe("migration #9 — migrateBridgeReadOnlyToGlobal", () => {
     prefs.savePreferences(p);
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -1844,7 +1844,7 @@ describe("migration #4 — migrateSubagentExecutorMetadata", () => {
     p._dataVersion = 3;
     prefs.savePreferences(p);
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -1941,7 +1941,7 @@ describe("#7 migrateVisionToImage", () => {
   beforeEach(() => {
     tmpDir = makeTmpDir();
     agentsDir = path.join(tmpDir, "agents");
-    userDir = tmpDir; // hanakoHome 根目录，模拟 added-models.yaml 所在位置
+    userDir = tmpDir; // aniHome 根目录，模拟 added-models.yaml 所在位置
     fs.mkdirSync(agentsDir, { recursive: true });
   });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
@@ -1949,7 +1949,7 @@ describe("#7 migrateVisionToImage", () => {
   function runMigration7(prefs) {
     prefs.savePreferences({ _dataVersion: 6 });  // 跳过 #1-#6，直接测 #7
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2069,7 +2069,7 @@ describe("migration #14: migrate Gemini OpenAI compatibility configs to native G
   function runMigration14(prefs) {
     prefs.savePreferences({ _dataVersion: 13 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2150,7 +2150,7 @@ describe("migration #15: repair legacy session sidecar thinking levels", () => {
   function runMigration15(prefs) {
     prefs.savePreferences({ _dataVersion: 14 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2248,7 +2248,7 @@ describe("migration #16: video capability projection", () => {
   function runMigration16(prefs) {
     prefs.savePreferences({ _dataVersion: 15 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({
@@ -2329,7 +2329,7 @@ describe("migration #20: Pi model input schema compatibility", () => {
   function runMigration20(prefs) {
     prefs.savePreferences({ _dataVersion: 19 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -2409,7 +2409,7 @@ describe("migration #21: video transport capability refresh", () => {
   function runMigration21(prefs) {
     prefs.savePreferences({ _dataVersion: 20 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({}),
@@ -2466,7 +2466,7 @@ describe("migration #8 — repairPostMigrationModelRefs", () => {
     prefs.savePreferences({ _dataVersion: 7 });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistryWithModels({
@@ -2506,7 +2506,7 @@ describe("migration #10 — cleanupSummarizerCompilerRemnants", () => {
     });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["openai"]),
       log: () => {},
     });
@@ -2533,7 +2533,7 @@ describe("migration #10 — cleanupSummarizerCompilerRemnants", () => {
     prefs.savePreferences({ _dataVersion: 9 });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["anthropic", "openai"]),
       log: () => {},
     });
@@ -2557,7 +2557,7 @@ describe("migration #10 — cleanupSummarizerCompilerRemnants", () => {
     prefs.savePreferences({ _dataVersion: 9 });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry(["anthropic"]),
       log: () => {},
     });
@@ -2608,7 +2608,7 @@ describe("migration #17 — migrateBridgeSessionKeysToAgentScoped", () => {
     prefs.savePreferences({ _dataVersion: 16 });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry([]),
       log: () => {},
     });
@@ -2634,7 +2634,7 @@ describe("migration #17 — migrateBridgeSessionKeysToAgentScoped", () => {
     prefs.savePreferences({ _dataVersion: 16 });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry([]),
       log: () => {},
     });
@@ -2659,7 +2659,7 @@ describe("migration #17 — migrateBridgeSessionKeysToAgentScoped", () => {
     prefs.savePreferences({ _dataVersion: 16 });
 
     runMigrations({
-      hanakoHome: tmpDir, agentsDir, prefs,
+      aniHome: tmpDir, agentsDir, prefs,
       providerRegistry: makeRegistry([]),
       log: () => {},
     });
@@ -2708,7 +2708,7 @@ describe("migration #22 — migrateChannelPhoneSettingsDefaults", () => {
     prefs.savePreferences({ _dataVersion: 21 });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2784,7 +2784,7 @@ describe("migration #23 — removeAgentPhoneReplyInstructions", () => {
     prefs.savePreferences({ _dataVersion: 22 });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2840,7 +2840,7 @@ describe("migration #24 — migrateChannelPhoneGuardLimitDefaults", () => {
     prefs.savePreferences({ _dataVersion: 23 });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2891,7 +2891,7 @@ describe("migration #25 — migrateChannelPhoneProactiveDefaults", () => {
     prefs.savePreferences({ _dataVersion: 24 });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2921,7 +2921,7 @@ describe("migration #25 — migrateChannelPhoneProactiveDefaults", () => {
     prefs.savePreferences({ _dataVersion: 24 });
 
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2951,7 +2951,7 @@ describe("migration #18 — create local identity registries", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 17 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2964,7 +2964,7 @@ describe("migration #18 — create local identity registries", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 25 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -2977,7 +2977,7 @@ describe("migration #18 — create local identity registries", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 26 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -3253,7 +3253,7 @@ describe("migration #18 — create local identity registries", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       runMigrations({
-        hanakoHome: tmpDir,
+        aniHome: tmpDir,
         agentsDir,
         prefs,
         providerRegistry: makeRegistry([]),
@@ -3356,7 +3356,7 @@ describe("migration #19 — migrate legacy API-key auth to provider config", () 
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 18 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry,
@@ -3554,7 +3554,7 @@ describe("migration #28 — durable subagent run registry", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 27 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -3671,7 +3671,7 @@ describe("migration #29 — heartbeat default is explicit opt-in", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 28 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -3749,7 +3749,7 @@ describe("migration #32 — move Agent Phone runtime out of projection", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 31 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -3803,7 +3803,7 @@ describe("migration #33 — beautify default is explicit opt-in", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 32 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -3868,7 +3868,7 @@ describe("migration #34 — workflow default is explicit opt-in", () => {
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 33 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -3945,7 +3945,7 @@ describe("migration #35 — MiniMax Token Plan endpoint follows current official
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 34 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -4026,7 +4026,7 @@ describe("migration #36 — subagent thread registry backfills old run and reusa
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 35 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -4154,7 +4154,7 @@ describe("migration #36 — subagent thread registry backfills old run and reusa
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 36 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),
@@ -4193,7 +4193,7 @@ describe("migration #41 — restore dynamic user name placeholders in identity s
     const prefs = makePrefs(userDir);
     prefs.savePreferences({ _dataVersion: 40 });
     runMigrations({
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir,
       prefs,
       providerRegistry: makeRegistry([]),

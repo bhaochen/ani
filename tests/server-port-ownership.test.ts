@@ -75,12 +75,12 @@ describe("server transport ownership", () => {
       blocker.listen(0, "127.0.0.1", resolve as any);
     });
     const port = (blocker.address() as any).port;
-    const hanaHome = fs.mkdtempSync(path.join(os.tmpdir(), "hana-port-conflict-test-"));
+    const aniHome = fs.mkdtempSync(path.join(os.tmpdir(), "hana-port-conflict-test-"));
     const child = spawn(process.execPath, ["server/bootstrap.ts"], {
       cwd: root,
       env: {
         ...process.env,
-        HANA_HOME: hanaHome,
+        ANI_HOME: aniHome,
         HANA_PORT: String(port),
         HANA_ROOT: root,
         HANA_SERVER_ENTRY: path.join(root, "server", "index.ts"),
@@ -110,7 +110,7 @@ describe("server transport ownership", () => {
       expect(stdout + stderr).not.toContain("HanaEngine");
     } finally {
       blocker.close();
-      fs.rmSync(hanaHome, { recursive: true, force: true });
+      fs.rmSync(aniHome, { recursive: true, force: true });
     }
   });
 });

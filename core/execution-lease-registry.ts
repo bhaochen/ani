@@ -9,8 +9,8 @@ const SCHEMA_VERSION = 1;
 const SECURITY_DIR = "security";
 const STATUSES = new Set(["issued", "consumed", "expired", "revoked"]);
 
-export function ensureExecutionLeaseRegistry(hanakoHome, { now = new Date().toISOString() } = {}) {
-  const filePath = executionLeaseRegistryPath(hanakoHome);
+export function ensureExecutionLeaseRegistry(aniHome, { now = new Date().toISOString() } = {}) {
+  const filePath = executionLeaseRegistryPath(aniHome);
   const existing = readJsonIfPresent(filePath, EXECUTION_LEASES_FILE);
   if (existing) {
     validateExecutionLeaseRegistry(existing, EXECUTION_LEASES_FILE, { now });
@@ -21,17 +21,17 @@ export function ensureExecutionLeaseRegistry(hanakoHome, { now = new Date().toIS
   return registry;
 }
 
-export function loadExecutionLeaseRegistry(hanakoHome, { now = new Date().toISOString() } = {}) {
-  ensureExecutionLeaseRegistry(hanakoHome, { now });
+export function loadExecutionLeaseRegistry(aniHome, { now = new Date().toISOString() } = {}) {
+  ensureExecutionLeaseRegistry(aniHome, { now });
   return validateExecutionLeaseRegistry(
-    readJsonRequired(executionLeaseRegistryPath(hanakoHome), EXECUTION_LEASES_FILE),
+    readJsonRequired(executionLeaseRegistryPath(aniHome), EXECUTION_LEASES_FILE),
     EXECUTION_LEASES_FILE,
     { now },
   );
 }
 
-export function issueExecutionLease(hanakoHome, lease, { now = new Date().toISOString() } = {}) {
-  const registry = loadExecutionLeaseRegistry(hanakoHome, { now });
+export function issueExecutionLease(aniHome, lease, { now = new Date().toISOString() } = {}) {
+  const registry = loadExecutionLeaseRegistry(aniHome, { now });
   const record = normalizeLeaseRecord({
     ...lease,
     status: "issued",
@@ -42,12 +42,12 @@ export function issueExecutionLease(hanakoHome, lease, { now = new Date().toISOS
   }
   registry.leases.push(record);
   registry.updatedAt = now;
-  persistExecutionLeaseRegistry(hanakoHome, registry);
+  persistExecutionLeaseRegistry(aniHome, registry);
   return clonePlain(record);
 }
 
-export function consumeExecutionLease(hanakoHome, leaseId, { now = new Date().toISOString() } = {}) {
-  const registry = loadExecutionLeaseRegistry(hanakoHome, { now });
+export function consumeExecutionLease(aniHome, leaseId, { now = new Date().toISOString() } = {}) {
+  const registry = loadExecutionLeaseRegistry(aniHome, { now });
   const lease = registry.leases.find((item) => item.leaseId === leaseId);
   if (!lease) throw new Error(`execution lease not found: ${leaseId}`);
   if (lease.status !== "issued") throw new Error(`execution lease is ${lease.status}`);
@@ -55,29 +55,29 @@ export function consumeExecutionLease(hanakoHome, leaseId, { now = new Date().to
   lease.status = "consumed";
   lease.consumedAt = now;
   registry.updatedAt = now;
-  persistExecutionLeaseRegistry(hanakoHome, registry);
+  persistExecutionLeaseRegistry(aniHome, registry);
   return clonePlain(lease);
 }
 
-export function revokeExecutionLease(hanakoHome, leaseId, { now = new Date().toISOString() } = {}) {
-  const registry = loadExecutionLeaseRegistry(hanakoHome, { now });
+export function revokeExecutionLease(aniHome, leaseId, { now = new Date().toISOString() } = {}) {
+  const registry = loadExecutionLeaseRegistry(aniHome, { now });
   const lease = registry.leases.find((item) => item.leaseId === leaseId);
   if (!lease) throw new Error(`execution lease not found: ${leaseId}`);
   lease.status = "revoked";
   lease.revokedAt = now;
   registry.updatedAt = now;
-  persistExecutionLeaseRegistry(hanakoHome, registry);
+  persistExecutionLeaseRegistry(aniHome, registry);
   return clonePlain(lease);
 }
 
-export function persistExecutionLeaseRegistry(hanakoHome, registry) {
+export function persistExecutionLeaseRegistry(aniHome, registry) {
   validateExecutionLeaseRegistry(registry, EXECUTION_LEASES_FILE, { validateExpiry: false });
-  writeJsonAtomic(executionLeaseRegistryPath(hanakoHome), registry);
+  writeJsonAtomic(executionLeaseRegistryPath(aniHome), registry);
 }
 
-export function executionLeaseRegistryPath(hanakoHome) {
-  if (!isNonEmptyString(hanakoHome)) throw new Error("hanakoHome required");
-  return path.join(hanakoHome, SECURITY_DIR, EXECUTION_LEASES_FILE);
+export function executionLeaseRegistryPath(aniHome) {
+  if (!isNonEmptyString(aniHome)) throw new Error("aniHome required");
+  return path.join(aniHome, SECURITY_DIR, EXECUTION_LEASES_FILE);
 }
 
 function createEmptyExecutionLeaseRegistry(now) {

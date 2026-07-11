@@ -27,11 +27,11 @@ function makeApp({ gotLock = true } = {}) {
 describe("desktop client single instance lock", () => {
   it("sets the dev userData namespace before requesting the lock", () => {
     const { app } = makeApp();
-    const defaultHome = path.join("C:", "Users", "me", ".hanako");
-    const devHome = path.join("C:", "Users", "me", ".hanako-dev");
+    const defaultHome = path.join("C:", "Users", "me", ".ani");
+    const devHome = path.join("C:", "Users", "me", ".ani-dev");
 
     const acquired = configureClientSingleInstance(app, {
-      hanakoHome: devHome,
+      aniHome: devHome,
       defaultHome,
       onSecondInstance: vi.fn(),
     });
@@ -48,10 +48,10 @@ describe("desktop client single instance lock", () => {
 
   it("keeps production in the legacy Electron userData namespace", () => {
     const { app } = makeApp();
-    const defaultHome = path.join("C:", "Users", "me", ".hanako");
+    const defaultHome = path.join("C:", "Users", "me", ".ani");
 
     const acquired = configureClientSingleInstance(app, {
-      hanakoHome: defaultHome,
+      aniHome: defaultHome,
       defaultHome,
       onSecondInstance: vi.fn(),
     });
@@ -68,8 +68,8 @@ describe("desktop client single instance lock", () => {
     const { app } = makeApp({ gotLock: false });
 
     const acquired = configureClientSingleInstance(app, {
-      hanakoHome: path.join("C:", "Users", "me", ".hanako"),
-      defaultHome: path.join("C:", "Users", "me", ".hanako"),
+      aniHome: path.join("C:", "Users", "me", ".ani"),
+      defaultHome: path.join("C:", "Users", "me", ".ani"),
       onSecondInstance: vi.fn(),
     });
 
@@ -84,8 +84,8 @@ describe("desktop client single instance lock", () => {
     const onSecondInstance = vi.fn();
 
     configureClientSingleInstance(app, {
-      hanakoHome: path.join("C:", "Users", "me", ".hanako"),
-      defaultHome: path.join("C:", "Users", "me", ".hanako"),
+      aniHome: path.join("C:", "Users", "me", ".ani"),
+      defaultHome: path.join("C:", "Users", "me", ".ani"),
       onSecondInstance,
     });
 

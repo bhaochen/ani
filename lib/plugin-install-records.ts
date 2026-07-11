@@ -30,9 +30,9 @@ function atomicWriteJson(filePath, value) {
 export class PluginInstallRecords {
   declare _path: string;
 
-  constructor({ hanakoHome }) {
-    if (!hanakoHome) throw new Error("PluginInstallRecords requires hanakoHome");
-    this._path = path.join(hanakoHome, "plugin-installs.json");
+  constructor({ aniHome }) {
+    if (!aniHome) throw new Error("PluginInstallRecords requires aniHome");
+    this._path = path.join(aniHome, "plugin-installs.json");
   }
 
   _read() {

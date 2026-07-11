@@ -161,7 +161,15 @@ function lineCoordinates(
   return null;
 }
 
-function measurableLineNumbers(view: EditorView, block: MarkdownBlock): number[] {
+function blockLineNumbers(block: MarkdownBlock): number[] {
+  const lines: number[] = [];
+  for (let lineNumber = block.startLine; lineNumber <= block.endLine; lineNumber += 1) {
+    lines.push(lineNumber);
+  }
+  return lines;
+}
+
+function measurableContentLineNumbers(view: EditorView, block: MarkdownBlock): number[] {
   const all: number[] = [];
   const withoutFences: number[] = [];
   for (let lineNumber = block.startLine; lineNumber <= block.endLine; lineNumber += 1) {
@@ -205,20 +213,38 @@ function renderedLineElement(view: EditorView, lineNumber: number): HTMLElement 
   return null;
 }
 
+function renderedBlockLineLeft(
+  view: EditorView,
+  block: MarkdownBlock,
+  lineNumber: number,
+): number | null {
+  if (block.type === 'Blockquote') {
+    const element = renderedLineElement(view, lineNumber);
+    const left = element?.getBoundingClientRect().left;
+    if (left !== undefined && Number.isFinite(left)) return left;
+  }
+  return renderedLineCoordinates(view, lineNumber, 'start')?.left ?? null;
+}
+
 function measureMarkdownBlock(view: EditorView, block: MarkdownBlock): MeasuredMarkdownBlock | null {
   let start: EditorCoordinates | null = null;
   let end: EditorCoordinates | null = null;
   let left = Number.POSITIVE_INFINITY;
 
-  const lineNumbers = measurableLineNumbers(view, block);
-  for (const lineNumber of lineNumbers) {
+  const verticalLineNumbers = blockLineNumbers(block);
+  const horizontalLineNumbers = measurableContentLineNumbers(view, block);
+  for (const lineNumber of verticalLineNumbers) {
     const coordinates = renderedLineCoordinates(view, lineNumber, 'start');
     if (!coordinates) continue;
     start ??= coordinates;
-    left = Math.min(left, coordinates.left);
   }
-  for (let index = lineNumbers.length - 1; index >= 0; index -= 1) {
-    end = renderedLineCoordinates(view, lineNumbers[index], 'end');
+  for (const lineNumber of horizontalLineNumbers) {
+    const lineLeft = renderedBlockLineLeft(view, block, lineNumber);
+    if (lineLeft === null) continue;
+    left = Math.min(left, lineLeft);
+  }
+  for (let index = verticalLineNumbers.length - 1; index >= 0; index -= 1) {
+    end = renderedLineCoordinates(view, verticalLineNumbers[index], 'end');
     if (end) break;
   }
 
@@ -505,7 +531,7 @@ class MarkdownBlockHandleView {
 
   private renderedBlockElements(block: MarkdownBlock): HTMLElement[] {
     const elements = new Set<HTMLElement>();
-    for (const lineNumber of measurableLineNumbers(this.view, block)) {
+    for (const lineNumber of measurableContentLineNumbers(this.view, block)) {
       const element = renderedLineElement(this.view, lineNumber);
       if (element) elements.add(element);
     }

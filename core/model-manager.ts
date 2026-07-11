@@ -123,17 +123,17 @@ export class ModelManager {
   declare _authStorage: any;
   declare _availableModels: any;
   declare _defaultModel: any;
-  declare _hanakoHome: any;
+  declare _aniHome: any;
   declare _modelRegistry: any;
   declare _registeredSdkProviderIds: Set<string>;
   declare executionRouter: any;
   declare providerRegistry: any;
   /**
    * @param {object} opts
-   * @param {string} opts.hanakoHome - 用户数据根目录
+   * @param {string} opts.aniHome - 用户数据根目录
    */
-  constructor({ hanakoHome }) {
-    this._hanakoHome = hanakoHome;
+  constructor({ aniHome }) {
+    this._aniHome = aniHome;
     this._authStorage = null;
     this._modelRegistry = null;
     this._registeredSdkProviderIds = new Set();
@@ -141,13 +141,13 @@ export class ModelManager {
     this._availableModels = [];
 
     // 新架构模块（init() 后可用）
-    this.providerRegistry = new ProviderRegistry(hanakoHome);
+    this.providerRegistry = new ProviderRegistry(aniHome);
     this.executionRouter = null;
   }
 
   /** 初始化 AuthStorage + ModelRegistry + 新架构模块 */
   init() {
-    this._authStorage = AuthStorage.create(path.join(this._hanakoHome, "auth.json"));
+    this._authStorage = AuthStorage.create(path.join(this._aniHome, "auth.json"));
     this.providerRegistry.reload();
     this._removeApiKeyProviderAuthEntries();
     const projection = this._buildChatProjectionInputs();
@@ -158,7 +158,7 @@ export class ModelManager {
     });
     this._modelRegistry = createModelRegistry(
       this._authStorage,
-      path.join(this._hanakoHome, "models.json"),
+      path.join(this._aniHome, "models.json"),
     );
     this._syncSdkProviderRegistrations();
 
@@ -177,8 +177,8 @@ export class ModelManager {
   set defaultModel(m) { this._defaultModel = m; }
   get currentModel() { return this._defaultModel; }
   get availableModels() { return this._availableModels; }
-  get modelsJsonPath() { return path.join(this._hanakoHome, "models.json"); }
-  get authJsonPath() { return path.join(this._hanakoHome, "auth.json"); }
+  get modelsJsonPath() { return path.join(this._aniHome, "models.json"); }
+  get authJsonPath() { return path.join(this._aniHome, "auth.json"); }
 
   // ── 模型解析：_availableModels 唯一真理源 ──
 
@@ -363,7 +363,7 @@ export class ModelManager {
   _removeApiKeyProviderAuthEntries() {
     if (!this._authStorage || !this.providerRegistry) return;
     migrateLegacyApiKeyAuthToProviders({
-      hanakoHome: this._hanakoHome,
+      aniHome: this._aniHome,
       providerRegistry: this.providerRegistry,
     });
     this._authStorage.reload?.();

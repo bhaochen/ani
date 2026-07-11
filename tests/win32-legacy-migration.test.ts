@@ -66,11 +66,11 @@ describe("Windows legacy sandbox migration", () => {
       "C:\\",
       "D:\\",
       "C:\\Users\\Hana",
-      "C:\\Users\\Hana\\.hanako",
-      "C:\\Users\\Hana\\.hanako\\.ephemeral",
-      "C:\\Users\\Hana\\.hanako\\agents",
-      "C:\\Users\\Hana\\.hanako\\session-files",
-      "C:\\Users\\Hana\\.hanako\\uploads",
+      "C:\\Users\\Hana\\.ani",
+      "C:\\Users\\Hana\\.ani\\.ephemeral",
+      "C:\\Users\\Hana\\.ani\\agents",
+      "C:\\Users\\Hana\\.ani\\session-files",
+      "C:\\Users\\Hana\\.ani\\uploads",
       "C:\\Program Files\\Hanako\\resources",
       "C:\\Program Files\\Hanako\\resources\\git",
       "D:\\workspace",
@@ -90,7 +90,7 @@ describe("Windows legacy sandbox migration", () => {
 
     const targets = collectWin32LegacySandboxMigrationTargets({
       platform: "win32",
-      hanakoHome: "C:\\Users\\Hana\\.hanako",
+      aniHome: "C:\\Users\\Hana\\.ani",
       workspaceRoots: ["D:\\workspace"],
       env: {
         USERPROFILE: "C:\\Users\\Hana",
@@ -105,11 +105,11 @@ describe("Windows legacy sandbox migration", () => {
     });
 
     expect(targets.aclPaths).toEqual([
-      "C:\\Users\\Hana\\.hanako",
-      "C:\\Users\\Hana\\.hanako\\.ephemeral",
-      "C:\\Users\\Hana\\.hanako\\agents",
-      "C:\\Users\\Hana\\.hanako\\session-files",
-      "C:\\Users\\Hana\\.hanako\\uploads",
+      "C:\\Users\\Hana\\.ani",
+      "C:\\Users\\Hana\\.ani\\.ephemeral",
+      "C:\\Users\\Hana\\.ani\\agents",
+      "C:\\Users\\Hana\\.ani\\session-files",
+      "C:\\Users\\Hana\\.ani\\uploads",
       "D:\\workspace",
       "C:\\Program Files\\Hanako\\resources",
       "C:\\Program Files\\Hanako\\resources\\git",

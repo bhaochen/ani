@@ -75,7 +75,7 @@ describe("createSandboxedTools on Linux", () => {
       agentDir: "/hana/agents/hana",
       workspace: "/work",
       workspaceFolders: [],
-      hanakoHome: "/hana",
+      aniHome: "/hana",
       getSandboxEnabled: () => true,
     } as any);
 
@@ -93,7 +93,7 @@ describe("createSandboxedTools on Linux", () => {
       agentDir: "/hana/agents/hana",
       workspace: "/work",
       workspaceFolders: [],
-      hanakoHome: "/hana",
+      aniHome: "/hana",
       getSandboxEnabled: () => false,
     } as any);
 
@@ -117,7 +117,7 @@ describe("createSandboxedTools on Linux", () => {
       agentDir,
       workspace,
       workspaceFolders: [],
-      hanakoHome: path.join(tempRoot, "hana"),
+      aniHome: path.join(tempRoot, "hana"),
       getSandboxEnabled: () => true,
       getSessionPath: () => path.join(agentDir, "sessions", "main.jsonl"),
       resolveSessionFile: vi.fn((fileId: any, options: any) => {

@@ -329,7 +329,7 @@ describe("sessions route", () => {
     browserManagerMock.resumeForSessionIfAvailable.mockRejectedValueOnce(new Error("browser resume exploded"));
 
     const engine = {
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agentsDir: "/tmp/agents",
       currentSessionPath: "/tmp/agents/a/sessions/old.jsonl",
       memoryEnabled: true,
@@ -451,13 +451,13 @@ describe("sessions route", () => {
   it("resolves workspaceMountId on the server when creating a new session", async () => {
     const { createSessionsRoute } = await import("../server/routes/sessions.ts");
     const app = new Hono();
-    const hanakoHome = path.join(tmpDir, "hana");
+    const aniHome = path.join(tmpDir, "hana");
     const defaultRoot = path.join(tmpDir, "default");
     const mountedRoot = path.join(tmpDir, "mounted");
     fs.mkdirSync(defaultRoot, { recursive: true });
     fs.mkdirSync(mountedRoot, { recursive: true });
     const resolvedMountedRoot = fs.realpathSync(mountedRoot);
-    upsertStudioMount(hanakoHome, {
+    upsertStudioMount(aniHome, {
       mountId: "mount_docs",
       hostStudioId: "studio_1",
       sourceKind: "storage",
@@ -469,7 +469,7 @@ describe("sessions route", () => {
     });
 
     const engine = {
-      hanakoHome,
+      aniHome,
       homeCwd: defaultRoot,
       currentAgentId: "hana",
       config: {},

@@ -135,7 +135,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
       reason: "The epoch stamp is coordinator metadata and is never interpreted as an epoch-managed business store.",
       unstampedHomeSafePaths: [],
     },
-    identityContract: "One high-water stamp belongs to one canonical HANA_HOME.",
+    identityContract: "One high-water stamp belongs to one canonical ANI_HOME.",
     siteRules: rules(["shared/data-epoch.cjs"], "Atomically writes the DATA_EPOCH coordinator stamp.", ["atomic-write"], "dataEpochStampPath"),
   }),
   defineStore({
@@ -153,7 +153,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     checkpointPolicy: "Never include the transition journal in the affected-store checkpoint it coordinates.",
     restorePolicy: "Never restore independently; maintenance interprets it together with the epoch stamp and verified checkpoint receipt.",
     affectedByEpochMigration: false,
-    identityContract: "transitionId identifies one in-progress transition for one canonical HANA_HOME.",
+    identityContract: "transitionId identifies one in-progress transition for one canonical ANI_HOME.",
     siteRules: [
       ...rules(["shared/data-epoch.cjs"], "Atomically writes the data epoch transition journal.", ["atomic-write"], "dataEpochJournalPath"),
       ...rules(["shared/data-epoch.cjs"], "Removes only a proven committed transition journal tail.", ["remove-path"], "unlink\\(filePath"),
@@ -177,7 +177,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
       reason: "Server discovery state is deleted or regenerated from the live bound process and carries no durable user data.",
       unstampedHomeSafePaths: [],
     },
-    identityContract: "At most one current server discovery record per HANA_HOME.",
+    identityContract: "At most one current server discovery record per ANI_HOME.",
     siteRules: [
       ...rules(["server/index.ts"], "Writes or deletes live server discovery state.", ["write-file", "remove-path"], "serverInfoPath|server-info[.]json"),
       ...rules(["desktop/main.cjs"], "Deletes stale desktop server discovery state before or after a server lifecycle.", ["remove-path"], "server-info[.]json|serverInfoPath"),
@@ -192,9 +192,9 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     openEntry: ["loadServerIdentity", "ensureLocalIdentityRegistries"],
     firstPossibleOpenPhase: "identity_seed",
     firstPossibleWritePhase: "identity_seed",
-    checkpointPolicy: "Include with the identity registries for the same HANA_HOME.",
+    checkpointPolicy: "Include with the identity registries for the same ANI_HOME.",
     restorePolicy: "Restore before remote transport accepts identity-bound requests.",
-    identityContract: "serverNodeId is the stable identity of one HANA_HOME server node.",
+    identityContract: "serverNodeId is the stable identity of one ANI_HOME server node.",
     siteRules: rules(["core/server-identity.ts"], "Seeds the server-node identity registry.", ["atomic-write"], "serverNodePath"),
   }),
   defineStore({
@@ -226,7 +226,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     firstPossibleWritePhase: "identity_seed",
     checkpointPolicy: "Checkpoint as permission-preserving secret material with its matching users.json identity.",
     restorePolicy: "Restore atomically before local authentication is enabled.",
-    identityContract: "The credential belongs to the local userId in the same HANA_HOME.",
+    identityContract: "The credential belongs to the local userId in the same ANI_HOME.",
     siteRules: rules(["core/local-user-account.ts"], "Writes the local user authentication record.", ["atomic-write"], "LOCAL_USER_AUTH_FILE"),
   }),
   defineStore({
@@ -254,7 +254,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     firstPossibleWritePhase: "post_epoch_pre_bind",
     checkpointPolicy: "Include as operator configuration.",
     restorePolicy: "Validate before binding; invalid restored values fail explicitly.",
-    identityContract: "One network configuration belongs to one HANA_HOME server.",
+    identityContract: "One network configuration belongs to one ANI_HOME server.",
     siteRules: rules(["core/server-network-config.ts"], "Writes validated server network configuration."),
   }),
   defineStore({
@@ -362,7 +362,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     firstPossibleOpenPhase: "desktop_bootstrap",
     firstPossibleWritePhase: "first_run_seed",
     compatibility: "PreferencesManager is intentionally permissive; _dataVersion is the legacy migration cursor, not a strict schema validator.",
-    identityContract: "One preferences document belongs to the local user in one HANA_HOME.",
+    identityContract: "One preferences document belongs to the local user in one ANI_HOME.",
     preCoordinatorReadProjection: {
       compatibility: "additive-only",
       fields: [
@@ -780,7 +780,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     format: "json",
     schemaSource: runtimeSource("lib/llm/usage-ledger.ts", "UsageLedger reader and atomic serializer"),
     openEntry: ["new UsageLedger"],
-    identityContract: "Usage buckets are keyed by their runtime dimensions inside one HANA_HOME ledger.",
+    identityContract: "Usage buckets are keyed by their runtime dimensions inside one ANI_HOME ledger.",
     siteRules: rules(["lib/llm/usage-ledger.ts"], "Writes the usage ledger."),
   }),
   defineStore({
@@ -942,7 +942,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     identityContract: "Diagnostic filenames are fixed locators and never provide user, session, or epoch identity.",
     siteRules: [
       ...rules(["desktop/bootstrap.cjs", "desktop/src/shared/launch-integrity.cjs", "desktop/src/shared/desktop-launch-diagnostics.cjs"], "Writes epoch-independent desktop launch diagnostics."),
-      ...rules(["desktop/main.cjs"], "Writes desktop crash or browser-command diagnostics.", ["mkdir", "write-file", "append-file"], "(?:hanakoHome|crashLogPath|browser-cmd[.]log)"),
+      ...rules(["desktop/main.cjs"], "Writes desktop crash or browser-command diagnostics.", ["mkdir", "write-file", "append-file"], "(?:aniHome|crashLogPath|browser-cmd[.]log)"),
     ],
   }),
   defineStore({
@@ -1032,7 +1032,7 @@ export const PERSISTENT_STORES: readonly StoreDescriptor[] = Object.freeze([
     checkpointPolicy: "Include markers only with the migrated target state they describe.",
     restorePolicy: "Restore markers and migrated state together or rerun the idempotent migration.",
     affectedByEpochMigration: false,
-    identityContract: "Each fixed marker records completion for one HANA_HOME.",
+    identityContract: "Each fixed marker records completion for one ANI_HOME.",
     siteRules: rules(["lib/sandbox/win32-legacy-migration.ts"], "Writes Windows sandbox migration markers or compatible copies."),
   }),
   defineStore({
@@ -1202,14 +1202,14 @@ export const PERSISTENCE_EXEMPTIONS: readonly PersistenceExemption[] = Object.fr
     "desktop-external-text-file",
     "desktop/file-text-io.cjs",
     "desktop/file-text-io.cjs",
-    "Writes an absolute artifact/editor path explicitly selected by the caller, outside any implied HANA_HOME store.",
+    "Writes an absolute artifact/editor path explicitly selected by the caller, outside any implied ANI_HOME store.",
     "2027-01-31",
   ),
   exemption(
     "desktop-legacy-update-path-cleanup",
     "desktop/auto-updater.cjs",
     "desktop/auto-updater.cjs",
-    "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active HANA_HOME.",
+    "Deletes the exact legacy last-update-version source and its now-empty legacy directory outside the active ANI_HOME.",
     "2026-10-31",
     ["remove-path"],
     "(?:wrongFile|wrongDir)",
@@ -1245,7 +1245,7 @@ export const PERSISTENCE_EXEMPTIONS: readonly PersistenceExemption[] = Object.fr
     "desktop-caller-selected-output",
     "desktop/main.cjs",
     "desktop/main.cjs",
-    "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no HANA_HOME store is implied.",
+    "Writes an absolute path selected by the renderer or a screenshot directory selected by the user; no ANI_HOME store is implied.",
     "2027-01-31",
     ["mkdir", "write-file", "copy-file"],
     "(?:filePath, content|path[.]dirname\\(resolved\\)|resolved, Buffer|path[.]dirname\\(destinationPath\\)|sourcePath, destinationPath|mkdirSync\\(dir|filePath, pngBuffer)",
@@ -1270,7 +1270,7 @@ export const PERSISTENCE_EXEMPTIONS: readonly PersistenceExemption[] = Object.fr
     "conditional-plugin-install-cleanup",
     "server/routes/plugins.ts",
     "server/routes/plugins.ts",
-    "One bounded cleanup list contains both HANA_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
+    "One bounded cleanup list contains both ANI_HOME .installing staging and operating-system extraction temp; flow-sensitive attribution must replace this exact conditional site.",
     "2026-10-31",
     ["remove-path"],
     "cleanupPath",
@@ -1288,7 +1288,7 @@ export const PERSISTENCE_EXEMPTIONS: readonly PersistenceExemption[] = Object.fr
     "compat-directory-seeding",
     "lib/compat/checks/dirs.ts",
     "lib/compat/checks/dirs.ts",
-    "Compatibility check creates a fixed set of registered HANA_HOME roots; flow attribution remains with the first-run coordinator.",
+    "Compatibility check creates a fixed set of registered ANI_HOME roots; flow attribution remains with the first-run coordinator.",
     "2026-10-31",
   ),
   exemption(
@@ -1360,7 +1360,7 @@ export const PERSISTENCE_EXEMPTIONS: readonly PersistenceExemption[] = Object.fr
     "external-mount-writes",
     "core/mount-aware-file-service.ts",
     "core/mount-aware-file-service.ts",
-    "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by HANA_HOME path inventory.",
+    "Creates user-selected workspace or mounted roots whose ownership is recorded by studio-mounts.json rather than by ANI_HOME path inventory.",
     "2027-01-31",
   ),
   exemption(
@@ -1374,14 +1374,14 @@ export const PERSISTENCE_EXEMPTIONS: readonly PersistenceExemption[] = Object.fr
     "external-file-ref-io",
     "lib/file-ref/resource-io.ts",
     "lib/file-ref/resource-io.ts",
-    "Writes an explicit tool output path supplied by the caller; no HANA_HOME store is implied.",
+    "Writes an explicit tool output path supplied by the caller; no ANI_HOME store is implied.",
     "2027-01-31",
   ),
   exemption(
     "external-default-workspace",
     "shared/default-workspace.ts",
     "shared/default-workspace.ts",
-    "Creates the user-selected default workspace outside HANA_HOME.",
+    "Creates the user-selected default workspace outside ANI_HOME.",
     "2027-01-31",
   ),
   exemption(

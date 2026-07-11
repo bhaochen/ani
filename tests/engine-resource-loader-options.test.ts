@@ -19,22 +19,22 @@ describe("HanaEngine resource loader options", () => {
     const inMemory = vi.spyOn(SettingsManager, "inMemory").mockReturnValue(settings as any);
     const engine = Object.create(HanaEngine.prototype);
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hana-resource-loader-options-"));
-    engine.hanakoHome = path.join(tempRoot, "hanako-home");
+    engine.aniHome = path.join(tempRoot, "hanako-home");
     engine._agentMgr = {
       activeAgentId: "agent-a",
       agent: {
-        agentDir: path.join(engine.hanakoHome, "agents", "agent-a"),
+        agentDir: path.join(engine.aniHome, "agents", "agent-a"),
         systemPrompt: "agent prompt",
       },
     };
     engine.getHomeCwd = vi.fn(() => "/workspace-a");
 
-    const skillsDir = path.join(engine.hanakoHome, "skills");
+    const skillsDir = path.join(engine.aniHome, "skills");
     const options = engine._createResourceLoaderOptions(skillsDir);
 
     expect(options).toMatchObject({
-      cwd: path.join(engine.hanakoHome, "runtime", "pi-sdk", "resource-loader", "project"),
-      agentDir: path.join(engine.hanakoHome, "runtime", "pi-sdk", "resource-loader", "agent"),
+      cwd: path.join(engine.aniHome, "runtime", "pi-sdk", "resource-loader", "project"),
+      agentDir: path.join(engine.aniHome, "runtime", "pi-sdk", "resource-loader", "agent"),
       settingsManager: settings,
       noContextFiles: true,
       noExtensions: true,
@@ -43,7 +43,7 @@ describe("HanaEngine resource loader options", () => {
       noThemes: true,
       additionalSkillPaths: [skillsDir],
     });
-    expect(fs.existsSync(path.join(engine.hanakoHome, "runtime"))).toBe(false);
+    expect(fs.existsSync(path.join(engine.aniHome, "runtime"))).toBe(false);
     expect(options.agentsFilesOverride()).toEqual({ agentsFiles: [] });
     expect(options.systemPromptOverride()).toBe("agent prompt");
     expect(options.appendSystemPromptOverride(["from-pi"])).toEqual([]);

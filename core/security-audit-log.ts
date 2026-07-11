@@ -7,18 +7,18 @@ import { MASKED_SECRET } from "../shared/secret-custody.ts";
 
 export const SECURITY_AUDIT_LOG_FILE = "security-audit.jsonl";
 
-export function securityAuditLogPath(hanakoHome) {
-  if (!hanakoHome) throw new Error("hanakoHome required");
-  return path.join(hanakoHome, "logs", SECURITY_AUDIT_LOG_FILE);
+export function securityAuditLogPath(aniHome) {
+  if (!aniHome) throw new Error("aniHome required");
+  return path.join(aniHome, "logs", SECURITY_AUDIT_LOG_FILE);
 }
 
-export function appendSecurityAuditEvent(hanakoHome, event, {
+export function appendSecurityAuditEvent(aniHome, event, {
   now = new Date().toISOString(),
   eventId = `sec_${crypto.randomUUID()}`,
 } = {}) {
-  if (!hanakoHome) return null;
+  if (!aniHome) return null;
   const record = normalizeAuditEvent(event, { now, eventId });
-  const filePath = securityAuditLogPath(hanakoHome);
+  const filePath = securityAuditLogPath(aniHome);
   try {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.appendFileSync(filePath, `${JSON.stringify(record)}\n`, "utf-8");

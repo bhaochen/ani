@@ -3,12 +3,12 @@ import os from "os";
 import path from "path";
 
 export function resolveCliHanaHome(env = process.env) {
-  return resolveHomePath(env.HANA_HOME || path.join(os.homedir(), ".hanako"));
+  return resolveHomePath(env.ANI_HOME || path.join(os.homedir(), ".ani"));
 }
 
 function resolveHomePath(value) {
   const raw = String(value || "").trim();
-  if (!raw) return path.join(os.homedir(), ".hanako");
+  if (!raw) return path.join(os.homedir(), ".ani");
   if (raw === "~") return os.homedir();
   if (raw.startsWith(`~${path.sep}`) || raw.startsWith("~/")) {
     return path.resolve(path.join(os.homedir(), raw.slice(2)));
@@ -16,8 +16,8 @@ function resolveHomePath(value) {
   return path.resolve(raw);
 }
 
-export function readLocalServerInfo({ hanaHome = resolveCliHanaHome(), checkProcess = true } = {}) {
-  const filePath = path.join(hanaHome, "server-info.json");
+export function readLocalServerInfo({ aniHome = resolveCliHanaHome(), checkProcess = true } = {}) {
+  const filePath = path.join(aniHome, "server-info.json");
   if (!fs.existsSync(filePath)) {
     return {
       ok: false,
@@ -67,7 +67,7 @@ export function readLocalServerInfo({ hanaHome = resolveCliHanaHome(), checkProc
   };
 }
 
-export function resolveConnection({ url, token, hanaHome }: { url?: string; token?: string; hanaHome?: string } = {}) {
+export function resolveConnection({ url, token, aniHome }: { url?: string; token?: string; aniHome?: string } = {}) {
   if (url) {
     return {
       ok: true,
@@ -78,7 +78,7 @@ export function resolveConnection({ url, token, hanaHome }: { url?: string; toke
     };
   }
 
-  const local = readLocalServerInfo({ hanaHome });
+  const local = readLocalServerInfo({ aniHome });
   if (!local.ok) return local;
   return {
     ...local,

@@ -136,7 +136,7 @@ function resolveSessionWorkspaceSelection(engine, requestContext, body) {
   }
   try {
     const files = new MountAwareFileService({
-      hanakoHome: engine.hanakoHome,
+      aniHome: engine.aniHome,
       defaultRoot: engine.defaultDeskCwd || engine.homeCwd || engine.deskCwd,
       studioId: requestContext?.studioId || engine.getRuntimeContext?.()?.studioId || null,
     });
@@ -2115,7 +2115,7 @@ export function createSessionsRoute(engine, hub = null) {
     } catch (err) {
       const errDetail = `${err.message}\n${err.stack || ""}`;
       switchLog.error(`error: ${errDetail}`);
-      try { appendFileSync(path.join(engine.hanakoHome, "switch-error.log"), `${new Date().toISOString()}\n${errDetail}\n---\n`); } catch {}
+      try { appendFileSync(path.join(engine.aniHome, "switch-error.log"), `${new Date().toISOString()}\n${errDetail}\n---\n`); } catch {}
       return c.json({ error: err.message }, 500);
     }
   });
@@ -2454,9 +2454,9 @@ function patchSessionFileLifecycleBlocks(blocks, engine, sessionPath) {
     if (!file && block.filePath && typeof engine?.getSessionFileByPath === "function") {
       file = engine.getSessionFileByPath(block.filePath, { sessionPath });
     }
-    if (!file && block.type === "screenshot" && block.base64 && engine?.hanakoHome && typeof engine?.getSessionFileByPath === "function") {
+    if (!file && block.type === "screenshot" && block.base64 && engine?.aniHome && typeof engine?.getSessionFileByPath === "function") {
       try {
-        const filePath = browserScreenshotPath(engine.hanakoHome, sessionPath, {
+        const filePath = browserScreenshotPath(engine.aniHome, sessionPath, {
           base64: block.base64,
           mimeType: block.mimeType,
           sessionId: engine.getSessionIdForPath?.(sessionPath) || null,

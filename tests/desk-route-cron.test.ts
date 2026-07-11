@@ -42,7 +42,7 @@ describe("desk cron route", () => {
     writeLegacyJobs(root, "agent-b", [
       { id: "job_1", type: "cron", schedule: "0 10 * * *", prompt: "b", label: "B", enabled: true, nextRunAt: "2026-05-21T02:00:00.000Z" },
     ]);
-    const service = new StudioCronService({ hanakoHome: root, agentsDir, getStudioId: () => "studio-main" });
+    const service = new StudioCronService({ aniHome: root, agentsDir, getStudioId: () => "studio-main" });
     const engine = {
       currentAgentId: "agent-a",
       getAgent: (id) => ({ id, agentName: id }),
@@ -108,7 +108,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const agentsDir = path.join(root, "agents");
-    const service = new StudioCronService({ hanakoHome: root, agentsDir, getStudioId: () => "studio-main" });
+    const service = new StudioCronService({ aniHome: root, agentsDir, getStudioId: () => "studio-main" });
     const job = service.addJob({
       type: "cron",
       schedule: "0 9 * * *",
@@ -147,7 +147,7 @@ describe("desk cron route", () => {
   it("updates schedule type and normalizes interval minutes", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
-    const service = new StudioCronService({ hanakoHome: root, agentsDir: path.join(root, "agents"), getStudioId: () => "studio-main" });
+    const service = new StudioCronService({ aniHome: root, agentsDir: path.join(root, "agents"), getStudioId: () => "studio-main" });
     const job = service.addJob({
       type: "cron",
       schedule: "0 9 * * *",
@@ -183,7 +183,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -221,7 +221,7 @@ describe("desk cron route", () => {
   it("updates every schedules with numeric milliseconds without double-normalizing", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
-    const service = new StudioCronService({ hanakoHome: root, agentsDir: path.join(root, "agents"), getStudioId: () => "studio-main" });
+    const service = new StudioCronService({ aniHome: root, agentsDir: path.join(root, "agents"), getStudioId: () => "studio-main" });
     const job = service.addJob({
       type: "cron",
       schedule: "0 9 * * *",
@@ -257,7 +257,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -314,7 +314,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -360,7 +360,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -401,7 +401,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -442,7 +442,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -490,7 +490,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });
@@ -535,7 +535,7 @@ describe("desk cron route", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "hana-desk-cron-"));
     roots.push(root);
     const service = new StudioCronService({
-      hanakoHome: root,
+      aniHome: root,
       agentsDir: path.join(root, "agents"),
       getStudioId: () => "studio-main",
     });

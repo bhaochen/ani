@@ -80,16 +80,16 @@ function createProgressRenderer(stream: NodeJS.WriteStream = process.stdout) {
  */
 export async function runBundlePull({
   channel = "stable",
-  hanaHome = resolveCliHanaHome(),
+  aniHome = resolveCliHanaHome(),
   download = otaCore.downloadAndApplyRendererArtifact as DownloadRendererArtifact,
 }: {
   channel?: string;
-  hanaHome?: string;
+  aniHome?: string;
   download?: DownloadRendererArtifact;
 } = {}): Promise<number> {
   const progress = createProgressRenderer();
   const result = await download({
-    homeDir: hanaHome,
+    homeDir: aniHome,
     keyset: loadPinnedKeyset(),
     channel,
     serverProtocolVersion: SERVER_PROTOCOL_VERSION,
@@ -118,16 +118,16 @@ export async function runBundlePull({
  */
 export async function runBundleStatus({
   channel = "stable",
-  hanaHome = resolveCliHanaHome(),
+  aniHome = resolveCliHanaHome(),
 }: {
   channel?: string;
-  hanaHome?: string;
+  aniHome?: string;
 } = {}): Promise<number> {
   const rendererChannel = rendererPointerChannel(channel);
   const [current, next, otaState] = await Promise.all([
-    pointerStore.readPointer(hanaHome, rendererChannel, "current"),
-    pointerStore.readPointer(hanaHome, rendererChannel, "next"),
-    otaCore.readOtaState(hanaHome),
+    pointerStore.readPointer(aniHome, rendererChannel, "current"),
+    pointerStore.readPointer(aniHome, rendererChannel, "next"),
+    otaCore.readOtaState(aniHome),
   ]);
   const state = (otaState && otaState[channel]) || {};
 

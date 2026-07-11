@@ -34,7 +34,7 @@ describe("BridgeManager session_file media delivery", () => {
   function makeManager(sessionFile) {
     if (!tmpDir) tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hana-bridge-media-"));
     const engine = {
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agent: null,
       getSessionFile: vi.fn((id) => id === sessionFile?.id ? sessionFile : null),
     };
@@ -141,7 +141,7 @@ describe("BridgeManager session_file media delivery", () => {
     };
     let subscribed = null;
     const engine = {
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agent: null,
       agentName: "Hana",
       deferredResults: {
@@ -215,7 +215,7 @@ describe("BridgeManager session_file media delivery", () => {
     };
     let subscribed = null;
     const engine = {
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agent: null,
       agentName: "Hana",
       deferredResults: {
@@ -271,7 +271,7 @@ describe("BridgeManager session_file media delivery", () => {
     const sessionPath = path.join(tmpDir, "bridge-session.jsonl");
     let subscribed = null;
     const engine = {
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agent: null,
       agentName: "Hana",
       deferredResults: {
@@ -357,7 +357,7 @@ describe("BridgeManager session_file media delivery", () => {
       })),
     };
     const engine = {
-      hanakoHome: tmpDir,
+      aniHome: tmpDir,
       agent: null,
       agentName: "Hana",
       rcState,

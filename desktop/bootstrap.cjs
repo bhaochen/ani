@@ -85,7 +85,7 @@ function writeLaunchMarker(status, payload = {}) {
     arch: process.arch,
     execPath: process.execPath,
     resourcesPath: process.resourcesPath || null,
-    hanakoHome,
+    aniHome,
     ...payload,
   });
 }
@@ -124,12 +124,12 @@ process.on("unhandledRejection", (reason) => {
   recordProcessError("unhandledRejection", err);
 });
 
-let hanakoHome = null;
+let aniHome = null;
 try {
-  const { resolveHanakoHome } = require("../shared/hana-runtime-paths.cjs");
-  hanakoHome = resolveHanakoHome(process.env.HANA_HOME);
-  process.env.HANA_HOME = hanakoHome;
-  diagnosticsDir = path.join(hanakoHome, "diagnostics", "desktop-launch");
+  const { resolveAniHome } = require("../shared/hana-runtime-paths.cjs");
+  aniHome = resolveAniHome(process.env.ANI_HOME);
+  process.env.ANI_HOME = aniHome;
+  diagnosticsDir = path.join(aniHome, "diagnostics", "desktop-launch");
 } catch (err) {
   const diagnosticPath = writeDiagnostic("hana-home-resolve-failed.json", "hana-home-resolve-failed", {
     phase: "desktop-bootstrap",
@@ -137,7 +137,7 @@ try {
   });
   showBootstrapError(
     "HanaAgent Launch Failed",
-    `HanaAgent failed before HANA_HOME could be resolved.\n\n${err?.message || err}\n\nDiagnostic file:\n${diagnosticPath || diagnosticsDir}`,
+    `HanaAgent failed before ANI_HOME could be resolved.\n\n${err?.message || err}\n\nDiagnostic file:\n${diagnosticPath || diagnosticsDir}`,
   );
   exitAfterBootstrapFailure();
 }

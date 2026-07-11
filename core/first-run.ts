@@ -1,7 +1,7 @@
 /**
  * first-run.js — 首次运行播种
  *
- * 在 server/engine 启动之前调用，确保 ~/.hanako/ 结构存在。
+ * 在 server/engine 启动之前调用，确保 ~/.ani/ 结构存在。
  * 如果是全新安装（agents/ 为空），自动创建默认 agent。
  */
 
@@ -38,7 +38,7 @@ export interface FirstRunReport {
 }
 
 /**
- * 确保 ~/.hanako/ 数据目录就绪
+ * 确保 ~/.ani/ 数据目录就绪
  *
  * 对 agent 目录采用"分类处置"而不是 fail-fast：
  * - 默认 agent（hanako）缺 config → 播种修复；config 损坏 → 先备份再播种
@@ -46,16 +46,16 @@ export interface FirstRunReport {
  * 历史上脏目录有多个来源（旧版物理删除残留、phone projection 复活、半截创建），
  * 启动链路必须容忍它们，运行时扫描（AgentManager）本来就会跳过这类目录。
  *
- * @param {string} hanakoHome - ~/.hanako 绝对路径
+ * @param {string} aniHome - ~/.ani 绝对路径
  * @param {string} productDir - 产品模板目录（lib/）
  */
-export function ensureFirstRun(hanakoHome, productDir): FirstRunReport {
+export function ensureFirstRun(aniHome, productDir): FirstRunReport {
   // 1. 确保目录结构存在
-  fs.mkdirSync(path.join(hanakoHome, "agents"), { recursive: true });
-  fs.mkdirSync(path.join(hanakoHome, "user"), { recursive: true });
+  fs.mkdirSync(path.join(aniHome, "agents"), { recursive: true });
+  fs.mkdirSync(path.join(aniHome, "user"), { recursive: true });
 
   // 2. 分类每个 agent 目录；没有任何可用 agent → 播种默认 agent
-  const agentsDir = path.join(hanakoHome, "agents");
+  const agentsDir = path.join(aniHome, "agents");
   const agentEntries = fs.readdirSync(agentsDir, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'));
 
@@ -101,9 +101,9 @@ export function ensureFirstRun(hanakoHome, productDir): FirstRunReport {
     validAgentIds.add(DEFAULT_AGENT_ID);
   }
 
-  // 3. 同步 skills：从 skills2set/ 复制到 ~/.hanako/skills/
+  // 3. 同步 skills：从 skills2set/ 复制到 ~/.ani/skills/
   const skillsSrc = path.join(productDir, "..", "skills2set");
-  const skillsDst = path.join(hanakoHome, "skills");
+  const skillsDst = path.join(aniHome, "skills");
   fs.mkdirSync(skillsDst, { recursive: true });
   if (fs.existsSync(skillsSrc)) {
     syncSkills(skillsSrc, skillsDst);
@@ -112,13 +112,13 @@ export function ensureFirstRun(hanakoHome, productDir): FirstRunReport {
   // 4. 确保可选文件存在（老用户升级 + 新 agent 都覆盖）。
   // 只补有效 agent 目录：往无效目录里写 pinned.md 会把垃圾目录越喂越像 agent 目录。
   const touchIfMissing = (p) => { if (!fs.existsSync(p)) fs.writeFileSync(p, '', 'utf-8'); };
-  touchIfMissing(path.join(hanakoHome, 'user', USER_PROFILE_FILENAME));
+  touchIfMissing(path.join(aniHome, 'user', USER_PROFILE_FILENAME));
   for (const agentId of validAgentIds) {
     touchIfMissing(path.join(agentsDir, agentId, 'pinned.md'));
   }
 
   // 5. 确保 user/preferences.json 存在
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   if (!fs.existsSync(prefsPath)) {
     fs.writeFileSync(
       prefsPath,
@@ -245,7 +245,7 @@ function seedDefaultAgent(agentsDir, productDir) {
 }
 
 /**
- * 同步 skills2set/ → ~/.hanako/skills/
+ * 同步 skills2set/ → ~/.ani/skills/
  * 每次启动都跑，确保新增/更新的 skill 能同步到用户目录
  */
 function syncSkills(srcDir, dstDir) {

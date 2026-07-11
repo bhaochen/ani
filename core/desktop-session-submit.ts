@@ -220,7 +220,7 @@ export async function submitDesktopSessionMessage(engine: any, opts: {
 
     if (displayAttachments?.length) {
       const registeredDisplay = registerDisplayAttachments({
-        hanakoHome: engine.hanakoHome,
+        aniHome: engine.aniHome,
         sessionPath,
         attachments: displayAttachments,
         registerSessionFile: engine.registerSessionFile?.bind(engine),
@@ -248,7 +248,7 @@ export async function submitDesktopSessionMessage(engine: any, opts: {
 
     if (inboundFiles?.length) {
       const materialized = await materializeBridgeInboundFiles({
-        hanakoHome: engine.hanakoHome,
+        aniHome: engine.aniHome,
         sessionId,
         sessionPath,
         files: inboundFiles,
@@ -427,7 +427,7 @@ export async function submitDesktopSessionInterjection(engine: any, opts: {
 
   if (displayAttachments?.length) {
     const registeredDisplay = registerDisplayAttachments({
-      hanakoHome: engine.hanakoHome,
+      aniHome: engine.aniHome,
       sessionPath,
       attachments: displayAttachments,
       registerSessionFile: engine.registerSessionFile?.bind(engine),
@@ -455,7 +455,7 @@ export async function submitDesktopSessionInterjection(engine: any, opts: {
 
   if (inboundFiles?.length) {
     const materialized = await materializeBridgeInboundFiles({
-      hanakoHome: engine.hanakoHome,
+      aniHome: engine.aniHome,
       sessionId,
       sessionPath,
       files: inboundFiles,
@@ -556,7 +556,7 @@ function queueVoiceInputTranscriptions({ speechRecognition, sessionPath, attachm
   }
 }
 
-function registerDisplayAttachments({ hanakoHome, sessionPath, attachments, registerSessionFile }) {
+function registerDisplayAttachments({ aniHome, sessionPath, attachments, registerSessionFile }) {
   const nextAttachments = [];
   const imageAttachmentPaths = [];
   const videoAttachmentPaths = [];
@@ -572,7 +572,7 @@ function registerDisplayAttachments({ hanakoHome, sessionPath, attachments, regi
         filePath: next.path,
         label: next.name || path.basename(next.path),
         origin: originForDisplayAttachment(next),
-        storageKind: displayAttachmentStorageKind(hanakoHome, next.path),
+        storageKind: displayAttachmentStorageKind(aniHome, next.path),
         presentation: displayAttachmentPresentation(next),
         listed: listedForDisplayAttachment(next),
         waveform: next.waveform,
@@ -633,9 +633,9 @@ function originForDisplayAttachment(attachment) {
   return displayAttachmentPresentation(attachment) === "voice-input" ? "voice_input" : "user_attachment";
 }
 
-function displayAttachmentStorageKind(hanakoHome, filePath) {
-  if (!hanakoHome) return "external";
-  const root = path.resolve(hanakoHome, "session-files");
+function displayAttachmentStorageKind(aniHome, filePath) {
+  if (!aniHome) return "external";
+  const root = path.resolve(aniHome, "session-files");
   const target = path.resolve(filePath);
   const rel = path.relative(root, target);
   if (rel === "" || (rel && !rel.startsWith("..") && !path.isAbsolute(rel))) {

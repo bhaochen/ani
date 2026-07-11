@@ -21,7 +21,7 @@ const DEFAULT_ATOMGIT_RELEASE_BASE_URL = `https://gitcode.com/${DEFAULT_ATOMGIT_
 
 let _mainWindow = null;
 let _setIsUpdating = null;  // 由 main.cjs 注入
-let _hanakoHome = null;     // 由 main.cjs 注入
+let _aniHome = null;     // 由 main.cjs 注入
 let _checkTimer = null;
 let _ipcHandlersRegistered = false;
 let _updaterConfigured = false;
@@ -141,7 +141,7 @@ let _updateFeedConfig = resolveUpdateFeedConfig();
  */
 function isAutoCheckEnabled() {
   try {
-    const prefsPath = path.join(_hanakoHome || "", "user", "preferences.json");
+    const prefsPath = path.join(_aniHome || "", "user", "preferences.json");
     const prefs = JSON.parse(fs.readFileSync(prefsPath, "utf-8"));
     return prefs.auto_check_updates !== false;
   } catch {
@@ -176,9 +176,9 @@ function getState() {
 function logUpdate(message) {
   const line = `[${new Date().toISOString()}] ${message}`;
   try { console.log(`[auto-updater] ${message}`); } catch {}
-  if (!_hanakoHome) return;
+  if (!_aniHome) return;
   try {
-    const logDir = path.join(_hanakoHome, "logs");
+    const logDir = path.join(_aniHome, "logs");
     fs.mkdirSync(logDir, { recursive: true });
     fs.appendFileSync(path.join(logDir, "auto-update.log"), line + "\n", "utf-8");
   } catch {}
@@ -397,7 +397,7 @@ function isRunningFromDmg() {
 // ── 缓存清理 ──
 
 async function cleanUpdateCache() {
-  const dataDir = _hanakoHome;
+  const dataDir = _aniHome;
   const versionFile = path.join(dataDir, "last-update-version");
 
   // 迁移：旧版 bug 把 last-update-version 写到了 ~/.hanako-dev/（生产环境误用）
@@ -620,11 +620,11 @@ function startPolling() {
 // ── 公共 API ──
 
 function initAutoUpdater(mainWindow, {
-  setIsUpdating, hanakoHome,
+  setIsUpdating, aniHome,
 } = {}) {
   _mainWindow = mainWindow;
   _setIsUpdating = setIsUpdating;
-  _hanakoHome = hanakoHome;
+  _aniHome = aniHome;
 
   registerIpcHandlers(); // IPC handlers 是进程级单例，重复 init 时直接复用
 

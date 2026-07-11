@@ -64,18 +64,18 @@ declare _now: any;
 
 declare _terminals: any;
 
-declare hanakoHome: any;
+declare aniHome: any;
 
 declare root: any;
   constructor({
-    hanakoHome,
+    aniHome,
     createBackend = createDefaultBackend,
     getSessionIdForPath = null,
     now = defaultNow,
     emitEvent = null,
   }: any = {}) {
-    this.hanakoHome = asNonEmptyString(hanakoHome, "hanakoHome");
-    this.root = path.join(this.hanakoHome, TERMINAL_ROOT);
+    this.aniHome = asNonEmptyString(aniHome, "aniHome");
+    this.root = path.join(this.aniHome, TERMINAL_ROOT);
     this._createBackend = createBackend;
     this._getSessionIdForPath = typeof getSessionIdForPath === "function" ? getSessionIdForPath : () => null;
     this._now = now;

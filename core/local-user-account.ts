@@ -17,19 +17,19 @@ const USERNAME_MAX_LENGTH = 64;
 const DISPLAY_NAME_MAX_LENGTH = 80;
 const SCRYPT_OPTIONS = Object.freeze({ N: 16384, r: 8, p: 1 });
 
-export function getLocalAccountSummary(hanakoHome) {
-  const { user } = loadDefaultUser(hanakoHome);
-  const auth = loadLocalUserAuth(hanakoHome);
+export function getLocalAccountSummary(aniHome) {
+  const { user } = loadDefaultUser(aniHome);
+  const auth = loadLocalUserAuth(aniHome);
   const credential = findCredential(auth, user.userId);
   return sanitizeAccount(user, { passwordSet: !!credential });
 }
 
-export function updateLocalAccountProfile(hanakoHome, {
+export function updateLocalAccountProfile(aniHome, {
   username,
   displayName,
   now = new Date().toISOString(),
 }: { username?: string; displayName?: string; now?: string } = {}) {
-  const users = loadUsers(hanakoHome);
+  const users = loadUsers(aniHome);
   const user = getDefaultUser(users);
   const nextUsername = normalizeUsername(username, user.username || user.displayName);
   const nextDisplayName = normalizeDisplayName(displayName, user.displayName);
@@ -38,18 +38,18 @@ export function updateLocalAccountProfile(hanakoHome, {
   user.displayName = nextDisplayName;
   user.updatedAt = now;
   users.updatedAt = now;
-  writeJsonAtomic(path.join(hanakoHome, USERS_FILE), users);
-  const auth = loadLocalUserAuth(hanakoHome);
+  writeJsonAtomic(path.join(aniHome, USERS_FILE), users);
+  const auth = loadLocalUserAuth(aniHome);
   return sanitizeAccount(user, { passwordSet: !!findCredential(auth, user.userId) });
 }
 
-export function setLocalAccountPassword(hanakoHome, {
+export function setLocalAccountPassword(aniHome, {
   password,
   now = new Date().toISOString(),
 }: { password?: string; now?: string } = {}) {
-  const { user } = loadDefaultUser(hanakoHome);
+  const { user } = loadDefaultUser(aniHome);
   const normalizedPassword = normalizePassword(password);
-  const auth = loadLocalUserAuth(hanakoHome);
+  const auth = loadLocalUserAuth(aniHome);
   const credential = findCredential(auth, user.userId);
   const passwordSalt = randomToken(16);
   const passwordHash = hashPassword(normalizedPassword, passwordSalt);
@@ -70,27 +70,27 @@ export function setLocalAccountPassword(hanakoHome, {
     auth.credentials.push(nextCredential);
   }
   auth.updatedAt = now;
-  writeJsonAtomic(path.join(hanakoHome, LOCAL_USER_AUTH_FILE), auth);
+  writeJsonAtomic(path.join(aniHome, LOCAL_USER_AUTH_FILE), auth);
   return sanitizeAccount(user, { passwordSet: true });
 }
 
-export function clearLocalAccountPassword(hanakoHome, {
+export function clearLocalAccountPassword(aniHome, {
   now = new Date().toISOString(),
 } = {}) {
-  const { user } = loadDefaultUser(hanakoHome);
-  const auth = loadLocalUserAuth(hanakoHome);
+  const { user } = loadDefaultUser(aniHome);
+  const auth = loadLocalUserAuth(aniHome);
   auth.credentials = auth.credentials.filter((credential) => credential.userId !== user.userId);
   auth.updatedAt = now;
-  writeJsonAtomic(path.join(hanakoHome, LOCAL_USER_AUTH_FILE), auth);
+  writeJsonAtomic(path.join(aniHome, LOCAL_USER_AUTH_FILE), auth);
   return sanitizeAccount(user, { passwordSet: false });
 }
 
-export function verifyLocalAccountPassword(hanakoHome, { username, password }: { username?: string; password?: string } = {}) {
+export function verifyLocalAccountPassword(aniHome, { username, password }: { username?: string; password?: string } = {}) {
   if (!isNonEmptyString(username) || !isNonEmptyString(password)) {
     return { ok: false, reason: "invalid_credentials" };
   }
-  const users = loadUsers(hanakoHome);
-  const auth = loadLocalUserAuth(hanakoHome);
+  const users = loadUsers(aniHome);
+  const auth = loadLocalUserAuth(aniHome);
   const normalizedUsername = normalizeAccountLookup(username);
   const user = users.users.find((candidate) => {
     return normalizeAccountLookup(candidate.username) === normalizedUsername
@@ -110,8 +110,8 @@ export function verifyLocalAccountPassword(hanakoHome, { username, password }: {
   };
 }
 
-export function loadLocalUserAuth(hanakoHome, { now = new Date().toISOString() } = {}) {
-  const filePath = path.join(hanakoHome, LOCAL_USER_AUTH_FILE);
+export function loadLocalUserAuth(aniHome, { now = new Date().toISOString() } = {}) {
+  const filePath = path.join(aniHome, LOCAL_USER_AUTH_FILE);
   const existing = readJsonIfPresent(filePath, LOCAL_USER_AUTH_FILE);
   if (existing) return validateLocalUserAuth(existing, LOCAL_USER_AUTH_FILE);
   return {
@@ -122,13 +122,13 @@ export function loadLocalUserAuth(hanakoHome, { now = new Date().toISOString() }
   };
 }
 
-function loadDefaultUser(hanakoHome) {
-  const users = loadUsers(hanakoHome);
+function loadDefaultUser(aniHome) {
+  const users = loadUsers(aniHome);
   return { users, user: getDefaultUser(users) };
 }
 
-function loadUsers(hanakoHome) {
-  return validateUsers(readJsonRequired(path.join(hanakoHome, USERS_FILE), USERS_FILE), USERS_FILE);
+function loadUsers(aniHome) {
+  return validateUsers(readJsonRequired(path.join(aniHome, USERS_FILE), USERS_FILE), USERS_FILE);
 }
 
 function getDefaultUser(users) {

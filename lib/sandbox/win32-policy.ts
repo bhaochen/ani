@@ -60,9 +60,9 @@ function basenameForPlatformPath(target) {
   return /^[a-z]:[\\/]|^\\\\/i.test(raw) ? path.win32.basename(raw) : path.basename(raw);
 }
 
-export function externalReadPathsFromSessionFiles(files = [], { workspaceRoots = [], hanakoHome }: { workspaceRoots?: any[]; hanakoHome?: any } = {}) {
+export function externalReadPathsFromSessionFiles(files = [], { workspaceRoots = [], aniHome }: { workspaceRoots?: any[]; aniHome?: any } = {}) {
   const normalizedWorkspaceRoots = uniqueNormalized(workspaceRoots);
-  const normalizedHome = hanakoHome ? normalizeExistingOrResolved(hanakoHome) : null;
+  const normalizedHome = aniHome ? normalizeExistingOrResolved(aniHome) : null;
   const out = [];
 
   for (const file of files || []) {

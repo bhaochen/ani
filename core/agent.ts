@@ -287,7 +287,7 @@ export class Agent {
     // 0. 兼容性检查（目录、数据库、配置文件）
     await runCompatChecks({
       agentDir: this.agentDir,
-      hanakoHome: path.dirname(path.dirname(this.agentDir)),
+      aniHome: path.dirname(path.dirname(this.agentDir)),
       log,
     });
 
@@ -503,7 +503,7 @@ export class Agent {
       },
       getVisionBridge: () => this._cb?.getEngine?.()?.getVisionBridge?.() || null,
       isVisionAuxiliaryEnabled: () => this._cb?.getEngine?.()?.isVisionAuxiliaryEnabled?.() === true,
-      getHanakoHome: () => this._cb?.getEngine?.()?.hanakoHome,
+      getAniHome: () => this._cb?.getEngine?.()?.aniHome,
       getSessionIdForPath: (sessionPath) => this._cb?.getEngine?.()?.getSessionIdForPath?.(sessionPath) || null,
       registerSessionFile: (entry) => this._cb?.registerSessionFile?.(entry),
     });

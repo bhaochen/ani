@@ -50,7 +50,7 @@ describe("character-card import service", () => {
 
     factStore = { importAll: vi.fn() };
     engine = {
-      hanakoHome: tempDir,
+      aniHome: tempDir,
       agentsDir,
       userSkillsDir: skillsDir,
       skillsDir,

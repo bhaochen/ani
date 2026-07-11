@@ -108,7 +108,7 @@ async function makeEngine() {
   await writeFile(path.join(userDir, "user.md"), "user profile");
 
   return {
-    hanakoHome: tmpRoot,
+    aniHome: tmpRoot,
     agentsDir,
     userDir,
     currentAgentId: "agent-a",

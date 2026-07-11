@@ -513,9 +513,9 @@ function setEnvCaseInsensitive(env, key, value) {
 
 function withWin32SandboxRuntimeEnv(baseEnv, sandbox) {
   const env = withWin32Utf8Defaults(baseEnv);
-  if (!sandboxIsEnabled(sandbox) || !sandbox?.hanakoHome) return env;
+  if (!sandboxIsEnabled(sandbox) || !sandbox?.aniHome) return env;
 
-  const root = joinRuntimePath(sandbox.hanakoHome, ".ephemeral", WIN32_SANDBOX_ENV_DIR);
+  const root = joinRuntimePath(sandbox.aniHome, ".ephemeral", WIN32_SANDBOX_ENV_DIR);
   const tempDir = joinRuntimePath(root, "Temp");
   const localAppDataDir = joinRuntimePath(root, "LocalAppData");
   const appDataDir = joinRuntimePath(root, "AppData", "Roaming");
@@ -935,8 +935,8 @@ function envValue(env, key) {
 function redactWin32DiagnosticText(value: any, { sandbox, env }: { sandbox?: any; env?: any } = {}) {
   let text = String(value || "");
   const replacements = [
-    [sandbox?.hanakoHome, "<HANA_HOME>"],
-    [envValue(env, "HANA_HOME"), "<HANA_HOME>"],
+    [sandbox?.aniHome, "<ANI_HOME>"],
+    [envValue(env, "ANI_HOME"), "<ANI_HOME>"],
     [envValue(env, "USERPROFILE"), "<USERPROFILE>"],
     [envValue(env, "HOME"), "<HOME>"],
     [process.env.USERPROFILE, "<USERPROFILE>"],
@@ -1031,14 +1031,14 @@ function emitWin32RuntimeFailureDiagnostic(onData, {
     helperPath ? `Helper: ${redactWin32DiagnosticPath(helperPath, sandbox, env)}` : "Helper: (none)",
     runtimeInfo?.label ? `Runtime label: ${redactWin32DiagnosticText(runtimeInfo.label, context)}` : null,
     runtimeInfo?.bundledRoot ? `Runtime root: ${redactWin32DiagnosticPath(runtimeInfo.bundledRoot, sandbox, env)}` : null,
-    sandbox?.hanakoHome ? "HANA_HOME: <HANA_HOME>" : null,
+    sandbox?.aniHome ? "ANI_HOME: <ANI_HOME>" : null,
     `Output bytes before failure: ${outputBytes ?? 0}`,
     `Duration ms: ${durationMs ?? "unknown"}`,
     ...collectWin32EnvironmentDiagnostics(env, context),
     "Default PowerShell/cmd/terminal execution is not changed by this diagnostic path.",
     "No fallback was attempted for this STATUS_DLL_INIT_FAILED result.",
     "Likely causes: Windows child process DLL initialization failed, the restricted-token helper environment is incomplete, or a runtime cache/AV block is preventing startup.",
-    "Next step: attach this diagnostic with the command log; for cached POSIX runtimes also clear HANA_HOME/.ephemeral/win32-sandbox-runtime and retry.",
+    "Next step: attach this diagnostic with the command log; for cached POSIX runtimes also clear ANI_HOME/.ephemeral/win32-sandbox-runtime and retry.",
     "",
   ].filter(Boolean);
   onData(Buffer.from(`${lines.join("\n")}\n`, "utf-8"));
@@ -1075,7 +1075,7 @@ function emitWin32SandboxHelperLaunchFailureDiagnostic(onData, {
     helperPath ? `Helper: ${redactWin32DiagnosticPath(helperPath, sandbox, env)}` : "Helper: (none)",
     runtimeInfo?.label ? `Runtime label: ${redactWin32DiagnosticText(runtimeInfo.label, context)}` : null,
     runtimeInfo?.bundledRoot ? `Runtime root: ${redactWin32DiagnosticPath(runtimeInfo.bundledRoot, sandbox, env)}` : null,
-    sandbox?.hanakoHome ? "HANA_HOME: <HANA_HOME>" : null,
+    sandbox?.aniHome ? "ANI_HOME: <ANI_HOME>" : null,
     `Output bytes before failure: ${outputBytes ?? 0}`,
     `Duration ms: ${durationMs ?? "unknown"}`,
     ...collectWin32EnvironmentDiagnostics(env, context),
@@ -1153,9 +1153,9 @@ async function runWithWin32Diagnostics({
 }
 
 function prepareRuntimeForSandbox(runtimeInfo, sandbox, kind) {
-  if (!sandboxIsEnabled(sandbox) || !sandbox?.hanakoHome) return runtimeInfo;
+  if (!sandboxIsEnabled(sandbox) || !sandbox?.aniHome) return runtimeInfo;
   return prepareSandboxRuntime(runtimeInfo, {
-    hanakoHome: sandbox.hanakoHome,
+    aniHome: sandbox.aniHome,
     kind,
   });
 }

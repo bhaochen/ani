@@ -14,7 +14,7 @@ function makeCoordinator(initialPrefs = {}) {
     prefs = { ...next };
   });
   const coord = new ConfigCoordinator({
-    hanakoHome: "/tmp/test",
+    aniHome: "/tmp/test",
     agentsDir: "/tmp/test/agents",
     getAgent: () => null,
     getAgentById: () => null,

@@ -139,14 +139,14 @@ function hash8(str) {
   return crypto.createHash("sha256").update(str).digest("hex").slice(0, 8);
 }
 
-function resolveSyncBufPath(hanaHome, botToken) {
-  const dir = path.join(hanaHome, "bridge", "wechat");
+function resolveSyncBufPath(aniHome, botToken) {
+  const dir = path.join(aniHome, "bridge", "wechat");
   fs.mkdirSync(dir, { recursive: true });
   return path.join(dir, `sync-${hash8(botToken)}.json`);
 }
 
-function resolveContextCachePath(hanaHome, botToken) {
-  const dir = path.join(hanaHome, "bridge", "wechat");
+function resolveContextCachePath(aniHome, botToken) {
+  const dir = path.join(aniHome, "bridge", "wechat");
   fs.mkdirSync(dir, { recursive: true });
   return path.join(dir, `context-${hash8(botToken)}.json`);
 }
@@ -249,11 +249,11 @@ function isMediaItem(item) {
 /**
  * @param {object} opts
  * @param {string} opts.botToken
- * @param {string} [opts.hanaHome] - hanaHome 路径，用于 cursor 持久化
+ * @param {string} [opts.aniHome] - aniHome 路径，用于 cursor 持久化
  * @param {(msg: object) => void} opts.onMessage
  * @param {(status: string, error?: string) => void} [opts.onStatus]
  */
-export function createWechatAdapter({ botToken, hanaHome, agentId, onMessage, onStatus }) {
+export function createWechatAdapter({ botToken, aniHome, agentId, onMessage, onStatus }) {
   const baseUrl = DEFAULT_BASE_URL;
   let generation = 0;
   let abortController = new AbortController();
@@ -261,8 +261,8 @@ export function createWechatAdapter({ botToken, hanaHome, agentId, onMessage, on
   let lastStatus = null;
   let lastError = null;
 
-  const syncBufPath = hanaHome ? resolveSyncBufPath(hanaHome, botToken) : null;
-  const contextCachePath = hanaHome ? resolveContextCachePath(hanaHome, botToken) : null;
+  const syncBufPath = aniHome ? resolveSyncBufPath(aniHome, botToken) : null;
+  const contextCachePath = aniHome ? resolveContextCachePath(aniHome, botToken) : null;
   let getUpdatesBuf = syncBufPath ? loadSyncBuf(syncBufPath) : "";
   const contextCache = loadContextCache(contextCachePath); // chatId → { token, ts }
   const typingTicketCache = new Map(); // chatId → { contextToken, ticket }

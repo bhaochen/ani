@@ -10,8 +10,8 @@ const SCHEMA_VERSION = 1;
 const SUBJECT_KINDS = new Set(["user", "device", "agent", "plugin", "bridge", "official_service"]);
 const STATUSES = new Set(["active", "revoked", "expired"]);
 
-export function ensureGrantRegistry(hanakoHome, { now = new Date().toISOString() } = {}) {
-  const filePath = grantRegistryPath(hanakoHome);
+export function ensureGrantRegistry(aniHome, { now = new Date().toISOString() } = {}) {
+  const filePath = grantRegistryPath(aniHome);
   const existing = readGrantRegistryForStartup(filePath, now);
   if (existing) {
     try {
@@ -36,14 +36,14 @@ export function ensureGrantRegistry(hanakoHome, { now = new Date().toISOString()
   return registry;
 }
 
-export function loadGrantRegistry(hanakoHome) {
-  ensureGrantRegistry(hanakoHome);
-  return validateGrantRegistry(readJsonRequired(grantRegistryPath(hanakoHome), GRANTS_FILE), GRANTS_FILE);
+export function loadGrantRegistry(aniHome) {
+  ensureGrantRegistry(aniHome);
+  return validateGrantRegistry(readJsonRequired(grantRegistryPath(aniHome), GRANTS_FILE), GRANTS_FILE);
 }
 
-export function createGrant(hanakoHome, input: Record<string, any> = {}) {
+export function createGrant(aniHome, input: Record<string, any> = {}) {
   const now = input.now || new Date().toISOString();
-  const registry = loadGrantRegistry(hanakoHome);
+  const registry = loadGrantRegistry(aniHome);
   const grant = normalizeGrantRecord({
     schemaVersion: SCHEMA_VERSION,
     grantId: input.grantId || `grant_${crypto.randomUUID()}`,
@@ -58,13 +58,13 @@ export function createGrant(hanakoHome, input: Record<string, any> = {}) {
   }, "grant");
   registry.grants.push(grant);
   registry.updatedAt = now;
-  persistGrantRegistry(hanakoHome, registry);
+  persistGrantRegistry(aniHome, registry);
   return clonePlain(grant);
 }
 
-export function findActiveGrantsForPrincipal(hanakoHome, principalId, { now = new Date().toISOString() } = {}) {
+export function findActiveGrantsForPrincipal(aniHome, principalId, { now = new Date().toISOString() } = {}) {
   if (!isNonEmptyString(principalId)) return [];
-  const registry = loadGrantRegistry(hanakoHome);
+  const registry = loadGrantRegistry(aniHome);
   let changed = false;
   const active = [];
   for (const grant of registry.grants) {
@@ -77,31 +77,31 @@ export function findActiveGrantsForPrincipal(hanakoHome, principalId, { now = ne
       active.push(clonePlain(grant));
     }
   }
-  if (changed) persistGrantRegistry(hanakoHome, registry);
+  if (changed) persistGrantRegistry(aniHome, registry);
   return active;
 }
 
-export function revokeGrant(hanakoHome, grantId, { now = new Date().toISOString() } = {}) {
+export function revokeGrant(aniHome, grantId, { now = new Date().toISOString() } = {}) {
   assertNonEmptyString(grantId, "grantId");
-  const registry = loadGrantRegistry(hanakoHome);
+  const registry = loadGrantRegistry(aniHome);
   const grant = registry.grants.find((item) => item.grantId === grantId);
   if (!grant) throw new Error(`grant not found: ${grantId}`);
   grant.status = "revoked";
   grant.revokedAt = now;
   grant.updatedAt = now;
   registry.updatedAt = now;
-  persistGrantRegistry(hanakoHome, registry);
+  persistGrantRegistry(aniHome, registry);
   return clonePlain(grant);
 }
 
-export function persistGrantRegistry(hanakoHome, registry) {
+export function persistGrantRegistry(aniHome, registry) {
   validateGrantRegistry(registry, GRANTS_FILE);
-  writeJsonAtomic(grantRegistryPath(hanakoHome), registry);
+  writeJsonAtomic(grantRegistryPath(aniHome), registry);
 }
 
-export function grantRegistryPath(hanakoHome) {
-  if (!isNonEmptyString(hanakoHome)) throw new Error("hanakoHome required");
-  return path.join(hanakoHome, SECURITY_DIR, GRANTS_FILE);
+export function grantRegistryPath(aniHome) {
+  if (!isNonEmptyString(aniHome)) throw new Error("aniHome required");
+  return path.join(aniHome, SECURITY_DIR, GRANTS_FILE);
 }
 
 function createEmptyGrantRegistry(now) {

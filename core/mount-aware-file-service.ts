@@ -18,7 +18,7 @@ export class MountAwareFileError extends Error {
 }
 
 export class MountAwareFileService {
-  declare _hanakoHome: string;
+  declare _aniHome: string;
   declare _defaultRoot: string;
   declare _studioId: string;
   declare _createCheckpoint: any;
@@ -27,7 +27,7 @@ export class MountAwareFileService {
   declare _operationContext: Record<string, any>;
 
   constructor({
-    hanakoHome,
+    aniHome,
     defaultRoot,
     studioId,
     createCheckpoint,
@@ -35,8 +35,8 @@ export class MountAwareFileService {
     resourceIO = null,
     operationContext = null,
   }: Record<string, any> = {}) {
-    if (!hanakoHome) throw new Error("hanakoHome required");
-    this._hanakoHome = hanakoHome;
+    if (!aniHome) throw new Error("aniHome required");
+    this._aniHome = aniHome;
     this._defaultRoot = defaultRoot || null;
     this._studioId = studioId || null;
     this._createCheckpoint = typeof createCheckpoint === "function" ? createCheckpoint : null;
@@ -46,7 +46,7 @@ export class MountAwareFileService {
     this._resourceIO = isResourceIO(resourceIO)
       ? resourceIO
       : createServiceResourceIO({
-        hanakoHome,
+        aniHome,
         defaultRoot: this._defaultRoot,
         studioId: this._studioId,
       });
@@ -386,7 +386,7 @@ export class MountAwareFileService {
         provider: "local_fs",
       };
     }
-    const mount = findLocalFsMount(this._hanakoHome, this._studioId, id);
+    const mount = findLocalFsMount(this._aniHome, this._studioId, id);
     if (!mount) throw fileError("unknown root", "unknown_root", 404);
     const rootPath = mount.rootLocator?.path;
     if (typeof rootPath !== "string" || !path.isAbsolute(rootPath)) {
@@ -435,7 +435,7 @@ function workbenchWriteResult<T extends Record<string, any> = Record<string, nev
   } & T;
 }
 
-function createServiceResourceIO({ hanakoHome, defaultRoot, studioId }) {
+function createServiceResourceIO({ aniHome, defaultRoot, studioId }) {
   if (!defaultRoot) throw fileError("resource io unavailable", "resource_io_unavailable", 500);
   return createSandboxResourceIO({
     cwd: defaultRoot,
@@ -443,7 +443,7 @@ function createServiceResourceIO({ hanakoHome, defaultRoot, studioId }) {
     workspace: defaultRoot,
     workspaceFolders: [defaultRoot],
     authorizedFolders: [defaultRoot],
-    hanakoHome,
+    aniHome,
     getSandboxEnabled: () => false,
     getSessionPath: () => null,
     emitEvent: () => {},
@@ -550,11 +550,11 @@ function joinResourcePath(...parts) {
     .join("/");
 }
 
-function findLocalFsMount(hanakoHome, studioId, rootId) {
+function findLocalFsMount(aniHome, studioId, rootId) {
   if (!studioId) return null;
   let registry;
   try {
-    registry = loadStudioMountRegistry(hanakoHome);
+    registry = loadStudioMountRegistry(aniHome);
   } catch {
     return null;
   }

@@ -20,14 +20,14 @@ export class PluginIframeTicketError extends Error {
 }
 
 export function issuePluginIframeTicket({
-  hanakoHome,
+  aniHome,
   pluginId,
   surfacePath,
   principalId,
   now = new Date().toISOString(),
   ttlMs = DEFAULT_PLUGIN_IFRAME_TICKET_TTL_MS,
-}: { hanakoHome?: string; pluginId?: string; surfacePath?: string; principalId?: string; now?: string; ttlMs?: number } = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+}: { aniHome?: string; pluginId?: string; surfacePath?: string; principalId?: string; now?: string; ttlMs?: number } = {}) {
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(pluginId, "pluginId");
   assertNonEmpty(surfacePath, "surfacePath");
   assertNonEmpty(principalId, "principalId");
@@ -45,7 +45,7 @@ export function issuePluginIframeTicket({
     expiresAt: new Date(issuedAtMs + safeTtlMs).toISOString(),
   };
   const body = base64UrlEncode(JSON.stringify(payload));
-  const signature = signBody(hanakoHome, body);
+  const signature = signBody(aniHome, body);
   return {
     ...payload,
     ticket: `${body}.${signature}`,
@@ -53,13 +53,13 @@ export function issuePluginIframeTicket({
 }
 
 export function verifyPluginIframeTicket({
-  hanakoHome,
+  aniHome,
   ticket,
   pluginId,
   surfacePath,
   now = new Date().toISOString(),
-}: { hanakoHome?: string; ticket?: string; pluginId?: string; surfacePath?: string; now?: string } = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+}: { aniHome?: string; ticket?: string; pluginId?: string; surfacePath?: string; now?: string } = {}) {
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(pluginId, "pluginId");
   assertNonEmpty(surfacePath, "surfacePath");
   if (typeof ticket !== "string" || !ticket.trim()) {
@@ -69,7 +69,7 @@ export function verifyPluginIframeTicket({
   if (!body || !signature || extra !== undefined) {
     throw new PluginIframeTicketError("plugin iframe ticket malformed");
   }
-  const expected = signBody(hanakoHome, body);
+  const expected = signBody(aniHome, body);
   if (!timingSafeEqual(signature, expected)) {
     throw new PluginIframeTicketError("plugin iframe ticket signature invalid");
   }
@@ -109,20 +109,20 @@ export function verifyPluginIframeTicket({
   });
 }
 
-function pluginIframeTicketKeyPath(hanakoHome) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
-  return path.join(hanakoHome, "security", PLUGIN_IFRAME_TICKET_KEY_FILE);
+function pluginIframeTicketKeyPath(aniHome) {
+  assertNonEmpty(aniHome, "aniHome");
+  return path.join(aniHome, "security", PLUGIN_IFRAME_TICKET_KEY_FILE);
 }
 
-function signBody(hanakoHome, body) {
+function signBody(aniHome, body) {
   return crypto
-    .createHmac("sha256", readOrCreateTicketKey(hanakoHome))
+    .createHmac("sha256", readOrCreateTicketKey(aniHome))
     .update(body)
     .digest("base64url");
 }
 
-function readOrCreateTicketKey(hanakoHome) {
-  const filePath = pluginIframeTicketKeyPath(hanakoHome);
+function readOrCreateTicketKey(aniHome) {
+  const filePath = pluginIframeTicketKeyPath(aniHome);
   try {
     const existing = fs.readFileSync(filePath, "utf-8").trim();
     if (existing) return existing;

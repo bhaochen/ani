@@ -31,11 +31,11 @@ function isInside(targetPath, rootPath) {
   return rel === "" || (!!rel && !rel.startsWith("..") && !path.isAbsolute(rel));
 }
 
-export function isManagedAgentConfigPath(filePath, { hanakoHome }: { hanakoHome?: string } = {}) {
-  if (!filePath || !hanakoHome) return false;
+export function isManagedAgentConfigPath(filePath, { aniHome }: { aniHome?: string } = {}) {
+  if (!filePath || !aniHome) return false;
 
   const target = resolveExistingOrNearest(filePath);
-  const home = resolveExistingOrNearest(hanakoHome);
+  const home = resolveExistingOrNearest(aniHome);
   const agentsRoot = path.join(home, "agents");
   if (!isInside(target, agentsRoot)) return false;
 
@@ -44,10 +44,10 @@ export function isManagedAgentConfigPath(filePath, { hanakoHome }: { hanakoHome?
   return parts.length === 2 && parts[1].toLowerCase() === "config.yaml";
 }
 
-export function createManagedConfigWriteGuard({ hanakoHome }: { hanakoHome?: string } = {}) {
+export function createManagedConfigWriteGuard({ aniHome }: { aniHome?: string } = {}) {
   return (absolutePath, operation) => {
     if (operation !== "write" && operation !== "delete") return { allowed: true };
-    if (!isManagedAgentConfigPath(absolutePath, { hanakoHome })) return { allowed: true };
+    if (!isManagedAgentConfigPath(absolutePath, { aniHome })) return { allowed: true };
     return {
       allowed: false,
       reason: "managed config files must be changed through settings APIs; do not edit agents/*/config.yaml directly",

@@ -14,10 +14,10 @@ describe("fs route", () => {
     fs.mkdirSync(tempRoot, { recursive: true });
   });
 
-  function buildApp({ hanakoHome, workspace }) {
+  function buildApp({ aniHome, workspace }) {
     const app = new Hono();
     const engine = {
-      hanakoHome,
+      aniHome,
       currentAgentId: "hana",
       getHomeCwd: vi.fn((agentId) => agentId === "hana" ? workspace : null),
       getAgent(id) {
@@ -34,10 +34,10 @@ describe("fs route", () => {
   }
 
   it("rejects symlink escapes from an allowed workspace", async () => {
-    const hanakoHome = path.join(tempRoot, "hanako");
+    const aniHome = path.join(tempRoot, "hanako");
     const workspace = path.join(tempRoot, "workspace");
     const outsideDir = path.join(tempRoot, "outside");
-    fs.mkdirSync(path.join(hanakoHome, "user"), { recursive: true });
+    fs.mkdirSync(path.join(aniHome, "user"), { recursive: true });
     fs.mkdirSync(workspace, { recursive: true });
     fs.mkdirSync(outsideDir, { recursive: true });
 
@@ -46,7 +46,7 @@ describe("fs route", () => {
     fs.writeFileSync(outsideFile, "top secret", "utf-8");
     fs.symlinkSync(outsideFile, linkedFile);
 
-    const app = buildApp({ hanakoHome, workspace });
+    const app = buildApp({ aniHome, workspace });
     const res = await app.request(`/api/fs/read?path=${encodeURIComponent(linkedFile)}`);
 
     expect(res.status).toBe(403);
@@ -54,13 +54,13 @@ describe("fs route", () => {
   });
 
   it("keeps missing files inside the workspace as 404 instead of 403", async () => {
-    const hanakoHome = path.join(tempRoot, "hanako");
+    const aniHome = path.join(tempRoot, "hanako");
     const workspace = path.join(tempRoot, "workspace");
-    fs.mkdirSync(path.join(hanakoHome, "user"), { recursive: true });
+    fs.mkdirSync(path.join(aniHome, "user"), { recursive: true });
     fs.mkdirSync(workspace, { recursive: true });
 
     const missingFile = path.join(workspace, "missing.txt");
-    const app = buildApp({ hanakoHome, workspace });
+    const app = buildApp({ aniHome, workspace });
     const res = await app.request(`/api/fs/read?path=${encodeURIComponent(missingFile)}`);
 
     expect(res.status).toBe(404);
@@ -68,9 +68,9 @@ describe("fs route", () => {
   });
 
   it("renders allowed xlsx files as HTML for the web preview fallback", async () => {
-    const hanakoHome = path.join(tempRoot, "hanako");
+    const aniHome = path.join(tempRoot, "hanako");
     const workspace = path.join(tempRoot, "workspace");
-    fs.mkdirSync(path.join(hanakoHome, "user"), { recursive: true });
+    fs.mkdirSync(path.join(aniHome, "user"), { recursive: true });
     fs.mkdirSync(workspace, { recursive: true });
 
     const workbookPath = path.join(workspace, "budget.xlsx");
@@ -80,7 +80,7 @@ describe("fs route", () => {
     sheet.addRow(["A&B", "<42>"]);
     await workbook.xlsx.writeFile(workbookPath);
 
-    const app = buildApp({ hanakoHome, workspace });
+    const app = buildApp({ aniHome, workspace });
     const res = await app.request(`/api/fs/xlsx-html?path=${encodeURIComponent(workbookPath)}`);
 
     expect(res.status).toBe(200);

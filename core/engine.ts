@@ -43,7 +43,11 @@ import { DefaultResourceLoader, SettingsManager } from "../lib/pi-sdk/index.ts";
 import { compactSessionWithCachePreservationRecoveringRuntime } from "./session-compactor.ts";
 import { getFreshCompactNoopReason } from "../lib/fresh-compact/policy.ts";
 import { DeferredResultCoordinator } from "../lib/deferred-result-coordinator.ts";
-import { getToolSessionPath, normalizeToolRuntimeContext } from "../lib/tools/tool-session.ts";
+import {
+  getToolSessionPath,
+  normalizeToolRuntimeContext,
+  resolveToolSessionRef,
+} from "../lib/tools/tool-session.ts";
 import { loadLocale } from "../lib/i18n.ts";
 import { createApprovalGateway, createModelApprovalReviewer } from "../lib/approval-gateway.ts";
 import { callText } from "./llm-client.ts";
@@ -119,6 +123,7 @@ import { VisionBridge } from "./vision-bridge.ts";
 import { SessionCoordinator } from "./session-coordinator.ts";
 import { SessionManifestResolver } from "./session-manifest/resolver.ts";
 import { SessionManifestStore } from "./session-manifest/store.ts";
+import { ensureSessionRefForPath as establishSessionRefForPath } from "./session-manifest/ref.ts";
 import { ensureLegacySessionManifestMigration } from "./session-manifest/startup-migration.ts";
 import {
   moveSessionManifestDbFilesAside,
@@ -265,19 +270,19 @@ export class HanaEngine {
   declare agentsDir: any;
   declare appVersion: any;
   declare channelsDir: any;
-  declare hanakoHome: any;
+  declare aniHome: any;
   declare _inputDrafts: any;
   declare productDir: any;
   declare userDir: any;
   /**
    * @param {object} dirs
-   * @param {string} dirs.hanakoHome
+   * @param {string} dirs.aniHome
    * @param {string} dirs.productDir
    * @param {string} [dirs.agentId]
    * @param {string} [dirs.appVersion]
    */
-  constructor({ hanakoHome, productDir, agentId, appVersion }) {
-    this.hanakoHome = hanakoHome;
+  constructor({ aniHome, productDir, agentId, appVersion }) {
+    this.aniHome = aniHome;
     this.productDir = productDir;
     this.appVersion = appVersion || "0.0.0";
     this._runtimeContext = null;
@@ -285,12 +290,12 @@ export class HanaEngine {
     this._resourceAccess = null;
     this._resourceIO = null;
     this._resourceEventBus = null;
-    this.agentsDir = path.join(hanakoHome, "agents");
-    this.userDir = path.join(hanakoHome, "user");
-    this.channelsDir = path.join(hanakoHome, "channels");
+    this.agentsDir = path.join(aniHome, "agents");
+    this.userDir = path.join(aniHome, "user");
+    this.channelsDir = path.join(aniHome, "channels");
     fs.mkdirSync(this.channelsDir, { recursive: true });
     this._studioCronService = new StudioCronService({
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       agentsDir: this.agentsDir,
       getStudioId: () => {
         const studioId = this._runtimeContext?.studioId;
@@ -299,7 +304,7 @@ export class HanaEngine {
       },
     });
     this._sessionFiles = new SessionFileRegistry({
-      managedCacheRoot: path.join(hanakoHome, "session-files"),
+      managedCacheRoot: path.join(aniHome, "session-files"),
       getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
     });
     this._resourceWatchRegistry = new ResourceWatchRegistry({
@@ -313,7 +318,7 @@ export class HanaEngine {
       : null;
     this._sessionManifestMigration = this._runSessionManifestStartupMigration();
     this._currentTurnNativeMedia = createCurrentTurnNativeMediaStore();
-    this._pluginInstallRecords = new PluginInstallRecords({ hanakoHome });
+    this._pluginInstallRecords = new PluginInstallRecords({ aniHome });
     this._automationSuggestionStore = new AutomationSuggestionStore();
     this._sessionCollabDraftStore = new SessionCollabDraftStore();
     this._approvalGateway = createApprovalGateway({
@@ -335,8 +340,8 @@ export class HanaEngine {
 
     // ── Core managers ──
     this._prefs = new PreferencesManager({ userDir: this.userDir, agentsDir: this.agentsDir });
-    this._inputDrafts = new InputDraftsStore({ hanakoHome: this.hanakoHome });
-    this._models = new ModelManager({ hanakoHome });
+    this._inputDrafts = new InputDraftsStore({ aniHome: this.aniHome });
+    this._models = new ModelManager({ aniHome });
     this._speechRecognition = new SpeechRecognitionService({
       providerRegistry: this._models.providerRegistry,
       preferences: this._prefs,
@@ -344,7 +349,7 @@ export class HanaEngine {
       emitEvent: (event, sessionPath) => this._emitEvent(event, sessionPath),
     });
     this._media = new UniversalMediaManager({
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       providerRegistry: this._models.providerRegistry,
       preferences: this._prefs,
       speechRecognition: this._speechRecognition,
@@ -390,7 +395,7 @@ export class HanaEngine {
 
     // ── Agent Manager ──
     this._agentMgr = new AgentManager({
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       agentsDir: this.agentsDir,
       productDir: this.productDir,
       userDir: this.userDir,
@@ -466,7 +471,7 @@ export class HanaEngine {
 
     // ── Config Coordinator ──
     this._configCoord = new ConfigCoordinator({
-      hanakoHome,
+      aniHome,
       agentsDir: this.agentsDir,
       getAgent: () => this.agent,
       getAgentById: (id) => this._agentMgr.getAgent(id),
@@ -503,11 +508,12 @@ export class HanaEngine {
       getHomeCwd: (agentId) => this.getHomeCwd(agentId),
       getVisionBridge: () => this._visionBridge,
       isVisionAuxiliaryEnabled: () => this.isVisionAuxiliaryEnabled(),
-      getHanakoHome: () => this.hanakoHome,
+      getAniHome: () => this.aniHome,
       registerSessionFile: (entry) => this.registerSessionFile(entry),
       getSessionFile: (fileId, options) => this.getSessionFile(fileId, options),
       getSessionFileByPath: (filePath, options) => this.getSessionFileByPath(filePath, options),
       getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
+      ensureSessionRefForPath: (sessionPath, defaults) => this.ensureSessionRefForPath(sessionPath, defaults),
       beginCurrentTurnNativeMedia: (sessionPath, opts) => this.beginCurrentTurnNativeMedia(sessionPath, opts),
       endCurrentTurnNativeMedia: (token) => this.endCurrentTurnNativeMedia(token),
       emitEvent: (event, sessionPath) => this._emitEvent(event, sessionPath),
@@ -534,7 +540,7 @@ export class HanaEngine {
 
     // 任务注册表（外部 abort 用）；handler 是运行时函数，任务元数据持久化供插件重启恢复和诊断使用。
     this._taskRegistry = new TaskRegistry({
-      persistencePath: path.join(this.hanakoHome, ".ephemeral", "plugin-tasks.json"),
+      persistencePath: path.join(this.aniHome, ".ephemeral", "plugin-tasks.json"),
       getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
     });
 
@@ -549,14 +555,14 @@ export class HanaEngine {
     });
 
     this._terminalSessions = new TerminalSessionManager({
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
       emitEvent: (event, sessionPath) => this._emitEvent(event, sessionPath),
     });
 
     // Checkpoint 备份存储
     this._checkpointStore = new CheckpointStore(
-      path.join(this.hanakoHome, "checkpoints")
+      path.join(this.aniHome, "checkpoints")
     );
 
     // Computer Use runtime is deliberately lazy. Constructing the provider
@@ -581,7 +587,7 @@ export class HanaEngine {
     this._listeners = new Set();
     this._eventBus = null;
     this._usageLedger = createUsageLedger({
-      storagePath: path.join(this.hanakoHome, "usage-ledger.json"),
+      storagePath: path.join(this.aniHome, "usage-ledger.json"),
       eventBus: {
         emit: (event, sessionPath) => this._emitEvent(event, sessionPath),
       },
@@ -605,7 +611,7 @@ export class HanaEngine {
     this._outboundProxyRuntime = null;
     this._win32LegacySandboxCleanupQueue = process.platform === "win32"
       ? new Win32LegacySandboxCleanupQueue({
-          hanakoHome: this.hanakoHome,
+          aniHome: this.aniHome,
           log: win32SandboxCleanupLog,
         })
       : null;
@@ -879,7 +885,7 @@ export class HanaEngine {
         workspace: null,
         workspaceFolders: [],
         authorizedFolders: [],
-        hanakoHome: this.hanakoHome,
+        aniHome: this.aniHome,
         getSandboxEnabled: () => false,
         getSessionPath: () => this.currentSessionPath || null,
         emitEvent: (event, sessionPath) => this._emitEvent(event, sessionPath),
@@ -1015,6 +1021,48 @@ export class HanaEngine {
     }
     return this._sessionManifestResolver.resolve(ref, opts);
   }
+  ensureSessionRefForPath(sessionPath, defaults: any = {}) {
+    return establishSessionRefForPath(this._sessionManifestStore, sessionPath, defaults);
+  }
+  tombstoneSessionRef(sessionRef, reason = "session_cleanup") {
+    const sessionId = typeof sessionRef?.sessionId === "string" && sessionRef.sessionId.trim()
+      ? sessionRef.sessionId.trim()
+      : null;
+    if (!this._sessionManifestStore) {
+      const error: any = new Error("Session manifest store is unavailable.");
+      error.code = "session_manifest_unavailable";
+      throw error;
+    }
+    if (!sessionId) {
+      const error: any = new Error("tombstoneSessionRef requires sessionId");
+      error.code = "session_manifest_ref_required";
+      throw error;
+    }
+    const manifest = this._sessionManifestStore.getBySessionId(sessionId);
+    if (!manifest) {
+      const error: any = new Error(`Session manifest not found for sessionId=${sessionId}`);
+      error.code = "session_manifest_not_found";
+      throw error;
+    }
+    if (manifest.lifecycle === "deleted") {
+      return {
+        sessionId,
+        sessionPath: manifest.currentLocator?.path || sessionRef?.sessionPath || null,
+      };
+    }
+    const sessionPath = manifest.currentLocator?.path || sessionRef?.sessionPath || null;
+    if (!sessionPath) throw new Error(`tombstoneSessionRef: locator unavailable for ${sessionId}`);
+    const updated = this._sessionManifestStore.updateLocatorLifecycle(
+      sessionId,
+      sessionPath,
+      "deleted",
+      reason,
+    );
+    return {
+      sessionId,
+      sessionPath: updated?.currentLocator?.path || sessionPath,
+    };
+  }
   getSessionManifest(sessionId) {
     return this._sessionManifestStore?.getBySessionId(sessionId) || null;
   }
@@ -1029,7 +1077,7 @@ export class HanaEngine {
   }
 
   _openSessionManifestStore() {
-    const dbPath = path.join(this.hanakoHome, "session-manifest.db");
+    const dbPath = path.join(this.aniHome, "session-manifest.db");
     try {
       return new SessionManifestStore({ dbPath });
     } catch (error) {
@@ -1037,7 +1085,7 @@ export class HanaEngine {
       let moved = [];
       try {
         moved = moveSessionManifestDbFilesAside({
-          hanaHome: this.hanakoHome,
+          aniHome: this.aniHome,
           suffix: `quarantine-${sanitizeSessionManifestFileSuffix(new Date().toISOString())}`,
         });
       } catch (moveError) {
@@ -1073,7 +1121,7 @@ export class HanaEngine {
     }
     try {
       const result = ensureLegacySessionManifestMigration({
-        hanaHome: this.hanakoHome,
+        aniHome: this.aniHome,
         store: this._sessionManifestStore,
         appVersion: this.appVersion,
       });
@@ -1280,8 +1328,8 @@ export class HanaEngine {
     return this._configCoord.getExplicitHomeFolder(agentId || this.currentAgentId) || null;
   }
   _createResourceLoaderOptions(skillsDir) {
-    const cwd = resolveHanaPiSdkResourceLoaderCwd(this.hanakoHome);
-    const agentDir = resolveHanaPiSdkResourceLoaderAgentDir(this.hanakoHome);
+    const cwd = resolveHanaPiSdkResourceLoaderCwd(this.aniHome);
+    const agentDir = resolveHanaPiSdkResourceLoaderAgentDir(this.aniHome);
     if (!cwd || typeof cwd !== "string") {
       throw new Error("ResourceLoader init: cwd is required");
     }
@@ -1864,24 +1912,24 @@ export class HanaEngine {
     });
 
     // 0b. Provider 迁移（旧数据 → added-models.yaml，只跑一次）
-    migrateToProvidersYaml(this.hanakoHome, this.agentsDir, log);
+    migrateToProvidersYaml(this.aniHome, this.agentsDir, log);
 
     // 0b2. Provider media 迁移（旧 type:image 模型 → media.image_generation）
-    migrateProviderMediaConfig(this.hanakoHome, log);
+    migrateProviderMediaConfig(this.aniHome, log);
 
     // 0c. Model overrides 迁移（config.models.overrides → added-models.yaml，只跑一次）
     this._models.providerRegistry.migrateOverridesToAddedModels(this.agentsDir, log);
 
     // 0d. 统一数据迁移（版本号驱动，新迁移统一加在 migrations.js）
     runMigrations({
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       agentsDir: this.agentsDir,
       prefs: this._prefs,
       providerRegistry: this._models.providerRegistry,
       log,
     });
     this._runtimeContext = createServerRuntimeContext({
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       appVersion: this.appVersion,
     });
     this._resources = new ResourceService({
@@ -1891,7 +1939,7 @@ export class HanaEngine {
     });
     this._resourceAccess = new ResourceAccessService({
       resourceService: this._resources,
-      audit: (event) => appendSecurityAuditEvent(this.hanakoHome, event),
+      audit: (event) => appendSecurityAuditEvent(this.aniHome, event),
     });
 
     // 频道初始化和 agent 构造会调用 server-side i18n。locale 是 global
@@ -1919,7 +1967,7 @@ export class HanaEngine {
     // 3. ResourceLoader + Skills
     log(`[init] 3/5 ResourceLoader 初始化...`);
     const t_rl = Date.now();
-    const skillsDir = path.join(this.hanakoHome, "skills");
+    const skillsDir = path.join(this.aniHome, "skills");
     fs.mkdirSync(skillsDir, { recursive: true });
 
     // 解析外部兼容技能路径
@@ -2151,11 +2199,11 @@ export class HanaEngine {
   async initPlugins(bus) {
     this._media?.start?.(bus);
     const builtinPluginsDir = path.join(this.productDir, "..", "plugins");
-    const userPluginsDir = path.join(this.hanakoHome, "plugins");
-    const devPluginsDir = path.join(this.hanakoHome, "plugins-dev");
-    const pluginDevRunsDir = path.join(this.hanakoHome, "plugin-dev-runs");
-    const pluginDevSourcesDir = path.join(this.hanakoHome, "plugin-dev-sources");
-    const pluginDataDir = path.join(this.hanakoHome, "plugin-data");
+    const userPluginsDir = path.join(this.aniHome, "plugins");
+    const devPluginsDir = path.join(this.aniHome, "plugins-dev");
+    const pluginDevRunsDir = path.join(this.aniHome, "plugin-dev-runs");
+    const pluginDevSourcesDir = path.join(this.aniHome, "plugin-dev-sources");
+    const pluginDataDir = path.join(this.aniHome, "plugin-data");
     fs.mkdirSync(pluginDevSourcesDir, { recursive: true });
 
     // Read app version for plugin compatibility check
@@ -2265,6 +2313,7 @@ export class HanaEngine {
   async syncPluginExtensions() {
     this._syncExtensionFactories();
     await this._reloadResourceLoaderForExtensionFactories();
+    this._sessionCoord?.markCapabilitySnapshotsStale?.({ reason: "plugin.lifecycle.changed" });
   }
 
   // ════════════════════════════
@@ -2296,6 +2345,18 @@ export class HanaEngine {
     const getSessionPath = typeof opts.getSessionPath === "function"
       ? opts.getSessionPath
       : (() => null);
+    const getSessionRef = typeof opts.getSessionRef === "function"
+      ? opts.getSessionRef
+      : (() => null);
+    const getSessionId = typeof opts.getSessionId === "function"
+      ? opts.getSessionId
+      : (() => null);
+    const resolveRuntimeSessionRef = (runtimeCtx) => resolveToolSessionRef(runtimeCtx, {
+      getSessionRef,
+      getSessionId,
+      getSessionPath,
+      getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
+    });
     const allowHumanApproval = opts.allowHumanApproval !== false;
     const approvalPolicy = opts.approvalPolicy
       || (allowHumanApproval ? SESSION_APPROVAL_POLICIES.INTERACTIVE : SESSION_APPROVAL_POLICIES.DENY_ON_PROMPT);
@@ -2314,12 +2375,15 @@ export class HanaEngine {
         ...tool,
         execute: (toolCallId, params, signalOrRuntimeCtx, onUpdate, piCtx) => {
           const { ctx: runtimeCtx } = normalizeToolRuntimeContext(signalOrRuntimeCtx, piCtx);
-          const sessionPath = runtimeCtx?.sessionPath
+          const runtimeSessionPath = runtimeCtx?.sessionPath
             || getToolSessionPath(runtimeCtx)
             || getSessionPath()
             || null;
+          const sessionRef = resolveRuntimeSessionRef(runtimeCtx);
+          const sessionPath = runtimeSessionPath || sessionRef?.sessionPath || null;
           const mergedCtx = {
             ...runtimeCtx,
+            ...(sessionRef ? { sessionId: sessionRef.sessionId, sessionRef } : {}),
             ...(sessionPath ? { sessionPath } : {}),
             ...(opts.bridgeContext ? { bridgeContext: opts.bridgeContext } : {}),
             ...(opts.notificationContext ? { notificationContext: opts.notificationContext } : {}),
@@ -2337,12 +2401,15 @@ export class HanaEngine {
       ...t,
       execute: (toolCallId, params, signalOrRuntimeCtx, onUpdate, piCtx) => {
         const { ctx: runtimeCtx } = normalizeToolRuntimeContext(signalOrRuntimeCtx, piCtx);
-        const sessionPath = runtimeCtx?.sessionPath
+        const runtimeSessionPath = runtimeCtx?.sessionPath
           || getToolSessionPath(runtimeCtx)
           || getSessionPath()
           || null;
+        const sessionRef = resolveRuntimeSessionRef(runtimeCtx);
+        const sessionPath = runtimeSessionPath || sessionRef?.sessionPath || null;
         const mergedCtx = {
           ...runtimeCtx,
+          ...(sessionRef ? { sessionId: sessionRef.sessionId, sessionRef } : {}),
           ...(sessionPath ? { sessionPath } : {}),
           ...(opts.bridgeContext ? { bridgeContext: opts.bridgeContext } : {}),
           ...(opts.notificationContext ? { notificationContext: opts.notificationContext } : {}),
@@ -2399,7 +2466,7 @@ export class HanaEngine {
         : [];
       return externalReadPathsFromSessionFiles(files, {
         workspaceRoots: workspaceRootsForSandbox(effectiveWorkspace, workspaceFolders, getAuthorizedFolders()),
-        hanakoHome: this.hanakoHome,
+        aniHome: this.aniHome,
       });
     };
 
@@ -2410,7 +2477,7 @@ export class HanaEngine {
       workspaceFolders,
       authorizedFolders: staticAuthorizedFolders,
       getAuthorizedFolders,
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       getSandboxEnabled: () => this._readPreferences().sandbox !== false,
       getExternalReadPaths,
       getSessionPath,
@@ -2426,7 +2493,7 @@ export class HanaEngine {
       workspaceFolders,
       authorizedFolders: staticAuthorizedFolders,
       getAuthorizedFolders,
-      hanakoHome: this.hanakoHome,
+      aniHome: this.aniHome,
       executionBoundary,
       getSandboxEnabled: () => this._readPreferences().sandbox !== false,
       getSandboxNetworkEnabled: () => process.platform === "win32"
@@ -2509,11 +2576,15 @@ export class HanaEngine {
         ...result,
         tools: wrapWithSessionExecutionCancellation(result.tools, {
           registry: this._sessionExecutions,
+          getSessionRef,
+          getSessionId,
           getSessionPath,
           getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
         }),
         customTools: wrapWithSessionExecutionCancellation(result.customTools, {
           registry: this._sessionExecutions,
+          getSessionRef,
+          getSessionId,
           getSessionPath,
           getSessionIdForPath: (sessionPath) => this.getSessionIdForPath(sessionPath),
         }),
@@ -2677,7 +2748,7 @@ export class HanaEngine {
       ? opts.skills
       : (opts.agentId ? this.getAllSkills(opts.agentId) : []);
     return translateSkillNamesWithCache({
-      cachePath: getSkillNameTranslationCachePath(this.hanakoHome),
+      cachePath: getSkillNameTranslationCachePath(this.aniHome),
       skills,
       names,
       lang,

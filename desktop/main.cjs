@@ -46,7 +46,7 @@ const {
   focusExistingWindow,
 } = require("./src/shared/single-instance-lock.cjs");
 const {
-  resolveHanakoHome,
+  resolveAniHome,
 } = require("../shared/hana-runtime-paths.cjs");
 const {
   buildBrowserSearchExtractionScript,
@@ -154,29 +154,29 @@ function safeReadJSON(filePath, fallback = null) {
   }
 }
 
-const hanakoHome = resolveHanakoHome(process.env.HANA_HOME);
-process.env.HANA_HOME = hanakoHome;
+const aniHome = resolveAniHome(process.env.ANI_HOME);
+process.env.ANI_HOME = aniHome;
 
 const keepAwakeManager = createKeepAwakeManager({ powerSaveBlocker });
 
 function redactMainLogText(value) {
-  return redactLogText(value, { homeDir: os.homedir(), extraPaths: [hanakoHome] });
+  return redactLogText(value, { homeDir: os.homedir(), extraPaths: [aniHome] });
 }
 
 function readNetworkProxyPreference() {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   const prefs = safeReadJSON(prefsPath, {});
   return normalizeNetworkProxyConfig(prefs?.network_proxy);
 }
 
 function readKeepAwakePreference() {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   const prefs = safeReadJSON(prefsPath, {});
   return prefs?.keep_awake === true;
 }
 
 function readQuickChatPreferences() {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   const prefs = safeReadJSON(prefsPath, {});
   return normalizeQuickChatPreferences(prefs?.quick_chat);
 }
@@ -191,7 +191,7 @@ function readQuickChatPreferences() {
  * "stable"（老用户没有这个字段时的既有默认行为不变）。
  */
 function readUpdateChannelPreference() {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   const prefs = safeReadJSON(prefsPath, {});
   return prefs?.update_channel === "beta" ? "beta" : "stable";
 }
@@ -265,12 +265,12 @@ async function serverEnvironmentForNetworkProxy(baseEnv) {
   }, baseEnv, config);
 }
 
-// 按 HANA_HOME 隔离 Electron userData（localStorage / cache / session）
+// 按 ANI_HOME 隔离 Electron userData（localStorage / cache / session）
 // 生产: ~/Library/Application Support/Hanako（历史目录，随 HanaAgent 显示名保留）
 // 开发: ~/Library/Application Support/Hanako-dev
-const defaultHome = path.join(os.homedir(), ".hanako");
+const defaultHome = path.join(os.homedir(), ".ani");
 configureClientSingleInstance(app, {
-  hanakoHome,
+  aniHome,
   defaultHome,
   onSecondInstance: () => showPrimaryWindow(),
 });
@@ -280,7 +280,7 @@ if (process.platform === "win32") {
 }
 
 const gpuStartupPolicy = resolveGpuStartupPolicy({
-  hanakoHome,
+  aniHome,
   platform: process.platform,
   argv: process.argv,
   env: process.env,
@@ -291,7 +291,7 @@ if (!gpuStartupPolicy.hardwareAccelerationEnabled) {
 }
 const desktopStartupId = `${Date.now()}-${process.pid}`;
 const desktopLaunchDiagnostics = createDesktopLaunchDiagnostics({
-  hanakoHome,
+  aniHome,
   startupId: desktopStartupId,
   appVersion: app?.getVersion?.() || "unknown",
   platform: process.platform,
@@ -314,7 +314,7 @@ function writeDesktopLaunchDiagnostic(event, details = {}) {
 
 if (process.platform === "win32") {
   markGpuStartupPending({
-    hanakoHome,
+    aniHome,
     platform: process.platform,
     phase: "electron-starting",
     startupId: desktopStartupId,
@@ -325,7 +325,7 @@ if (process.platform === "win32") {
 app.on("child-process-gone", (_event, details) => {
   if (process.platform !== "win32") return;
   if (!recordGpuChildProcessGone({
-    hanakoHome,
+    aniHome,
     platform: process.platform,
     policy: gpuStartupPolicy,
     details,
@@ -346,7 +346,7 @@ app.on("gpu-info-update", () => {
   try {
     if (typeof app.getGPUFeatureStatus === "function") {
       recordGpuInfoUpdate({
-        hanakoHome,
+        aniHome,
         platform: process.platform,
         featureStatus: app.getGPUFeatureStatus(),
       });
@@ -581,7 +581,7 @@ function _getMainI18n() {
     // 从 preferences.json 读取全局 locale（和 server/renderer 一致）
     let locale = null;
     try {
-      const prefs = JSON.parse(fs.readFileSync(path.join(hanakoHome, "user", "preferences.json"), "utf-8"));
+      const prefs = JSON.parse(fs.readFileSync(path.join(aniHome, "user", "preferences.json"), "utf-8"));
       locale = prefs.locale || null;
     } catch { /* preferences.json 不存在时 fallback */ }
     const key = _resolveLocaleKey(locale);
@@ -749,8 +749,8 @@ function applyTransparentWindowBackground(win) {
  * 优先读 user/preferences.json，fallback 扫描 agents/ 第一个有效目录
  */
 function getCurrentAgentId() {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
-  const agentsDir = path.join(hanakoHome, "agents");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
+  const agentsDir = path.join(aniHome, "agents");
 
   // 1. 读 preferences
   try {
@@ -783,7 +783,7 @@ function getCurrentAgentId() {
  * 只看 preferences.json 的 setupComplete 标记
  */
 function isSetupComplete() {
-  const prefsPath = path.join(hanakoHome, "user", "preferences.json");
+  const prefsPath = path.join(aniHome, "user", "preferences.json");
   try {
     return JSON.parse(fs.readFileSync(prefsPath, "utf-8")).setupComplete === true;
   } catch {}
@@ -798,7 +798,7 @@ function hasExistingConfig() {
   try {
     const agentId = getCurrentAgentId();
     if (!agentId) return false;
-    const configPath = path.join(hanakoHome, "agents", agentId, "config.yaml");
+    const configPath = path.join(aniHome, "agents", agentId, "config.yaml");
     const configText = fs.readFileSync(configPath, "utf-8");
     return /api_key:\s*["']?[^"'\s]+/.test(configText);
   } catch {}
@@ -810,7 +810,7 @@ function hasLegacyProviderConfig() {
   // 不能只看 agents/*/config.yaml 是否存在，因为 ensureFirstRun 会为全新用户
   // 播种默认 agent（含 config.yaml），导致新用户被误判为老用户而跳过 onboarding。
   try {
-    const modelsPath = path.join(hanakoHome, "added-models.yaml");
+    const modelsPath = path.join(aniHome, "added-models.yaml");
     if (!fs.existsSync(modelsPath)) return false;
     const content = fs.readFileSync(modelsPath, "utf-8");
     return /api_key:\s*["']?[^"'\s]+/.test(content);
@@ -896,7 +896,7 @@ const {
   shouldKeepWaitingForServerInfo,
 } = require("./src/shared/server-readiness.cjs");
 // 打包模式 server 的版本化启动：安装包携带签名 seed 归档，
-// 首启验签解压到 HANA_HOME/artifacts 后从版本化目录 spawn。dev 模式不经过它。
+// 首启验签解压到 ANI_HOME/artifacts 后从版本化目录 spawn。dev 模式不经过它。
 const artifactBoot = require("./src/shared/artifact-boot.cjs");
 // 后台静默 OTA 下载器：主窗口 shown 后台检查/下载/暂存
 // 新 train，只写 next 指针——真正的 promote(next→current) 仍然只发生在下次
@@ -1003,7 +1003,7 @@ function normalizeDesiredServerNetworkConfig(value) {
 }
 
 function readDesiredServerNetworkConfig() {
-  const filePath = path.join(hanakoHome, "server-network.json");
+  const filePath = path.join(aniHome, "server-network.json");
   try {
     return { config: normalizeDesiredServerNetworkConfig(JSON.parse(fs.readFileSync(filePath, "utf-8"))) };
   } catch (err) {
@@ -1129,7 +1129,7 @@ function isDesktopOwnedServerInfo(info) {
 }
 
 async function startServer() {
-  const serverInfoPath = path.join(hanakoHome, "server-info.json");
+  const serverInfoPath = path.join(aniHome, "server-info.json");
 
   // ── 1. 检查是否有已运行的 server（Electron crash 后遗留的守护进程） ──
   let existingInfo = null;
@@ -1194,7 +1194,7 @@ async function startServer() {
           err.code = "STALE_SERVER_UNCLEANED";
           throw err;
         }
-        // 端口不冲突不等于"可以安全共存"：残留进程可能是同一 HANA_HOME 上
+        // 端口不冲突不等于"可以安全共存"：残留进程可能是同一 ANI_HOME 上
         // 监听在别的端口的另一个内核（典型触发路径：`hana serve` 先起、桌面
         // 后启动）。用 token 认证探测确认它是否仍然是同一个家，是则拒绝
         // spawn 第二个内核；探测不通（not-hana / dead）才继续走原有 spawn。
@@ -1220,7 +1220,7 @@ async function startServer() {
 
   // ── 2. 打包模式：解析版本化 server + renderer 目录（必要时首启解压两只箱子）──
   // 安装包只携带签名 seed 归档（Resources/seed/），server/renderer 树在
-  // HANA_HOME/artifacts 下按版本落盘；这里经 artifact-boot 决策出可 spawn
+  // ANI_HOME/artifacts 下按版本落盘；这里经 artifact-boot 决策出可 spawn
   // 的 server 目录，同时把 `_distRenderer` 重指向 renderer 的激活目录。
   // dev 模式（无 seed）返回 null，走原有 source server 路径，`_distRenderer`
   // 维持默认值不变。
@@ -1324,7 +1324,7 @@ async function resolvePackagedArtifactBoot() {
   const bootChannel = readUpdateChannelPreference();
   _artifactBootChannel = bootChannel;
   const boot = await artifactBoot.prepareArtifactBoot({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     resourcesPath,
     platformArch: `${process.platform}-${process.arch}`,
     keyset: loadPinnedKeyset(),
@@ -1380,13 +1380,13 @@ async function resolvePackagedArtifactBoot() {
   // 完成后，对两个 kind 各自的版本目录做一次"只留 current+previous"清理。
   // gcArtifactKind 内部永不抛出，这里不需要额外 try/catch。
   await artifactGc.gcArtifactKind({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     kind: "server",
     channel: bootChannel,
     log: (msg) => console.log(redactMainLogText(msg)),
   });
   await artifactGc.gcArtifactKind({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     kind: "renderer",
     channel: _rendererBootChannel,
     log: (msg) => console.log(redactMainLogText(msg)),
@@ -1466,7 +1466,7 @@ function armRendererHealthyClearOnce(win) {
   if (!_rendererBootChannel || !win?.webContents || win.webContents.isDestroyed()) return;
   win.webContents.once("did-finish-load", () => {
     artifactBoot.scheduleHealthySentinelClear({
-      homeDir: hanakoHome,
+      homeDir: aniHome,
       channel: _rendererBootChannel,
       log: (msg) => console.warn(redactMainLogText(msg)),
     });
@@ -1490,7 +1490,7 @@ async function handleRendererArtifactLoadFailure({ win, pageName, opts, label, r
   let resolved;
   try {
     resolved = await artifactBoot.prepareArtifactRendererBoot({
-      homeDir: hanakoHome,
+      homeDir: aniHome,
       resourcesPath: process.resourcesPath || "",
       keyset: loadPinnedKeyset(),
       // 必须显式传入本次启动的通道。若回落到
@@ -1522,7 +1522,7 @@ async function handleRendererArtifactLoadFailure({ win, pageName, opts, label, r
   }
   // 登记"新的加载尝试"（同 server 侧 `_spawnServerOnce` 每次 spawn 前写一次
   // 哨兵的模式）：这样如果重试仍然失败，下一次失败事件读到的计数会继续累加。
-  await artifactBoot.writeBootSentinel(hanakoHome, _rendererBootChannel, resolved.train).catch((err) => {
+  await artifactBoot.writeBootSentinel(aniHome, _rendererBootChannel, resolved.train).catch((err) => {
     console.warn(`[desktop] failed to write renderer boot sentinel: ${err.message}`);
   });
 
@@ -1607,7 +1607,7 @@ async function triggerArtifactRepairFlow() {
   if (result.response !== 0) return; // 取消
 
   await artifactRepair.repairArtifacts({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     log: (msg) => console.log(redactMainLogText(msg)),
   });
 
@@ -1635,7 +1635,7 @@ async function _spawnServerOnce(serverInfoPath, artifactBootContext) {
 
   let serverEnv = {
     ...process.env,
-    HANA_HOME: hanakoHome,
+    ANI_HOME: aniHome,
     HANA_SERVER_OWNER: "desktop",
     HANA_SERVER_OWNER_PID: String(process.pid),
     HANA_DESKTOP_EXEC_PATH: process.execPath,
@@ -1682,7 +1682,7 @@ async function _spawnServerOnce(serverInfoPath, artifactBootContext) {
   // 选择 server 启动方式
   let serverBin, serverArgs, serverCwd;
   if (artifactBootContext) {
-    // 打包模式：从 HANA_HOME/artifacts 的版本化目录启动（首启已由
+    // 打包模式：从 ANI_HOME/artifacts 的版本化目录启动（首启已由
     // resolvePackagedArtifactBoot 解压 seed；目录布局与旧 Resources/server 一致）
     // macOS/Linux：hana-server 是 shell wrapper，内部调用 bootstrap.js，无需额外参数
     // Windows：hana-server.exe 是裸 Node 二进制（改名），需要显式传入 bootstrap.js
@@ -1721,7 +1721,7 @@ async function _spawnServerOnce(serverInfoPath, artifactBootContext) {
   // crash 哨兵：spawn 前登记，健康观察期满后清除；进程在观察期内
   // 死亡则哨兵留存，同一 train 连续 3 次未清除 → 下次启动降级 previous。
   if (artifactBootContext) {
-    await artifactBoot.writeBootSentinel(hanakoHome, artifactBootContext.channel, artifactBootContext.train);
+    await artifactBoot.writeBootSentinel(aniHome, artifactBootContext.channel, artifactBootContext.train);
   }
 
   let launcherBin = serverBin;
@@ -1812,7 +1812,7 @@ async function _spawnServerOnce(serverInfoPath, artifactBootContext) {
   // server 就绪：进入健康观察期，期满清除 crash 哨兵（timer 已 unref）
   if (artifactBootContext) {
     artifactBoot.scheduleHealthySentinelClear({
-      homeDir: hanakoHome,
+      homeDir: aniHome,
       channel: artifactBootContext.channel,
       log: (msg) => console.warn(redactMainLogText(msg)),
     });
@@ -1852,7 +1852,7 @@ async function settleLegacyGpuPreferenceAfterServerStart() {
   }
 
   const result = settleLegacyGpuPreferenceMigration({
-    hanakoHome,
+    aniHome,
     intent,
     preferenceStatus: payload.status,
   });
@@ -1982,10 +1982,10 @@ function createTray() {
 }
 
 /**
- * 将崩溃日志写入 HANA_HOME/crash.log（默认 ~/.hanako/crash.log）并返回日志内容
+ * 将崩溃日志写入 ANI_HOME/crash.log（默认 ~/.ani/crash.log）并返回日志内容
  */
 function buildServerCrashDiagnostics() {
-  // production 时 server 在 HANA_HOME/artifacts 的版本化目录（以最近一次
+  // production 时 server 在 ANI_HOME/artifacts 的版本化目录（以最近一次
   // spawn 的 command 所在目录为准），dev 时在 __dirname/../server/
   const isPackaged = app.isPackaged;
   const serverDir = isPackaged
@@ -1998,7 +1998,7 @@ function buildServerCrashDiagnostics() {
   const items = [
     ``,
     `--- Diagnostics ---`,
-    `HANA_HOME: ${hanakoHome}`,
+    `ANI_HOME: ${aniHome}`,
     `Server dir: ${serverDir}`,
     `Packaged: ${!!isPackaged}`,
     `bundle/index.js exists: ${fs.existsSync(bundlePath)}`,
@@ -2033,7 +2033,7 @@ function buildServerCrashDiagnostics() {
     items.push(`Manual debug: open cmd.exe, cd to "${serverDir}", run hana-server.cmd`);
   }
 
-  items.push(buildGpuStartupDiagnostics({ hanakoHome, policy: gpuStartupPolicy, app }));
+  items.push(buildGpuStartupDiagnostics({ aniHome, policy: gpuStartupPolicy, app }));
 
   return items.join("\n");
 }
@@ -2083,8 +2083,8 @@ function writeCrashLog(errorMessage) {
 
   // 写入文件（best effort）
   try {
-    const crashLogPath = path.join(hanakoHome, "crash.log");
-    fs.mkdirSync(hanakoHome, { recursive: true });
+    const crashLogPath = path.join(aniHome, "crash.log");
+    fs.mkdirSync(aniHome, { recursive: true });
     fs.writeFileSync(crashLogPath, content, "utf-8");
   } catch (e) {
     console.error("[desktop] 写入 crash.log 失败:", e.message);
@@ -2097,7 +2097,7 @@ function writeCrashLog(errorMessage) {
 function createSplashWindow() {
   if (process.platform === "win32") {
     markGpuStartupPhase({
-      hanakoHome,
+      aniHome,
       platform: process.platform,
       phase: "launching-splash",
       startupId: desktopStartupId,
@@ -2125,7 +2125,7 @@ function createSplashWindow() {
   splashWindow.once("ready-to-show", () => {
     if (process.platform === "win32") {
       markGpuStartupPhase({
-        hanakoHome,
+        aniHome,
         platform: process.platform,
         phase: "splash-ready",
         startupId: desktopStartupId,
@@ -2140,10 +2140,10 @@ function createSplashWindow() {
 }
 
 // ── 窗口状态记忆 ──
-const windowStatePath = path.join(hanakoHome, "user", "window-state.json");
+const windowStatePath = path.join(aniHome, "user", "window-state.json");
 
 // ── 升级后首启公告：最后看过公告的版本记录 ──
-const lastSeenVersionPath = path.join(hanakoHome, "user", "last-seen-version.json");
+const lastSeenVersionPath = path.join(aniHome, "user", "last-seen-version.json");
 
 function writeLastSeenVersion(version) {
   fs.mkdirSync(path.dirname(lastSeenVersionPath), { recursive: true });
@@ -2223,7 +2223,7 @@ function saveWindowState() {
 }
 
 // ── Quick Chat 小窗状态与全局快捷键 ──
-const quickChatWindowStatePath = path.join(hanakoHome, "user", "quick-chat-window-state.json");
+const quickChatWindowStatePath = path.join(aniHome, "user", "quick-chat-window-state.json");
 
 function quickChatHeightForMode(mode, requestedHeight = null) {
   const base = mode === "chat" ? QUICK_CHAT_CHAT_HEIGHT : QUICK_CHAT_COMPACT_HEIGHT;
@@ -2541,7 +2541,7 @@ function startBackgroundOtaSchedulerOnce() {
   _otaSchedulerStarted = true;
   try {
     artifactOta.scheduleBackgroundOtaChecks({
-      homeDir: hanakoHome,
+      homeDir: aniHome,
       keyset: loadPinnedKeyset(),
       currentShellVersion: app.getVersion(),
       platformArch: `${process.platform}-${process.arch}`,
@@ -2600,7 +2600,7 @@ function createMainWindow() {
   if (!_autoUpdaterInitialized) {
     initAutoUpdater(mainWindow, {
       setIsUpdating: (v) => { _isUpdating = v; },
-      hanakoHome,
+      aniHome,
     });
     _autoUpdaterInitialized = true;
   } else {
@@ -4060,7 +4060,7 @@ function setupBrowserCommands() {
       try { msg = JSON.parse(data); } catch { return; }
       if (msg?.type !== "browser-cmd") return;
       const { id, cmd, params } = msg;
-      const _bLog = (line) => { try { require("fs").appendFileSync(require("path").join(hanakoHome, "browser-cmd.log"), `${new Date().toISOString()} ${redactMainLogText(line)}\n`); } catch {} };
+      const _bLog = (line) => { try { require("fs").appendFileSync(require("path").join(aniHome, "browser-cmd.log"), `${new Date().toISOString()} ${redactMainLogText(line)}\n`); } catch {} };
       _bLog(`→ received cmd=${cmd} id=${id}`);
       try {
         const result = await handleBrowserCommand(cmd, params || {});
@@ -4747,7 +4747,7 @@ async function applyTrainUpdateNow(senderWebContents) {
   }
 
   const downloadResult = await artifactOta.downloadAndApplyArtifacts({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     keyset: loadPinnedKeyset(),
     currentShellVersion: app.getVersion(),
     platformArch: `${process.platform}-${process.arch}`,
@@ -4767,7 +4767,7 @@ async function applyTrainUpdateNow(senderWebContents) {
   const result = await trainUpdateApply.runApplyNowSequence({
     verifyPackaged: () => trainUpdateApply.assertPackagedMode(app.isPackaged),
     verifyStaged: async () => {
-      const staged = await artifactOta.readStagedTrainStatus(hanakoHome, { channel });
+      const staged = await artifactOta.readStagedTrainStatus(aniHome, { channel });
       const check = trainUpdateApply.checkStagedPrecondition(staged);
       if (!check.ok) {
         throw new Error(`train-update-apply: ${check.reason}`);
@@ -4811,7 +4811,7 @@ async function applyTrainUpdateNow(senderWebContents) {
 }
 
 wrapIpcHandler("train-update-status", async () => {
-  const status = await artifactOta.readStagedTrainStatus(hanakoHome, { channel: readUpdateChannelPreference() });
+  const status = await artifactOta.readStagedTrainStatus(aniHome, { channel: readUpdateChannelPreference() });
   // currentVersion 是内容版本单一源的唯一 IPC 出口：渲染进程不再单独调用
   // get-app-version 来决定"我在用哪个版本"，一律从这里读。
   // fallbackNotice 并入这里：冷启动时崩溃回退发生在任何窗口创建之前，
@@ -4833,7 +4833,7 @@ wrapIpcHandler("train-fallback-notice-ack", () => {
 wrapIpcHandler("train-update-check", async () => {
   if (!app.isPackaged) return { outcome: "dev-skipped" };
   return artifactOta.checkOnce({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     keyset: loadPinnedKeyset(),
     currentShellVersion: app.getVersion(),
     platformArch: `${process.platform}-${process.arch}`,
@@ -5121,8 +5121,8 @@ wrapIpcHandler("get-avatar-path", (_event, role) => {
   const agentId = getCurrentAgentId();
   // agent 头像在 agents/{id}/avatars/，user 头像在 user/avatars/
   const baseDir = role === "user"
-    ? path.join(hanakoHome, "user")
-    : agentId ? path.join(hanakoHome, "agents", agentId) : null;
+    ? path.join(aniHome, "user")
+    : agentId ? path.join(aniHome, "agents", agentId) : null;
   if (!baseDir) return null;
   const avatarDir = path.join(baseDir, "avatars");
   for (const ext of ["png", "jpg", "jpeg", "webp"]) {
@@ -5137,7 +5137,7 @@ wrapIpcHandler("get-splash-info", () => {
   try {
     const agentId = getCurrentAgentId();
     if (!agentId) return { agentName: null, locale: "zh-CN", yuan: "hanako" };
-    const configPath = path.join(hanakoHome, "agents", agentId, "config.yaml");
+    const configPath = path.join(aniHome, "agents", agentId, "config.yaml");
     const text = fs.readFileSync(configPath, "utf-8");
     // 简易提取：agent:\n  name: xxx / yuan: xxx 和顶层 locale: xxx
     const agentMatch = text.match(/^agent:\s*\n\s+name:\s*([^#\n]+)/m);
@@ -5222,7 +5222,7 @@ wrapIpcBestEffortHandler("open-skill-viewer", (_event, data) => {
       const baseName = path.basename(data.skillPath, fileExt);
 
       // 先检查同名 skill 是否已安装在 skills 目录
-      const installedDir = path.join(hanakoHome, "skills", baseName);
+      const installedDir = path.join(aniHome, "skills", baseName);
       if (fs.existsSync(path.join(installedDir, "SKILL.md"))) {
         _showSkillViewer({ name: baseName, baseDir: installedDir, installed: false }, fromSettings);
         return;
@@ -5602,7 +5602,7 @@ wrapIpcBestEffortHandler("show-notification", (_event, title, body, agentId, raw
     body: body || "",
     silent: false,
   };
-  const avatarPath = resolveAgentAvatarPath(hanakoHome, agentId);
+  const avatarPath = resolveAgentAvatarPath(aniHome, agentId);
   if (avatarPath) {
     const icon = nativeImage.createFromPath(avatarPath);
     // createFromPath 对不支持的格式/损坏文件返回空图；空图会顶掉默认 icon，故只在有效时设置。
@@ -5673,7 +5673,7 @@ wrapIpcBestEffortHandler("app-ready", (event) => {
   });
   if (process.platform === "win32") {
     markGpuStartupReady({
-      hanakoHome,
+      aniHome,
       platform: process.platform,
       startupId: desktopStartupId,
       phase: "app-ready",
@@ -5716,7 +5716,7 @@ app.whenReady().then(async () => {
     if (process.argv.includes("--repair-artifacts")) {
       console.log("[desktop] --repair-artifacts flag detected; resetting artifact components before startup");
       await artifactRepair.repairArtifacts({
-        homeDir: hanakoHome,
+        homeDir: aniHome,
         log: (msg) => console.log(redactMainLogText(msg)),
       });
     }
@@ -5735,7 +5735,7 @@ app.whenReady().then(async () => {
     // 2. 后台启动 server（PATH 已就绪）
     if (process.platform === "win32") {
       markGpuStartupPhase({
-        hanakoHome,
+        aniHome,
         platform: process.platform,
         phase: "server-starting",
         startupId: desktopStartupId,
@@ -5746,7 +5746,7 @@ app.whenReady().then(async () => {
     await settleLegacyGpuPreferenceAfterServerStart();
     if (process.platform === "win32") {
       markGpuStartupPhase({
-        hanakoHome,
+        aniHome,
         platform: process.platform,
         phase: "server-ready",
         startupId: desktopStartupId,
@@ -5773,7 +5773,7 @@ app.whenReady().then(async () => {
       // 已完成配置：直接创建主窗口
       if (process.platform === "win32") {
         markGpuStartupPhase({
-          hanakoHome,
+          aniHome,
           platform: process.platform,
           phase: "main-window-starting",
           startupId: desktopStartupId,
@@ -5783,7 +5783,7 @@ app.whenReady().then(async () => {
       registerQuickChatShortcutBestEffort();
       if (process.platform === "win32") {
         markGpuStartupPhase({
-          hanakoHome,
+          aniHome,
           platform: process.platform,
           phase: "main-window-created",
           startupId: desktopStartupId,
@@ -5794,7 +5794,7 @@ app.whenReady().then(async () => {
       console.log("[desktop] 检测到已有配置，跳到教程页");
       if (process.platform === "win32") {
         markGpuStartupPhase({
-          hanakoHome,
+          aniHome,
           platform: process.platform,
           phase: "onboarding-window-starting",
           startupId: desktopStartupId,
@@ -5803,7 +5803,7 @@ app.whenReady().then(async () => {
       createOnboardingWindow({ skipToTutorial: "1" });
       if (process.platform === "win32") {
         markGpuStartupPhase({
-          hanakoHome,
+          aniHome,
           platform: process.platform,
           phase: "onboarding-window-created",
           startupId: desktopStartupId,
@@ -5814,7 +5814,7 @@ app.whenReady().then(async () => {
       console.log("[desktop] 首次启动，显示 Onboarding 向导");
       if (process.platform === "win32") {
         markGpuStartupPhase({
-          hanakoHome,
+          aniHome,
           platform: process.platform,
           phase: "onboarding-window-starting",
           startupId: desktopStartupId,
@@ -5823,7 +5823,7 @@ app.whenReady().then(async () => {
       createOnboardingWindow();
       if (process.platform === "win32") {
         markGpuStartupPhase({
-          hanakoHome,
+          aniHome,
           platform: process.platform,
           phase: "onboarding-window-created",
           startupId: desktopStartupId,
@@ -5845,7 +5845,7 @@ app.whenReady().then(async () => {
     });
     if (process.platform === "win32") {
       markGpuStartupFailed({
-        hanakoHome,
+        aniHome,
         platform: process.platform,
         startupId: desktopStartupId,
         reason: err.message || "startup-failed",
@@ -5859,7 +5859,7 @@ app.whenReady().then(async () => {
       mt("dialog.launchFailedBody", {
         version: app?.getVersion?.() || "unknown",
         detail,
-        logPath: path.join(hanakoHome, "crash.log"),
+        logPath: path.join(aniHome, "crash.log"),
       })
     );
     forceQuitApp = true;
@@ -5973,7 +5973,7 @@ async function shutdownServer() {
   }
   // 清理 server-info.json，防止更新后新版 Electron 误连旧 server
   if (removeServerInfo) {
-    try { fs.unlinkSync(path.join(hanakoHome, "server-info.json")); } catch {}
+    try { fs.unlinkSync(path.join(aniHome, "server-info.json")); } catch {}
   } else {
     console.warn("[desktop] shutdownServer: 保留 server-info.json，供下次启动识别残留 server");
   }

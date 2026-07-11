@@ -211,7 +211,7 @@ describe("skills route", () => {
     const app = new Hono();
     let enabled = ["existing"];
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       agentsDir: tempRoot,
       getAllSkills: vi.fn(() => [
         { name: "existing", enabled: enabled.includes("existing") },
@@ -336,7 +336,7 @@ describe("skills route", () => {
     const { createSkillsRoute } = await import("../server/routes/skills.ts");
     const app = new Hono();
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       agentsDir: tempRoot,
       getAllSkills: vi.fn(() => [
         { name: "writer", enabled: true, source: "user" },
@@ -374,7 +374,7 @@ describe("skills route", () => {
     const { createSkillsRoute } = await import("../server/routes/skills.ts");
     const app = new Hono();
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       agentsDir: tempRoot,
       emitEvent: vi.fn(),
       getAllSkills: vi.fn(() => [
@@ -432,7 +432,7 @@ describe("skills route", () => {
     const { createSkillsRoute } = await import("../server/routes/skills.ts");
     const app = new Hono();
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       agentsDir: tempRoot,
       emitEvent: vi.fn(),
       getAllSkills: vi.fn(() => [
@@ -501,7 +501,7 @@ describe("skills route", () => {
       ],
     }), "utf-8");
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       userSkillsDir,
       skillsDir: userSkillsDir,
       cwd: exportsDir,
@@ -562,7 +562,7 @@ describe("skills route", () => {
     const { createSkillsRoute } = await import("../server/routes/skills.ts");
     const app = new Hono();
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       agentsDir: tempRoot,
       getAllSkills: vi.fn(() => [{ name: "writer", enabled: false, source: "user" }]),
       emitEvent: vi.fn(),
@@ -666,7 +666,7 @@ describe("skills route", () => {
     const app = new Hono();
     const userSkillsDir = path.join(tempRoot, "user-skills");
     const engine = {
-      hanakoHome: tempRoot,
+      aniHome: tempRoot,
       userSkillsDir,
       agentsDir: tempRoot,
       registerSessionFile: vi.fn(),
@@ -867,7 +867,7 @@ describe("DELETE /skills/:name — per-agent target selection", () => {
       agents: ["agent-a"],
       currentAgentId: "agent-a",
     });
-    (engine as any).hanakoHome = tempRoot;
+    (engine as any).aniHome = tempRoot;
     writeUserSkill("bundled-skill");
     fs.writeFileSync(path.join(tempRoot, "skill-bundles.json"), JSON.stringify({
       schemaVersion: 1,

@@ -19,8 +19,8 @@ const {
 
 describe("Windows session path validation", () => {
   it("accepts the same path when only drive and user-directory casing differs", () => {
-    const agentsDir = "C:\\Users\\Alice\\.hanako\\agents";
-    const sessionPath = "c:\\users\\alice\\.hanako\\agents\\hana\\sessions\\old.jsonl";
+    const agentsDir = "C:\\Users\\Alice\\.ani\\agents";
+    const sessionPath = "c:\\users\\alice\\.ani\\agents\\hana\\sessions\\old.jsonl";
 
     expect(isValidSessionPath(sessionPath, agentsDir)).toBe(true);
     expect(isActiveSessionPath(sessionPath, agentsDir)).toBe(true);
@@ -28,8 +28,8 @@ describe("Windows session path validation", () => {
   });
 
   it("treats archived desktop sessions as desktop but not active", () => {
-    const agentsDir = "C:\\Users\\Alice\\.hanako\\agents";
-    const sessionPath = "c:\\users\\alice\\.hanako\\agents\\hana\\sessions\\archived\\old.jsonl";
+    const agentsDir = "C:\\Users\\Alice\\.ani\\agents";
+    const sessionPath = "c:\\users\\alice\\.ani\\agents\\hana\\sessions\\archived\\old.jsonl";
 
     expect(isValidSessionPath(sessionPath, agentsDir)).toBe(true);
     expect(isActiveSessionPath(sessionPath, agentsDir)).toBe(false);
@@ -38,8 +38,8 @@ describe("Windows session path validation", () => {
   });
 
   it("still rejects sibling paths that only share a textual prefix", () => {
-    const agentsDir = "C:\\Users\\Alice\\.hanako\\agents";
-    const sessionPath = "C:\\Users\\Alice\\.hanako\\agents-evil\\hana\\sessions\\old.jsonl";
+    const agentsDir = "C:\\Users\\Alice\\.ani\\agents";
+    const sessionPath = "C:\\Users\\Alice\\.ani\\agents-evil\\hana\\sessions\\old.jsonl";
 
     expect(isValidSessionPath(sessionPath, agentsDir)).toBe(false);
     expect(isActiveSessionPath(sessionPath, agentsDir)).toBe(false);

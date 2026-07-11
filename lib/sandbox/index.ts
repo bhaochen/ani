@@ -54,7 +54,7 @@ import {
  * @param {string[]} [opts.workspaceFolders]
  * @param {string[]} [opts.authorizedFolders]
  * @param {() => string[]} [opts.getAuthorizedFolders]  当前 session 动态授权的额外沙盒目录
- * @param {string} opts.hanakoHome
+ * @param {string} opts.aniHome
  * @param {() => boolean} opts.getSandboxEnabled  动态沙盒开关（每次工具调用时求值）
  * @param {() => boolean} [opts.getSandboxNetworkEnabled]  动态沙盒联网开关（仅沙盒开启时生效）
  * @param {() => string[]} [opts.getExternalReadPaths]  当前 session 用户显式给过的外部只读路径
@@ -77,7 +77,7 @@ export function createSandboxedTools(cwd, customTools, {
   workspaceFolders = [],
   authorizedFolders = [],
   getAuthorizedFolders,
-  hanakoHome,
+  aniHome,
   getSandboxEnabled,
   getSandboxNetworkEnabled,
   getExternalReadPaths,
@@ -109,7 +109,7 @@ export function createSandboxedTools(cwd, customTools, {
       ...(Array.isArray(workspaceFolders) ? workspaceFolders : []),
       ...resolveAuthorizedFolders(),
     ],
-    hanakoHome,
+    aniHome,
     mode: "standard",
   });
   const guard = {
@@ -121,7 +121,7 @@ export function createSandboxedTools(cwd, customTools, {
 
   const platform = detectPlatform();
   const isWin32 = process.platform === "win32";
-  const checkManagedConfigWrite = createManagedConfigWriteGuard({ hanakoHome });
+  const checkManagedConfigWrite = createManagedConfigWriteGuard({ aniHome });
   const resolveSandboxNetworkEnabled = typeof getSandboxNetworkEnabled === "function"
     ? getSandboxNetworkEnabled
     : () => true;
@@ -139,7 +139,7 @@ export function createSandboxedTools(cwd, customTools, {
     workspaceFolders,
     authorizedFolders,
     getAuthorizedFolders,
-    hanakoHome,
+    aniHome,
     getSandboxEnabled,
     getExternalReadPaths,
     getSessionPath,
@@ -160,8 +160,8 @@ export function createSandboxedTools(cwd, customTools, {
     detectImageMimeType: async (p) => IMAGE_MIMES[extname(p).toLowerCase()] || undefined,
   });
   const searchToolPaths = {
-    managedBinDir: resolveHanaPiSdkManagedBinDir(hanakoHome),
-    legacyManagedBinDir: resolveLegacyPiSdkManagedBinDir(hanakoHome),
+    managedBinDir: resolveHanaPiSdkManagedBinDir(aniHome),
+    legacyManagedBinDir: resolveLegacyPiSdkManagedBinDir(aniHome),
   };
   const enhancedReadFile = createEnhancedReadFile();
   const readOps = {
@@ -187,7 +187,7 @@ export function createSandboxedTools(cwd, customTools, {
     recordFileOperation,
   });
   const readTool = wrapSessionFilePathTool(wrapReadImageWithVisionBridge(wrapReadOfficeMedia(createReadTool(cwd, { operations: readOps }), cwd, {
-    hanakoHome,
+    aniHome,
     getSessionPath,
     getSessionIdForPath,
     recordFileOperation,
@@ -223,7 +223,7 @@ export function createSandboxedTools(cwd, customTools, {
     const sandboxedWin32Exec = (command, execCwd, execOpts) => createWin32Exec({
       sandbox: {
         policy: makePolicy(),
-        hanakoHome,
+        aniHome,
         getExternalReadPaths,
         getSandboxNetworkEnabled: resolveSandboxNetworkEnabled,
         legacyCleanupQueue,

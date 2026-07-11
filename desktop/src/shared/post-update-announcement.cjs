@@ -2,7 +2,7 @@
  * post-update-announcement.cjs — 升级后首启公告的触发决策与合订本切片
  *
  * 契约：
- * - lastSeenVersion 记录在 {HANA_HOME}/user/last-seen-version.json，只在
+ * - lastSeenVersion 记录在 {ANI_HOME}/user/last-seen-version.json，只在
  *   用户确认公告（ack）或全新安装播种（seed）时写入。它同时就是累积
  *   更新摘要（合订本）的书签——"看到哪一版"只有一个语义，只有这一个
  *   状态归属，禁止另设第二个书签文件。

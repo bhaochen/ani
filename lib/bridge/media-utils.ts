@@ -15,7 +15,7 @@ let _allowedRoots = [];
 
 /**
  * 设置允许读取的本地目录白名单。
- * 由 BridgeManager 初始化时调用，传入 HANA_HOME 和 workspace。
+ * 由 BridgeManager 初始化时调用，传入 ANI_HOME 和 workspace。
  */
 export function setMediaLocalRoots(roots) {
   _allowedRoots = roots.map((r) => {

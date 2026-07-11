@@ -6,15 +6,15 @@ import { migrateLegacySessions } from "../core/session-manifest/legacy-migration
 import { SessionManifestStore } from "../core/session-manifest/store.ts";
 
 describe("session manifest legacy migration", () => {
-  let hanaHome;
+  let aniHome;
   let store;
   let nextId;
 
   beforeEach(() => {
-    hanaHome = fs.mkdtempSync(path.join(os.tmpdir(), "hana-manifest-migration-"));
+    aniHome = fs.mkdtempSync(path.join(os.tmpdir(), "hana-manifest-migration-"));
     nextId = 1;
     store = new SessionManifestStore({
-      dbPath: path.join(hanaHome, "session-manifest.db"),
+      dbPath: path.join(aniHome, "session-manifest.db"),
       idGenerator: () => `sess_migrate_${String(nextId++).padStart(4, "0")}`,
       now: () => "2026-06-18T03:00:00.000Z",
     });
@@ -22,30 +22,39 @@ describe("session manifest legacy migration", () => {
 
   afterEach(() => {
     store?.close();
-    fs.rmSync(hanaHome, { recursive: true, force: true });
+    fs.rmSync(aniHome, { recursive: true, force: true });
   });
 
   function writeSession(agentId, fileName, { archived = false } = {}) {
-    const sessionDir = path.join(hanaHome, "agents", agentId, "sessions");
+    const sessionDir = path.join(aniHome, "agents", agentId, "sessions");
     const targetDir = archived ? path.join(sessionDir, "archived") : sessionDir;
     const sessionPath = path.join(targetDir, fileName);
     fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(sessionPath, [
-      JSON.stringify({ type: "session", version: 3, id: fileName, timestamp: "2026-06-18T03:00:00.000Z", cwd: hanaHome }),
+      JSON.stringify({ type: "session", version: 3, id: fileName, timestamp: "2026-06-18T03:00:00.000Z", cwd: aniHome }),
       "",
     ].join("\n"));
     return { sessionDir, sessionPath };
   }
 
   function writeSubagentSession(agentId, fileName) {
-    const sessionDir = path.join(hanaHome, "agents", agentId, "subagent-sessions");
+    const sessionDir = path.join(aniHome, "agents", agentId, "subagent-sessions");
     const sessionPath = path.join(sessionDir, fileName);
     fs.mkdirSync(sessionDir, { recursive: true });
     fs.writeFileSync(sessionPath, [
-      JSON.stringify({ type: "session", version: 3, id: fileName, timestamp: "2026-06-18T03:00:00.000Z", cwd: hanaHome }),
+      JSON.stringify({ type: "session", version: 3, id: fileName, timestamp: "2026-06-18T03:00:00.000Z", cwd: aniHome }),
       "",
     ].join("\n"));
     return { sessionDir, sessionPath };
+  }
+
+  function writeJsonl(sessionPath) {
+    fs.mkdirSync(path.dirname(sessionPath), { recursive: true });
+    fs.writeFileSync(sessionPath, [
+      JSON.stringify({ type: "session", version: 3, id: path.basename(sessionPath), timestamp: "2026-06-18T03:00:00.000Z", cwd: aniHome }),
+      "",
+    ].join("\n"));
+    return sessionPath;
   }
 
   function linkDirectory(target, linkPath) {
@@ -96,7 +105,7 @@ describe("session manifest legacy migration", () => {
     }, null, 2));
 
     const result = migrateLegacySessions({
-      hanaHome,
+      aniHome,
       store,
       migratedAt: "2026-06-18T03:02:00.000Z",
     });
@@ -179,7 +188,7 @@ describe("session manifest legacy migration", () => {
     }, null, 2));
 
     const result = migrateLegacySessions({
-      hanaHome,
+      aniHome,
       store,
       migratedAt: "2026-06-18T03:02:00.000Z",
     });
@@ -215,7 +224,7 @@ describe("session manifest legacy migration", () => {
     }, null, 2));
 
     const result = migrateLegacySessions({
-      hanaHome,
+      aniHome,
       store,
       migratedAt: "2026-06-18T03:02:00.000Z",
     });
@@ -239,11 +248,180 @@ describe("session manifest legacy migration", () => {
     });
   });
 
+  it("migrates bridge, activity, phone, direct-subagent, and workflow-node sources with explicit classification", () => {
+    const agentDir = path.join(aniHome, "agents", "hana");
+    const bridgeDir = path.join(agentDir, "sessions", "bridge");
+    const bridgeOwner = writeJsonl(path.join(bridgeDir, "owner", "owner.jsonl"));
+    const bridgeGuest = writeJsonl(path.join(bridgeDir, "guests", "guest.jsonl"));
+    fs.writeFileSync(path.join(bridgeDir, "bridge-sessions.json"), JSON.stringify({
+      "tg_dm_owner@hana": {
+        file: "owner/owner.jsonl",
+        role: "owner",
+        platform: "telegram",
+        chatType: "dm",
+        promptSnapshot: { version: 1, systemPrompt: "bridge prompt" },
+        toolNames: ["read", "media_generate-image"],
+      },
+      "tg_group_guest@hana": {
+        file: "guests/guest.jsonl",
+        role: "guest",
+        platform: "telegram",
+        chatType: "group",
+      },
+    }, null, 2));
+
+    const activityPath = writeJsonl(path.join(agentDir, "activity", "heartbeat.jsonl"));
+    fs.mkdirSync(path.join(agentDir, "desk"), { recursive: true });
+    fs.writeFileSync(path.join(agentDir, "desk", "activities.json"), JSON.stringify([{
+      id: "hb_1",
+      type: "heartbeat",
+      sessionFile: "heartbeat.jsonl",
+    }], null, 2));
+
+    const phonePath = writeJsonl(path.join(agentDir, "phone", "sessions", "dm_yui-a1b2c3d4", "phone.jsonl"));
+    fs.mkdirSync(path.join(agentDir, "phone", "session-runtime"), { recursive: true });
+    fs.writeFileSync(path.join(agentDir, "phone", "session-runtime", "dm_yui-a1b2c3d4.json"), JSON.stringify({
+      agentId: "hana",
+      conversationId: "dm_yui",
+      conversationType: "dm",
+      phoneSessionFile: "phone/sessions/dm_yui-a1b2c3d4/phone.jsonl",
+      promptSnapshot: { version: 1, systemPrompt: "phone prompt" },
+    }, null, 2));
+
+    const directPath = writeJsonl(path.join(agentDir, "subagent-sessions", "direct", "child.jsonl"));
+    const workflowPath = writeJsonl(path.join(agentDir, "workflow-sessions", "workflow-1", "node.jsonl"));
+    fs.writeFileSync(path.join(aniHome, "subagent-threads.json"), JSON.stringify({
+      schemaVersion: 1,
+      threads: {
+        "thread-direct": {
+          kind: "direct",
+          agentId: "butter",
+          parentSessionId: "sess_parent_direct",
+          childSessionPath: directPath,
+          childSessionId: null,
+        },
+        "workflow-1::node-1": {
+          kind: "workflow_node",
+          agentId: "hana",
+          parentSessionId: "sess_parent_workflow",
+          parentTaskId: "workflow-1",
+          childSessionPath: workflowPath,
+          childSessionId: null,
+        },
+      },
+    }, null, 2));
+
+    const result = migrateLegacySessions({
+      aniHome,
+      store,
+      migratedAt: "2026-06-18T03:02:00.000Z",
+    });
+
+    expect(result).toEqual({ scanned: 6, created: 6, existing: 0, skipped: 0, skippedDetails: [] });
+    expect(store.resolveByLocatorPath(bridgeOwner)).toMatchObject({
+      ownerAgentId: "hana",
+      domain: "bridge",
+      kind: "bridge_owner",
+      provenance: {
+        createdBy: "bridge",
+        bridgeSessionKey: "tg_dm_owner@hana",
+        bridgeRole: "owner",
+        platform: "telegram",
+      },
+    });
+    expect(store.resolveByLocatorPath(bridgeGuest)).toMatchObject({
+      ownerAgentId: "hana",
+      domain: "bridge",
+      kind: "bridge_guest",
+      provenance: {
+        createdBy: "bridge",
+        bridgeSessionKey: "tg_group_guest@hana",
+        bridgeRole: "guest",
+      },
+    });
+    expect(store.getCapabilitySnapshot(store.resolveByLocatorPath(bridgeOwner).sessionId)).toMatchObject({
+      toolNames: ["read", "media_generate-image"],
+      promptSnapshot: { systemPrompt: "bridge prompt" },
+      source: "legacy_bridge_index",
+    });
+    expect(store.resolveByLocatorPath(activityPath)).toMatchObject({
+      ownerAgentId: "hana",
+      domain: "activity",
+      kind: "activity",
+      provenance: { createdBy: "activity", activityId: "hb_1", activityType: "heartbeat" },
+    });
+    expect(store.resolveByLocatorPath(phonePath)).toMatchObject({
+      ownerAgentId: "hana",
+      domain: "phone",
+      kind: "phone_conversation",
+      provenance: { createdBy: "agent_phone", conversationId: "dm_yui", conversationType: "dm" },
+    });
+    expect(store.resolveByLocatorPath(directPath)).toMatchObject({
+      ownerAgentId: "butter",
+      domain: "subagent",
+      kind: "subagent_child",
+      provenance: {
+        createdBy: "subagent",
+        parentSessionId: "sess_parent_direct",
+        threadId: "thread-direct",
+        threadKind: "direct",
+      },
+    });
+    expect(store.resolveByLocatorPath(workflowPath)).toMatchObject({
+      ownerAgentId: "hana",
+      domain: "subagent",
+      kind: "subagent_child",
+      provenance: {
+        createdBy: "subagent",
+        parentSessionId: "sess_parent_workflow",
+        parentRunId: "workflow-1",
+        threadId: "workflow-1::node-1",
+        threadKind: "workflow_node",
+      },
+    });
+  });
+
+  it("preserves sessionId while repairing manifests misclassified by the previous legacy scan", () => {
+    const directPath = writeJsonl(path.join(aniHome, "agents", "hana", "subagent-sessions", "direct", "legacy-child.jsonl"));
+    fs.writeFileSync(path.join(aniHome, "subagent-threads.json"), JSON.stringify({
+      schemaVersion: 1,
+      threads: {
+        "legacy-thread": {
+          kind: "direct",
+          agentId: "butter",
+          childSessionPath: directPath,
+        },
+      },
+    }, null, 2));
+    const existing = store.createForPath({
+      sessionPath: directPath,
+      ownerAgentId: "hana",
+      domain: "desktop",
+      kind: "chat",
+      provenance: { legacyAgentId: "hana" },
+      migration: { source: "legacy_scan", legacySessionPath: directPath },
+    });
+
+    const first = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
+    const second = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:03:00.000Z" });
+
+    expect(first).toEqual({ scanned: 1, created: 0, existing: 1, skipped: 0, skippedDetails: [] });
+    expect(second).toEqual({ scanned: 1, created: 0, existing: 1, skipped: 0, skippedDetails: [] });
+    expect(store.resolveByLocatorPath(directPath)).toMatchObject({
+      sessionId: existing.sessionId,
+      ownerAgentId: "butter",
+      domain: "subagent",
+      kind: "subagent_child",
+      provenance: { legacyAgentId: "hana", createdBy: "subagent" },
+    });
+    expect(store.list()).toHaveLength(1);
+  });
+
   it("is idempotent when rerun over the same legacy files", () => {
     const active = writeSession("hana", "active.jsonl");
 
-    const first = migrateLegacySessions({ hanaHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
-    const second = migrateLegacySessions({ hanaHome, store, migratedAt: "2026-06-18T03:03:00.000Z" });
+    const first = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
+    const second = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:03:00.000Z" });
 
     expect(first).toEqual({ scanned: 1, created: 1, existing: 0, skipped: 0, skippedDetails: [] });
     expect(second).toEqual({ scanned: 1, created: 0, existing: 1, skipped: 0, skippedDetails: [] });
@@ -259,7 +437,7 @@ describe("session manifest legacy migration", () => {
       [existing.sessionId]: "Current title",
     }, null, 2));
 
-    const result = migrateLegacySessions({ hanaHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
+    const result = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
 
     expect(result).toEqual({ scanned: 1, created: 0, existing: 1, skipped: 0, skippedDetails: [] });
     const titles = JSON.parse(fs.readFileSync(path.join(active.sessionDir, "session-titles.json"), "utf-8"));
@@ -267,8 +445,8 @@ describe("session manifest legacy migration", () => {
   });
 
   it("scans legacy sessions through symlinked agent directories", () => {
-    const realAgentDir = path.join(hanaHome, "real-hana-agent");
-    const linkedAgentDir = path.join(hanaHome, "agents", "hana");
+    const realAgentDir = path.join(aniHome, "real-hana-agent");
+    const linkedAgentDir = path.join(aniHome, "agents", "hana");
     fs.mkdirSync(path.join(realAgentDir, "sessions"), { recursive: true });
     fs.mkdirSync(path.dirname(linkedAgentDir), { recursive: true });
     linkDirectory(realAgentDir, linkedAgentDir);
@@ -279,7 +457,7 @@ describe("session manifest legacy migration", () => {
       timestamp: "2026-06-18T03:00:00.000Z",
     })}\n`);
 
-    const result = migrateLegacySessions({ hanaHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
+    const result = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
 
     expect(result).toEqual({ scanned: 1, created: 1, existing: 0, skipped: 0, skippedDetails: [] });
     expect(store.resolveByLocatorPath(logicalSessionPath)).toMatchObject({
@@ -298,7 +476,7 @@ describe("session manifest legacy migration", () => {
     const secondManifest = store.createForPath({ sessionPath: second.sessionPath, ownerAgentId: "hana" });
     insertConflictingHistoryLocator(first.sessionPath, secondManifest.sessionId);
 
-    const result = migrateLegacySessions({ hanaHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
+    const result = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
 
     expect(result).toMatchObject({ scanned: 2, created: 0, existing: 1, skipped: 1 });
     expect(result.skippedDetails).toHaveLength(1);
@@ -313,7 +491,7 @@ describe("session manifest legacy migration", () => {
     // 模拟历史缺失写入：manifest 已存在但 ownerAgentId 为 null
     store.createForPath({ sessionPath, domain: "desktop", kind: "chat" });
 
-    const result = migrateLegacySessions({ hanaHome, store });
+    const result = migrateLegacySessions({ aniHome, store });
 
     expect(result.existing).toBe(1);
     expect(store.resolveByLocatorPath(sessionPath)).toMatchObject({
@@ -325,7 +503,7 @@ describe("session manifest legacy migration", () => {
     const { sessionPath } = writeSession("hana", "owned-elsewhere.jsonl");
     store.createForPath({ sessionPath, ownerAgentId: "bob", domain: "desktop", kind: "chat" });
 
-    migrateLegacySessions({ hanaHome, store });
+    migrateLegacySessions({ aniHome, store });
 
     expect(store.resolveByLocatorPath(sessionPath)).toMatchObject({
       ownerAgentId: "bob",
@@ -333,8 +511,8 @@ describe("session manifest legacy migration", () => {
   });
 
   it("repairs realpath locator paths back to the app-facing legacy path during rescan", () => {
-    const realSessionsDir = path.join(hanaHome, "real-sessions");
-    const logicalSessionsDir = path.join(hanaHome, "agents", "hana", "sessions");
+    const realSessionsDir = path.join(aniHome, "real-sessions");
+    const logicalSessionsDir = path.join(aniHome, "agents", "hana", "sessions");
     fs.mkdirSync(realSessionsDir, { recursive: true });
     fs.mkdirSync(path.dirname(logicalSessionsDir), { recursive: true });
     linkDirectory(realSessionsDir, logicalSessionsDir);
@@ -347,7 +525,7 @@ describe("session manifest legacy migration", () => {
     })}\n`);
     const existing = store.createForPath({ sessionPath: realSessionPath, ownerAgentId: "hana" });
 
-    const result = migrateLegacySessions({ hanaHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
+    const result = migrateLegacySessions({ aniHome, store, migratedAt: "2026-06-18T03:02:00.000Z" });
 
     expect(result).toEqual({ scanned: 1, created: 0, existing: 1, skipped: 0, skippedDetails: [] });
     expect(store.getBySessionId(existing.sessionId)?.currentLocator.path).toBe(path.resolve(logicalSessionPath));

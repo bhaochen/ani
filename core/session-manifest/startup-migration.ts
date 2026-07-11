@@ -16,7 +16,7 @@ function serializeError(error) {
 }
 
 export function ensureLegacySessionManifestMigration(opts: any = {}) {
-  if (!opts.hanaHome) throw new Error("ensureLegacySessionManifestMigration requires hanaHome");
+  if (!opts.aniHome) throw new Error("ensureLegacySessionManifestMigration requires aniHome");
   if (!opts.store) throw new Error("ensureLegacySessionManifestMigration requires store");
 
   const key = opts.stateKey || LEGACY_SESSION_MANIFEST_MIGRATION_KEY;
@@ -26,7 +26,7 @@ export function ensureLegacySessionManifestMigration(opts: any = {}) {
       const scannedAt = opts.scannedAt || new Date().toISOString();
       const migrate = opts.migrate || migrateLegacySessions;
       const result = migrate({
-        hanaHome: opts.hanaHome,
+        aniHome: opts.aniHome,
         store: opts.store,
         migratedAt: scannedAt,
         stopOnError: opts.stopOnError,
@@ -62,7 +62,7 @@ export function ensureLegacySessionManifestMigration(opts: any = {}) {
 
   try {
     checkpoint = createCheckpoint({
-      hanaHome: opts.hanaHome,
+      aniHome: opts.aniHome,
       appVersion: opts.appVersion,
       gitAnchors: opts.gitAnchors,
       createdAt: startedAt,
@@ -72,7 +72,7 @@ export function ensureLegacySessionManifestMigration(opts: any = {}) {
     });
 
     const result = migrate({
-      hanaHome: opts.hanaHome,
+      aniHome: opts.aniHome,
       store: opts.store,
       migratedAt: startedAt,
       stopOnError: opts.stopOnError,

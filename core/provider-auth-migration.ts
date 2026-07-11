@@ -124,18 +124,18 @@ function filterInvalidProviderModels(providerId, models, baseUrl) {
  * - 凭证来源优先级为 Provider Catalog 显式值 > models.json 投影值 > auth.json 旧值；
  * - 尽量从 provider 插件或旧 models.json 回填 base_url/api/models，帮助旧配置自愈。
  */
-export function migrateLegacyApiKeyAuthToProviders({ hanakoHome, providerRegistry, log = () => {} }: { hanakoHome: string; providerRegistry: any; log?: (msg: string) => void }) {
-  if (!hanakoHome) return { migrated: 0, providers: [] };
+export function migrateLegacyApiKeyAuthToProviders({ aniHome, providerRegistry, log = () => {} }: { aniHome: string; providerRegistry: any; log?: (msg: string) => void }) {
+  if (!aniHome) return { migrated: 0, providers: [] };
 
-  const authPath = path.join(hanakoHome, "auth.json");
+  const authPath = path.join(aniHome, "auth.json");
   const auth = readJson(authPath);
-  const store = providerRegistry?._catalog || new ProviderCatalogStore(hanakoHome);
+  const store = providerRegistry?._catalog || new ProviderCatalogStore(aniHome);
 
   providerRegistry?.reload?.();
   const catalog = store.load();
   const deletedProviders = deletedProviderSet(catalog.meta?.deletedProviders || []);
   const providers = isPlainObject(catalog.providers) ? { ...catalog.providers } : {};
-  const modelsJsonProvidersRaw = readJson(path.join(hanakoHome, "models.json")).providers || {};
+  const modelsJsonProvidersRaw = readJson(path.join(aniHome, "models.json")).providers || {};
   const modelsJsonProviders = isPlainObject(modelsJsonProvidersRaw) ? modelsJsonProvidersRaw : {};
   const providerKeys = new Set([
     ...Object.keys(providers),
@@ -220,7 +220,7 @@ export function migrateLegacyApiKeyAuthToProviders({ hanakoHome, providerRegistr
     return { migrated: 0, providers: [] };
   }
 
-  fs.mkdirSync(hanakoHome, { recursive: true });
+  fs.mkdirSync(aniHome, { recursive: true });
   store.saveProviders(providers, { deletedProviders: [...deletedProviders] });
   providerRegistry?.reload?.();
   log(`[migrations] legacy API-key auth moved to provider catalog (${migratedProviders.join(", ")})`);

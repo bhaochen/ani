@@ -81,8 +81,8 @@ function allocateBundleId(store, baseName) {
 }
 
 export function getSkillBundleStorePath(engine) {
-  if (!engine?.hanakoHome) throw new Error("hanakoHome is required for skill bundle store");
-  return path.join(engine.hanakoHome, STORE_FILE);
+  if (!engine?.aniHome) throw new Error("aniHome is required for skill bundle store");
+  return path.join(engine.aniHome, STORE_FILE);
 }
 
 export function loadSkillBundleStore(engine) {

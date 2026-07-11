@@ -101,7 +101,7 @@ import { createMediaRoute } from "./routes/media.ts";
 import { createSpeechRecognitionRoute } from "./routes/speech-recognition.ts";
 import { registerTaskRegistryBusHandlers } from "./task-bus-handlers.ts";
 import { registerDeferredResultBusHandlers } from "./deferred-result-bus-handlers.ts";
-import { resolveHanakoHome } from "../shared/hana-runtime-paths.ts";
+import { resolveAniHome } from "../shared/hana-runtime-paths.ts";
 import { DATA_EPOCH } from "../shared/contract-versions.cjs";
 import { describeForeignServerBlock, isForeignServerBlocking, probeServerInfo } from "../shared/server-info-probe.cjs";
 import { coordinateDataEpochStartup, describeDataEpochStartupBlock } from "../core/data-epoch-coordinator.ts";
@@ -177,7 +177,7 @@ async function bindServerTransportOwnership(
           log.warn(
             `loopback 端口自愈: ${port} → ${fallbackPort}（原端口 ${errCode}，已写回 server-network.json）`,
           );
-          saveServerNetworkConfig(hanakoHome, { ...config, listenPort: fallbackPort });
+          saveServerNetworkConfig(aniHome, { ...config, listenPort: fallbackPort });
           return { boundPort: fallbackPort };
         } catch {
           // 二次 bind 仍失败，走下方原 startupError 路径（用最初的 err）
@@ -254,10 +254,10 @@ function createListenPermissionStartupError(cause: any, { host, port, listenHost
   return err;
 }
 
-// 用户数据存放在 ~/.hanako/（打包后与产品代码分离）
-// 开发时可通过 HANA_HOME 环境变量隔离数据目录，如：HANA_HOME=~/.hanako-dev node server/index.js
-const hanakoHome = resolveHanakoHome(process.env.HANA_HOME);
-process.env.HANA_HOME = hanakoHome;
+// 用户数据存放在 ~/.ani/（打包后与产品代码分离）
+// 开发时可通过 ANI_HOME 环境变量隔离数据目录，如：ANI_HOME=~/.ani-dev node server/index.js
+const aniHome = resolveAniHome(process.env.ANI_HOME);
+process.env.ANI_HOME = aniHome;
 
 // 读取版本号
 let appVersion = "?";
@@ -266,8 +266,8 @@ try {
   appVersion = pkg.version || "?";
 } catch {}
 
-// ── 同宅互斥闸（同一 HANA_HOME 的内核互斥）──
-// 必须在任何端口监听、任何 store 打开之前跑：一台机器上的同一 HANA_HOME
+// ── 同宅互斥闸（同一 ANI_HOME 的内核互斥）──
+// 必须在任何端口监听、任何 store 打开之前跑：一台机器上的同一 ANI_HOME
 // 可能被两个内核并发打开（`hana serve` 先起、桌面后启动是最常见的触发
 // 路径），并发读写同一批 SQLite / session 文件会互相覆盖。这里用 token
 // 认证探测（shared/server-info-probe.cjs）确认 server-info.json 记录的
@@ -278,7 +278,7 @@ try {
 // 秒级窗口不设防（与 Postgres postmaster.pid 的取舍一致），且默认端口
 // 相同时后到者的 listen() 会天然 EADDRINUSE。
 {
-  const serverInfoPath = path.join(hanakoHome, "server-info.json");
+  const serverInfoPath = path.join(aniHome, "server-info.json");
   let existingServerInfo: any = null;
   try {
     existingServerInfo = JSON.parse(fs.readFileSync(serverInfoPath, "utf-8"));
@@ -304,7 +304,7 @@ try {
 {
   const allowDataDowngrade = process.env.HANA_ALLOW_DATA_DOWNGRADE === "1";
   const epochResult = await coordinateDataEpochStartup({
-    homeDir: hanakoHome,
+    homeDir: aniHome,
     ownEpoch: DATA_EPOCH,
     ownVersion: appVersion,
     allowDowngrade: allowDataDowngrade,
@@ -320,9 +320,9 @@ const SERVER_TOKEN = process.env.HANA_TOKEN || crypto.randomBytes(16).toString("
 const envPort = Number.parseInt(process.env.HANA_PORT || "", 10);
 const envPortPinned = Number.isInteger(envPort) && envPort >= 0;
 if (!envPortPinned) {
-  await ensureServerNetworkConfigWithPortSelection(hanakoHome, { log: (msg) => log.log(msg) });
+  await ensureServerNetworkConfigWithPortSelection(aniHome, { log: (msg) => log.log(msg) });
 }
-const serverNetwork = resolveServerListenOptions(hanakoHome);
+const serverNetwork = resolveServerListenOptions(aniHome);
 const port = envPortPinned ? envPort : serverNetwork.port;
 const serverRuntimeState = {
   mode: serverNetwork.mode,
@@ -383,7 +383,7 @@ serverRuntimeState.configuredPort = bindResult.boundPort;
 
 // ── 首次运行播种 ──
 log.log("① ensureFirstRun...");
-const firstRunReport = ensureFirstRun(hanakoHome, productDir);
+const firstRunReport = ensureFirstRun(aniHome, productDir);
 for (const invalid of firstRunReport.invalidAgentDirs) {
   log.warn(`① 发现无效 agent 目录（已保留原目录、不会载入）: "${invalid.id}" (${invalid.reason})`);
 }
@@ -393,15 +393,15 @@ if (firstRunReport.defaultConfigBackupPath) {
 log.log("① ensureFirstRun 完成");
 
 log.log("① ensureLocalIdentityRegistries...");
-ensureLocalIdentityRegistries(hanakoHome);
+ensureLocalIdentityRegistries(aniHome);
 log.log("① ensureLocalIdentityRegistries 完成");
 
 // ── 初始化 Debug 日志 ──
-const dlog = initDebugLog(path.join(hanakoHome, "logs"));
+const dlog = initDebugLog(path.join(aniHome, "logs"));
 
 // ── 初始化引擎 ──
 log.log("② 创建 HanaEngine...");
-const engine: any = new HanaEngine({ hanakoHome, productDir, appVersion } as any);
+const engine: any = new HanaEngine({ aniHome, productDir, appVersion } as any);
 log.log("② HanaEngine 构造完成，开始 init...");
 await engine.init((msg: any) => log.log(msg));
 log.log("② engine.init 完成");
@@ -416,7 +416,7 @@ outboundProxyRuntime.apply(engine.getNetworkProxy());
 
 // 注入依赖给 BrowserManager（避免循环依赖）
 import { BrowserManager } from "../lib/browser/browser-manager.ts";
-BrowserManager.setHanakoHome(engine.hanakoHome);
+BrowserManager.setAniHome(engine.aniHome);
 BrowserManager.setSessionIdResolver((sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null);
 
 // 注：任何 createSession 都必须在相关 Pi SDK extension factory 注册完之后。
@@ -443,7 +443,7 @@ const hub = new Hub({ engine });
 // lifecycles can create or resume sessions through session:send.
 const deferredResultStore = new DeferredResultStore(
   hub.eventBus,
-  path.join(hanakoHome, ".ephemeral", "deferred-tasks.json"),
+  path.join(aniHome, ".ephemeral", "deferred-tasks.json"),
   { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null },
 );
 engine.setDeferredResultStore(deferredResultStore);
@@ -514,7 +514,7 @@ sessionFileCleanupTimer.unref?.();
 loadLocale(engine.getLocale?.() || engine.config?.locale);
 
 const serverAuthService = createServerAuthService({
-  hanakoHome,
+  aniHome,
   loopbackToken: SERVER_TOKEN,
   runtimeContext: () => engine.getRuntimeContext(),
 });
@@ -647,13 +647,13 @@ const confirmStore = new ConfirmStore({
 engine.setConfirmStore(confirmStore);
 
 const subagentRunStore = new SubagentRunStore(
-  path.join(hanakoHome, "subagent-runs.json"),
+  path.join(aniHome, "subagent-runs.json"),
   { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null },
 );
 engine.setSubagentRunStore(subagentRunStore);
 
 const subagentThreadStore = new SubagentThreadStore(
-  path.join(hanakoHome, "subagent-threads.json"),
+  path.join(aniHome, "subagent-threads.json"),
   { getSessionIdForPath: (sessionPath: string) => engine.getSessionIdForPath?.(sessionPath) || null },
 );
 engine.setSubagentThreadStore(subagentThreadStore);
@@ -664,7 +664,7 @@ engine.setSubagentThreadStore(subagentThreadStore);
 // 再交给 ActivityHub 回灌（构造时把遗留 running 判孤儿、标 failed）。
 const WORKFLOW_ACTIVITY_TTL_MS = 72 * 60 * 60 * 1000;
 const workflowActivityStore = new WorkflowActivityStore(
-  path.join(hanakoHome, "workflow-activity.json"),
+  path.join(aniHome, "workflow-activity.json"),
 );
 workflowActivityStore.prune(WORKFLOW_ACTIVITY_TTL_MS, Date.now());
 const activityHub = new ActivityHub(
@@ -897,7 +897,7 @@ app.route("/api", chatRestRoute);
 app.route("", chatWsRoute);
 app.route("/api", createWebSocketAuthRoute({ ticketService: wsTicketService }));
 app.route("/api", createWebAuthRoute({
-  hanakoHome: engine.hanakoHome,
+  aniHome: engine.aniHome,
   authService: serverAuthService,
   getConnectionKind: (c: any) => c.get("transportConnectionKind"),
   getRuntimeContext: () => engine.getRuntimeContext(),
@@ -945,7 +945,7 @@ app.route("/api", createResourcesRoute(engine));
 app.route("/api", createUsageRoute(engine));
 app.route("/api", createSpeechRecognitionRoute(engine));
 app.route("/api", createServerIdentityRoute({
-  hanakoHome: engine.hanakoHome,
+  aniHome: engine.aniHome,
   appVersion,
   getRuntimeContext: () => engine.getRuntimeContext(),
 } as any));
@@ -1133,7 +1133,7 @@ try {
     const _bwsEnabled = process.env.HANA_DEBUG === "1";
     let _bwsBuf = "";
     let _bwsFlushTimer = null;
-    const _bwsLogPath = path.join(hanakoHome, "browser-ws.log");
+    const _bwsLogPath = path.join(aniHome, "browser-ws.log");
     let _bwsFlushChain = Promise.resolve();
     const _bwsFlush = () => {
       if (!_bwsBuf) return;
@@ -1197,7 +1197,7 @@ try {
   // 文件含 128-bit loopback SERVER_TOKEN (本机最高权限凭据)，
   // 必须 owner-only 可读 (0o600)，否则共享主机上的另一 UID / 沙箱外的
   // 非授权进程能读到 token 后冒充 owner 调任意 LOCAL_ONLY 路由。
-  const serverInfoPath = path.join(hanakoHome, "server-info.json");
+  const serverInfoPath = path.join(aniHome, "server-info.json");
   try {
     const runtimeContext = engine.getRuntimeContext?.() || {};
     fs.writeFileSync(serverInfoPath, JSON.stringify({
@@ -1298,7 +1298,7 @@ async function gracefulShutdown() {
   }
 
   clearTimeout(forceTimer);
-  try { fs.unlinkSync(path.join(hanakoHome, "server-info.json")); } catch {}
+  try { fs.unlinkSync(path.join(aniHome, "server-info.json")); } catch {}
   process.exit(0);
 }
 

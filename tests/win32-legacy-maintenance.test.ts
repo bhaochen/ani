@@ -8,12 +8,12 @@ import {
 describe("Windows legacy sandbox maintenance args", () => {
   it("builds a legacy AppContainer ACL diagnostic command without executable passthrough", () => {
     expect(buildWin32LegacyAclDiagnosticArgs({
-      paths: ["C:\\work", "C:\\Users\\Hana\\.hanako\\.ephemeral"],
+      paths: ["C:\\work", "C:\\Users\\Hana\\.ani\\.ephemeral"],
     })).toEqual([
       "--diagnose-legacy-acl",
       "C:\\work",
       "--diagnose-legacy-acl",
-      "C:\\Users\\Hana\\.hanako\\.ephemeral",
+      "C:\\Users\\Hana\\.ani\\.ephemeral",
     ]);
   });
 
@@ -30,12 +30,12 @@ describe("Windows legacy sandbox maintenance args", () => {
 
   it("builds stale Hana write ACL cleanup commands without executable passthrough", () => {
     expect(buildWin32HanaWriteAclCleanupArgs({
-      paths: ["C:\\work", "C:\\Users\\Hana\\.hanako\\.ephemeral", "C:\\work"],
+      paths: ["C:\\work", "C:\\Users\\Hana\\.ani\\.ephemeral", "C:\\work"],
     })).toEqual([
       "--cleanup-hana-write-acl",
       "C:\\work",
       "--cleanup-hana-write-acl",
-      "C:\\Users\\Hana\\.hanako\\.ephemeral",
+      "C:\\Users\\Hana\\.ani\\.ephemeral",
     ]);
   });
 

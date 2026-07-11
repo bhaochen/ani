@@ -10,7 +10,7 @@
  *
  * 历史：后台更新路径 之前这里还负责把 dist-server 的 node_modules 整树复制进
  * Resources/server/（extraResources 会过滤 node_modules）。server 树现在
- * 以单个签名归档进箱、首启在 HANA_HOME 解压，该机器整块删除。双 artifact 路径 起
+ * 以单个签名归档进箱、首启在 ANI_HOME 解压，该机器整块删除。双 artifact 路径 起
  * renderer 树也拆出 asar，走同一份 seed manifest、同一条校验逻辑。
  */
 

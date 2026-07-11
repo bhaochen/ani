@@ -30,13 +30,13 @@ export class PluginSurfaceSessionError extends Error {
 }
 
 export function issuePluginSurfaceSession({
-  hanakoHome,
+  aniHome,
   pluginId,
   principalId,
   now = new Date().toISOString(),
   ttlMs = DEFAULT_PLUGIN_SURFACE_SESSION_TTL_MS,
-}: { hanakoHome?: string; pluginId?: string; principalId?: string; now?: string; ttlMs?: number } = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+}: { aniHome?: string; pluginId?: string; principalId?: string; now?: string; ttlMs?: number } = {}) {
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(pluginId, "pluginId");
   assertNonEmpty(principalId, "principalId");
   const issuedAtMs = Date.parse(now);
@@ -52,7 +52,7 @@ export function issuePluginSurfaceSession({
     expiresAt: new Date(issuedAtMs + safeTtlMs).toISOString(),
   };
   const body = base64UrlEncode(JSON.stringify(payload));
-  const signature = signBody(hanakoHome, body);
+  const signature = signBody(aniHome, body);
   return {
     ...payload,
     token: `${body}.${signature}`,
@@ -60,12 +60,12 @@ export function issuePluginSurfaceSession({
 }
 
 export function verifyPluginSurfaceSession({
-  hanakoHome,
+  aniHome,
   pluginId,
   token,
   now = new Date().toISOString(),
-}: { hanakoHome?: string; pluginId?: string; token?: string; now?: string } = {}) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
+}: { aniHome?: string; pluginId?: string; token?: string; now?: string } = {}) {
+  assertNonEmpty(aniHome, "aniHome");
   assertNonEmpty(pluginId, "pluginId");
   if (typeof token !== "string" || !token.trim()) {
     throw new PluginSurfaceSessionError("plugin surface session required", {
@@ -76,7 +76,7 @@ export function verifyPluginSurfaceSession({
   if (!body || !signature || extra !== undefined) {
     throw new PluginSurfaceSessionError("plugin surface session malformed");
   }
-  const expected = signBody(hanakoHome, body);
+  const expected = signBody(aniHome, body);
   if (!timingSafeEqual(signature, expected)) {
     throw new PluginSurfaceSessionError("plugin surface session signature invalid");
   }
@@ -114,20 +114,20 @@ export function verifyPluginSurfaceSession({
   });
 }
 
-function pluginSurfaceSessionKeyPath(hanakoHome) {
-  assertNonEmpty(hanakoHome, "hanakoHome");
-  return path.join(hanakoHome, "security", PLUGIN_SURFACE_SESSION_KEY_FILE);
+function pluginSurfaceSessionKeyPath(aniHome) {
+  assertNonEmpty(aniHome, "aniHome");
+  return path.join(aniHome, "security", PLUGIN_SURFACE_SESSION_KEY_FILE);
 }
 
-function signBody(hanakoHome, body) {
+function signBody(aniHome, body) {
   return crypto
-    .createHmac("sha256", readOrCreateSessionKey(hanakoHome))
+    .createHmac("sha256", readOrCreateSessionKey(aniHome))
     .update(body)
     .digest("base64url");
 }
 
-function readOrCreateSessionKey(hanakoHome) {
-  const filePath = pluginSurfaceSessionKeyPath(hanakoHome);
+function readOrCreateSessionKey(aniHome) {
+  const filePath = pluginSurfaceSessionKeyPath(aniHome);
   try {
     const existing = fs.readFileSync(filePath, "utf-8").trim();
     if (existing) return existing;
