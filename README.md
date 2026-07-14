@@ -158,18 +158,6 @@ npm test
 npm run typecheck
 ```
 
-## 致谢
-
-- [tw93/kami](https://github.com/tw93/kami)：beautify 插件 HTML 美学规范的「路由器 + 平级章节按需获取」渐进披露结构受其启发。
-
-## 许可证
-
-[Apache License 2.0](LICENSE)
-
-## 链接
-
-> 仓库和 release 地址在当前迁移阶段仍保留旧的 `openhanako` URL，后续仓库 rename 会单独执行。
-
 - [官网](https://openhanako.com)
 - [提交 Issue](https://github.com/liliMozi/openhanako/issues)
 - [安全页](https://github.com/liliMozi/openhanako/security)
