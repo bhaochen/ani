@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Video‑Protocol‑Test</title>
+  <style>
+    body{margin:0;background:#111;color:#ccc;font-family:monospace;padding:12px;}
+    video{max-width:45vw;max-height:45vh;background:#000;margin:6px;}
+    .ok{border:2px solid #0f0;} .bad{border:2px solid #f00;}
+  </style>
+</head>
+<body>
+  <h3>WebM (VP9, Chromium-native) — should always play</h3>
+  <video id="vwebm" src="app://local/tests/test-A_R1_1200.webm" controls autoplay muted></video>
+  <h3>MP4 (H.264) — depends on Electron H.264 support</h3>
+  <video id="vmp4" src="app://local/assets/Wallpaper_Presence/A_R1_1200.mp4" controls autoplay muted></video>
+  <pre id="log"></pre>
+  <script>
+    function watch(id){
+      const v=document.getElementById(id);
+      const report=()=>{
+        const tag=`[${id}] rs=${v.readyState} ns=${v.networkState} err=${v.error?v.error.code:'-'}`;
+        document.getElementById('log').textContent+=tag+"\n";
+        if(v.readyState>=2) v.classList.add('ok'); else if(v.error) v.classList.add('bad');
+      };
+      v.addEventListener('loadeddata',report);
+      v.addEventListener('error',report);
+      v.addEventListener('playing',()=>{document.getElementById('log').textContent+=`[${id}] PLAYING\n`;});
+      setTimeout(report,6000);
+    }
+    watch('vwebm'); watch('vmp4');
+  </script>
+</body>
+</html>

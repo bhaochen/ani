@@ -118,6 +118,7 @@ contextBridge.exposeInMainWorld("hana", {
   readFileBase64: (path) => ipcRenderer.invoke("read-file-base64", path),
   // 本地路径 → file:// URL（同步，纯字符串转换，无 IPC）。逻辑见 src/shared/path-to-file-url.cjs
   getFileUrl: (filePath) => pathToFileUrl(filePath),
+  getAniHome: () => process.env.ANI_HOME || '',
   readDocxHtml: (path) => ipcRenderer.invoke("read-docx-html", path),
   readXlsxHtml: (path) => ipcRenderer.invoke("read-xlsx-html", path),
   getFilePath: (file) => webUtils.getPathForFile(file),

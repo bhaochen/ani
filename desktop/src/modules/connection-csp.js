@@ -8,6 +8,9 @@
     "script-src": ["'self'"],
     "font-src": ["'self'", "data:"],
     "frame-src": ["blob:", "data:", "file:", "http://127.0.0.1:*", "http://localhost:*"],
+    // 本地视频走 file://（preload.getFileUrl），必须显式放行，否则回退到
+    // default-src 'self' 会拦截 file:// 媒体源 → 视频黑屏（控件正常、无报错）。
+    "media-src": ["'self'", "file:", "app:", "blob:", "http://127.0.0.1:*"],
   };
 
   function addOrigin(out, value) {

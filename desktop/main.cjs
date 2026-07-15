@@ -8,8 +8,35 @@
  * 4. 关闭 splash，显示主窗口
  * 5. 优雅关闭
  */
-const { app, BrowserWindow, WebContentsView, globalShortcut, ipcMain, dialog, session, shell, nativeTheme, Tray, Menu, nativeImage, systemPreferences, Notification, webContents, screen, powerSaveBlocker } = require("electron");
+const { app, BrowserWindow, WebContentsView, globalShortcut, ipcMain, dialog, session, shell, nativeTheme, Tray, Menu, nativeImage, systemPreferences, Notification, webContents, screen, powerSaveBlocker, protocol, net } = require("electron");
 const os = require("os");
+
+// ── GPU 合成后端兼容 ──
+// 在 Wayland + NVIDIA 环境下，Chromium 的 ANGLE-EGL 纹理上传路径有 bug
+// （eglCreateImage failed / ProduceSkiaGanesh failed），导致 <video> 等画面
+// 解码成功却无法合成到窗口表面（弹窗空屏）。改用 SwiftShader 软件 GL 合成
+// 可规避该问题。仅在检测到 NVIDIA + Wayland 时注入，避免影响其他平台性能。
+(function applyGpuWorkaround() {
+  const isWayland = !!process.env.WAYLAND_DISPLAY;
+  const isNvidia = (() => {
+    try {
+      const fs0 = require("fs");
+      const content = fs0.readFileSync("/proc/driver/nvidia/gpus/0/information", "utf8");
+      return /NVIDIA/.test(content);
+    } catch {
+      return /nvidia/i.test(process.env.__GLX_VENDOR_LIBRARY_NAME || "") ||
+        /nvidia/i.test(process.env.LIBVA_DRIVER_NAME || "");
+    }
+  })();
+  if (isWayland && isNvidia) {
+    app.commandLine.appendSwitch("use-gl", "angle");
+    app.commandLine.appendSwitch("use-angle", "swiftshader");
+    app.commandLine.appendSwitch("enable-unsafe-swiftshader");
+    app.commandLine.appendSwitch("ignore-gpu-blocklist");
+    console.log("[desktop] NVIDIA+Wayland detected: forcing SwiftShader GL compositor");
+  }
+})();
+
 const path = require("path");
 const crypto = require("crypto");
 const { spawn, execFile } = require("child_process");
@@ -5706,8 +5733,92 @@ wrapIpcBestEffortHandler("app-ready", (event) => {
 });
 
 // ── App 生命周期 ──
+// 注册自定义 app:// 协议，允许 renderer 通过 app://media/... 安全加载本地资源
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      bypassCSP: true,
+      stream: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      secure: true,
+    },
+  },
+]);
 app.whenReady().then(async () => {
   try {
+    // ── 自定义 app:// 协议：安全地向 renderer 暴露项目本地资源 ──
+    const projectRoot = path.resolve(__dirname, '..');
+    const APP_PROTOCOL_MIME = {
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.ogg': 'video/ogg',
+      '.mov': 'video/quicktime',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.ogg': 'audio/ogg',
+      '.m4a': 'audio/mp4',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.webp': 'image/webp',
+      '.json': 'application/json',
+      '.css': 'text/css',
+      '.js': 'text/javascript',
+      '.html': 'text/html',
+    };
+    protocol.handle('app', async (request) => {
+      const url = new URL(request.url);
+      // app://local/assets/... → projectRoot/assets/...
+      const filePath = path.join(projectRoot, decodeURIComponent(url.pathname));
+      let stat;
+      try {
+        stat = fs.statSync(filePath);
+      } catch {
+        return new Response('Not found', { status: 404 });
+      }
+      if (!stat.isFile()) {
+        return new Response('Not found', { status: 404 });
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = APP_PROTOCOL_MIME[ext] || 'application/octet-stream';
+      const total = stat.size;
+      const rangeHeader = request.headers.get('range');
+      // 视频播放需要 Range 支持：Chromium 对 <video> 的流式加载会发
+      // Range 请求，不支持则返回黑屏（音频因整文件下载尚可播放）。
+      if (rangeHeader) {
+        const match = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+        if (match) {
+          const start = match[1] ? parseInt(match[1], 10) : 0;
+          const end = match[2] ? parseInt(match[2], 10) : total - 1;
+          if (!Number.isNaN(start) && start < total && end >= start && end < total) {
+            const chunk = fs.readFileSync(filePath).subarray(start, end + 1);
+            return new Response(chunk, {
+              status: 206,
+              headers: {
+                'Content-Type': contentType,
+                'Content-Range': `bytes ${start}-${end}/${total}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': String(end - start + 1),
+              },
+            });
+          }
+        }
+      }
+      const data = fs.readFileSync(filePath);
+      return new Response(data, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': String(total),
+        },
+      });
+    });
+
     // 0. `--repair-artifacts` 命令行旗标：跟托盘
     // "修复组件…"走同一份清理实现，但不需要确认对话框——能敲这个旗标的人
     // 知道自己在干什么。必须在 startServer()/resolvePackagedArtifactBoot()

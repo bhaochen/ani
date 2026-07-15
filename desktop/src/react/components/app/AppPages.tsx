@@ -10,6 +10,7 @@ import { ChannelMessages, ChannelMembers, ChannelInput, ChannelReadonly, Channel
 import { ChannelHeader } from '../channels/ChannelHeader';
 import { MainContent } from '../../MainContent';
 import { ChatPage } from './ChatPage';
+import { CompanionPage } from './CompanionPage';
 import { WorkspaceCompanionRail } from './WorkspaceCompanionRail';
 
 const tr = (key: string, vars?: Record<string, string | number>) => window.t?.(key, vars) ?? key;
@@ -136,6 +137,7 @@ export function AppPages() {
       <MainContent>
         {currentTab === 'chat' && <ChatPage />}
         {currentTab === 'channels' && <ChannelPage />}
+        {currentTab === 'companion' && <CompanionPage />}
         {isPluginTab && <PluginPage pluginId={currentTab.slice(7)} />}
         <ActivityPanel />
         <AutomationPanel />
