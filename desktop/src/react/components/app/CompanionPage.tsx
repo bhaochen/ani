@@ -58,12 +58,28 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
     prevSlotRef.current = slot;
   }, [slot]);
 
-  // After transition video ends → advance R layer, stop transition
+  // Ensure the (possibly re-created) wallpaper video actually starts playing.
+  // autoPlay can be suppressed when the page is hidden (visibility:hidden),
+  // so explicitly (re)play after the source changes. Ignored if it fails.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v) v.play().catch(() => {});
+  }, [videoSrc]);
+
+  // After the (non-looping) transition video ends → stop transition and
+  // fall back to the looping wallpaper video. The looping wallpaper video
+  // must NEVER trigger a layer switch (it loops forever), so R-layer cycling
+  // is driven by the ambient audio ending, not the video.
   const handleVideoEnd = () => {
     if (isTransition) {
       setIsTransition(false);
     }
-    // R layer cycles: R1 → R2 → R3 → R1
+  };
+
+  // R layer cycles R1 → R2 → R3 → R1, advanced when the ambient MP3 finishes
+  // (per design: "after R1's MP3 ends, move to R2"). Audio is not looped so
+  // its `ended` event fires and drives the rotation.
+  const handleAudioEnd = () => {
     setRLayer((prev) => (prev === 'R1' ? 'R2' : prev === 'R2' ? 'R3' : 'R1'));
   };
 
@@ -86,22 +102,24 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
         {mode === 'A' ? '日常' : mode === 'B' ? '创作' : '思考'} · {rLayer}
       </div>
 
-      {/* Video area – takes up remaining space */}
+      {/* Video area – takes up remaining space.
+          The wallpaper video loops forever and only the transition clip is
+          non-looping (handled above). It never drives layer rotation. */}
       <div className={styles['companion-video-wrap']}>
         <video
           ref={videoRef}
           key={videoSrc}
           src={videoSrc}
           autoPlay
-          loop={!isTransition}
+          loop
           muted
           onEnded={handleVideoEnd}
           className={styles['companion-video']}
         />
       </div>
 
-      {/* Ambient audio – invisible */}
-      <audio ref={audioRef} key={audioSrc} src={audioSrc} autoPlay loop />
+      {/* Ambient audio – invisible. Not looped: ending advances the R layer. */}
+      <audio ref={audioRef} key={audioSrc} src={audioSrc} autoPlay onEnded={handleAudioEnd} />
     </div>
   );
 }
