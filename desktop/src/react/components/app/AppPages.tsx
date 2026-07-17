@@ -137,7 +137,7 @@ export function AppPages() {
       <MainContent>
         {currentTab === 'chat' && <ChatPage />}
         {currentTab === 'channels' && <ChannelPage />}
-        {currentTab === 'companion' && <CompanionPage />}
+        <CompanionPage hidden={currentTab !== 'companion'} />
         {isPluginTab && <PluginPage pluginId={currentTab.slice(7)} />}
         <ActivityPanel />
         <AutomationPanel />

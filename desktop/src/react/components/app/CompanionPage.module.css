@@ -10,6 +10,17 @@
   overflow: hidden;
 }
 
+/* Kept mounted but hidden when another tab is active, so the video keeps
+   decoding and the ambient audio keeps playing in the background.
+   visibility:hidden (not display:none) preserves media playback. */
+.companion-page.hidden {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .companion-mode-label {
   position: absolute;
   top: 12px;

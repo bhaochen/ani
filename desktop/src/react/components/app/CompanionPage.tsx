@@ -35,7 +35,7 @@ function appAssetUrl(relativePath: string): string {
   return `app://local/${relativePath}`;
 }
 
-export function CompanionPage() {
+export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const [mode] = useState<'A' | 'B' | 'C'>('A');
   const [rLayer, setRLayer] = useState<'R1' | 'R2' | 'R3'>('R1');
   const [slot, setSlot] = useState<'1200' | '1730' | '2000'>(getTimeSlot());
@@ -80,7 +80,7 @@ export function CompanionPage() {
   const audioSrc = appAssetUrl(audioFile);
 
   return (
-    <div className={styles['companion-page']}>
+    <div className={`${styles['companion-page']}${hidden ? ` ${styles.hidden}` : ''}`}>
       {/* Mode indicator */}
       <div className={styles['companion-mode-label']}>
         {mode === 'A' ? '日常' : mode === 'B' ? '创作' : '思考'} · {rLayer}
