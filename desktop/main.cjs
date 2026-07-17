@@ -11,6 +11,26 @@
 const { app, BrowserWindow, WebContentsView, globalShortcut, ipcMain, dialog, session, shell, nativeTheme, Tray, Menu, nativeImage, systemPreferences, Notification, webContents, screen, powerSaveBlocker, protocol, net } = require("electron");
 const os = require("os");
 
+// NVIDIA + Wayland 下 NVDEC (VAAPI) 视频硬解在该 Electron/Chromium 版本中不稳定：
+// 解码流中途会报 vaEndPicture failed / error decoding stream，导致画面冻结。
+// 关闭视频硬解加速，统一走软件解码（AV1/VP9 均稳定），合成层仍用默认 EGL。
+(function disableNvidiaVideoAccel() {
+  const isWayland = !!process.env.WAYLAND_DISPLAY;
+  const isNvidia = (() => {
+    try {
+      return /NVIDIA/.test(require("fs").readFileSync("/proc/driver/nvidia/gpus/0/information", "utf8"));
+    } catch {
+      return /nvidia/i.test(process.env.__GLX_VENDOR_LIBRARY_NAME || "") ||
+        /nvidia/i.test(process.env.LIBVA_DRIVER_NAME || "");
+    }
+  })();
+  if (isWayland && isNvidia) {
+    app.commandLine.appendSwitch("disable-accelerated-video-decode");
+    app.commandLine.appendSwitch("enable-unsafe-swiftshader");
+    console.log("[desktop] NVIDIA+Wayland: video hardware decode disabled (use software decode)");
+  }
+})();
+
 const path = require("path");
 const crypto = require("crypto");
 const { spawn, execFile } = require("child_process");
