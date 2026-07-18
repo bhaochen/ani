@@ -38,6 +38,7 @@
 .companion-video-wrap {
   flex: 1;
   min-height: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,4 +48,26 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Two stacked video layers for seamless crossfade on source change.
+   Both layers stay mounted+playing during the fade, so there is no black
+   frame while the new source loads/decodes. */
+.video-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 700ms ease;
+}
+
+.video-layer-active {
+  opacity: 1;
+  z-index: 1;
+}
+
+.video-layer-outgoing {
+  opacity: 0;
+  z-index: 0;
 }

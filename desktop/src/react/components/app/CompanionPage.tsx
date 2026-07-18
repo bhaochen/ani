@@ -42,7 +42,6 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const [slot, setSlot] = useState<'1200' | '1730' | '2000'>(getTimeSlot());
   const [isTransition, setIsTransition] = useState(false);
   const prevSlotRef = useRef(slot);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Poll system clock every minute
@@ -71,16 +70,33 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const videoSrc = appAssetUrl(videoFile);
   const audioSrc = appAssetUrl(audioFile);
 
-  // Ensure the (possibly re-created) wallpaper video actually starts playing.
-  // autoPlay can be suppressed when the page is hidden (visibility:hidden),
-  // so explicitly (re)play after the source changes. Ignored if it fails.
+  // ── Crossfade between wallpaper videos ──
+  // Switching R layer / mode / slot used to remount a single <video> (via key),
+  // which produced a black gap while the new source loaded+decoded. Instead we
+  // keep two video layers: the active one fades in, the previous one fades out
+  // on top (both keep playing, so no freeze), then the old layer is dropped.
+  const FADE_MS = 700;
+  const [activeSrc, setActiveSrc] = useState(videoSrc);
+  const [outgoingSrc, setOutgoingSrc] = useState<string | null>(null);
+  const outgoingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    const v = videoRef.current;
-    if (v) {
-      const p = v.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
-    }
-  }, [videoSrc]);
+    if (videoSrc === activeSrc) return;
+    if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
+    setOutgoingSrc(activeSrc);
+    setActiveSrc(videoSrc);
+    outgoingTimer.current = setTimeout(() => setOutgoingSrc(null), FADE_MS + 80);
+    return () => {
+      if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
+    };
+  }, [videoSrc, activeSrc]);
+
+  // Play + set opacity class whenever the active/outgoing sources settle.
+  const ensurePlaying = (el: HTMLVideoElement | null) => {
+    if (!el) return;
+    const p = el.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  };
 
   // After the (non-looping) transition video ends → stop transition and
   // fall back to the looping wallpaper video. The looping wallpaper video
@@ -118,20 +134,32 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
         {mode === 'A' ? '日常' : mode === 'B' ? '创作' : '思考'} · {rLayer}
       </div>
 
-      {/* Video area – takes up remaining space.
-          The wallpaper video loops forever and only the transition clip is
-          non-looping (handled above). It never drives layer rotation. */}
+      {/* Video area – two stacked layers crossfade on source change so the
+          wallpaper transition is seamless (no black frame while the new
+          source loads/decodes). The looping wallpaper video never drives a
+          layer switch; only the non-looping transition clip's `ended` does. */}
       <div className={styles['companion-video-wrap']}>
         <video
-          ref={videoRef}
-          key={videoSrc}
-          src={videoSrc}
+          key={activeSrc}
+          src={activeSrc}
           autoPlay
-          loop
+          loop={!isTransition}
           muted
           onEnded={handleVideoEnd}
-          className={styles['companion-video']}
+          ref={ensurePlaying}
+          className={`${styles['companion-video']} ${styles['video-layer']} ${styles['video-layer-active']}`}
         />
+        {outgoingSrc && (
+          <video
+            key={outgoingSrc}
+            src={outgoingSrc}
+            autoPlay
+            loop
+            muted
+            ref={ensurePlaying}
+            className={`${styles['companion-video']} ${styles['video-layer']} ${styles['video-layer-outgoing']}`}
+          />
+        )}
       </div>
 
       {/* Ambient audio – invisible. Not looped: ending advances the R layer. */}
