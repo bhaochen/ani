@@ -58,12 +58,27 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
     prevSlotRef.current = slot;
   }, [slot]);
 
+  // ── Resolve file URLs via app:// protocol ──
+  const videoFile = isTransition
+    ? `assets/Wallpaper_Presence/${mode}_Transition_${prevSlotRef.current}_${slot}.webm`
+    : `assets/Wallpaper_Presence/${mode}_${rLayer}_${slot}.webm`;
+
+  const audioFile = isTransition
+    ? 'assets/Wallpaper_Ambience/ambient_loop_22.mp3'
+    : `assets/Wallpaper_Ambience/${ambientMap[mode]?.[rLayer]?.[slot] ?? ''}`;
+
+  const videoSrc = appAssetUrl(videoFile);
+  const audioSrc = appAssetUrl(audioFile);
+
   // Ensure the (possibly re-created) wallpaper video actually starts playing.
   // autoPlay can be suppressed when the page is hidden (visibility:hidden),
   // so explicitly (re)play after the source changes. Ignored if it fails.
   useEffect(() => {
     const v = videoRef.current;
-    if (v) v.play().catch(() => {});
+    if (v) {
+      const p = v.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
   }, [videoSrc]);
 
   // After the (non-looping) transition video ends → stop transition and
@@ -83,17 +98,7 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
     setRLayer((prev) => (prev === 'R1' ? 'R2' : prev === 'R2' ? 'R3' : 'R1'));
   };
 
-  // ── Resolve file URLs via app:// protocol ──
-  const videoFile = isTransition
-    ? `assets/Wallpaper_Presence/${mode}_Transition_${prevSlotRef.current}_${slot}.webm`
-    : `assets/Wallpaper_Presence/${mode}_${rLayer}_${slot}.webm`;
-
-  const audioFile = isTransition
-    ? 'assets/Wallpaper_Ambience/ambient_loop_22.mp3'
-    : `assets/Wallpaper_Ambience/${ambientMap[mode]?.[rLayer]?.[slot] ?? ''}`;
-
-  const videoSrc = appAssetUrl(videoFile);
-  const audioSrc = appAssetUrl(audioFile);
+  // ── Resolve file URLs via app:// protocol (see declarations above) ──
 
   return (
     <div className={`${styles['companion-page']}${hidden ? ` ${styles.hidden}` : ''}`}>
