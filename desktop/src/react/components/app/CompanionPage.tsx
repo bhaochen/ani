@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useStore } from '../../stores';
 import styles from './CompanionPage.module.css';
 
@@ -36,6 +36,57 @@ function appAssetUrl(relativePath: string): string {
   return `app://local/${relativePath}`;
 }
 
+// A single wallpaper video layer. Keeps the same DOM node across src changes
+// (keyed by slot index, not src) so we only reload+play when the src prop
+// actually changes — no remount, no black frame. Reports readiness so the
+// parent can promote it once it can actually render frames.
+function WallpaperLayer({
+  src,
+  active,
+  loop,
+  onReady,
+  onEnded,
+  className,
+}: {
+  src: string;
+  active: boolean;
+  loop: boolean;
+  onReady: (src: string) => void;
+  onEnded?: () => void;
+  className: string;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const lastSrc = useRef<string>('');
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !src) return;
+    if (lastSrc.current !== src) {
+      lastSrc.current = src;
+      v.load();
+    }
+    const p = v.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  }, [src]);
+
+  if (!src) return null;
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      autoPlay
+      muted
+      loop={loop}
+      onCanPlay={() => onReady(src)}
+      onPlaying={() => onReady(src)}
+      onEnded={onEnded}
+      className={className}
+      data-active={active ? 'true' : 'false'}
+    />
+  );
+}
+
 export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const mode = useStore(s => s.companionMode);
   const [rLayer, setRLayer] = useState<'R1' | 'R2' | 'R3'>('R1');
@@ -70,33 +121,68 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const videoSrc = appAssetUrl(videoFile);
   const audioSrc = appAssetUrl(audioFile);
 
-  // ── Crossfade between wallpaper videos ──
-  // Switching R layer / mode / slot used to remount a single <video> (via key),
-  // which produced a black gap while the new source loaded+decoded. Instead we
-  // keep two video layers: the active one fades in, the previous one fades out
-  // on top (both keep playing, so no freeze), then the old layer is dropped.
+  // ── Crossfade between wallpaper videos (ready-gated, two-slot) ──
+  // Switching R layer / mode / slot used to remount a single <video>, which
+  // showed a black gap while the new source loaded+decoded. Now two persistent
+  // slots are kept: the ACTIVE one keeps playing, while the INACTIVE slot
+  // preloads the next source in the background. A switch is only promoted once
+  // the next layer can actually play (`onCanPlay`/`onPlaying`), so rapid
+  // toggling never reveals a black frame — the old layer stays until the new
+  // one is truly ready, then they crossfade.
   const FADE_MS = 700;
-  const [activeSrc, setActiveSrc] = useState(videoSrc);
-  const [outgoingSrc, setOutgoingSrc] = useState<string | null>(null);
+  const slotSrcRef = useRef<[string, string]>([videoSrc, '']);
+  const activeSlotRef = useRef(0);
+  const targetSrcRef = useRef(videoSrc);
+  targetSrcRef.current = videoSrc;
+  const [slotSrc, setSlotSrc] = useState<[string, string]>(slotSrcRef.current);
+  const [slotReady, setSlotReady] = useState<[boolean, boolean]>([true, false]);
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [outgoingSlot, setOutgoingSlot] = useState<number | null>(null);
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load the desired source into the inactive slot whenever the target changes.
   useEffect(() => {
-    if (videoSrc === activeSrc) return;
-    if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
-    setOutgoingSrc(activeSrc);
-    setActiveSrc(videoSrc);
-    outgoingTimer.current = setTimeout(() => setOutgoingSrc(null), FADE_MS + 80);
-    return () => {
-      if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
-    };
-  }, [videoSrc, activeSrc]);
+    const cur = slotSrcRef.current;
+    const act = activeSlotRef.current;
+    if (cur[act] === videoSrc) return;
+    const inactive = act === 0 ? 1 : 0;
+    if (cur[inactive] === videoSrc) return; // already preloading that target
+    const next: [string, string] = [...cur];
+    next[inactive] = videoSrc;
+    slotSrcRef.current = next;
+    setSlotSrc(next);
+    setSlotReady((prev) => {
+      const n: [boolean, boolean] = [...prev];
+      n[inactive] = false;
+      return n;
+    });
+  }, [videoSrc]);
 
-  // Play + set opacity class whenever the active/outgoing sources settle.
-  const ensurePlaying = (el: HTMLVideoElement | null) => {
-    if (!el) return;
-    const p = el.play();
-    if (p && typeof p.catch === 'function') p.catch(() => {});
-  };
+  // Promote the inactive slot to active once it can play and is still the target.
+  const handleLayerReady = useCallback((slot: number, src: string) => {
+    setSlotReady((prev) => {
+      const n: [boolean, boolean] = [...prev];
+      n[slot] = true;
+      return n;
+    });
+    const act = activeSlotRef.current;
+    if (slot === act) return;
+    if (slotSrcRef.current[slot] !== targetSrcRef.current) return;
+    // promote
+    if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
+    const prevActive = act;
+    activeSlotRef.current = slot;
+    setActiveSlot(slot);
+    setOutgoingSlot(prevActive);
+    outgoingTimer.current = setTimeout(() => {
+      const cur = slotSrcRef.current;
+      const cleared: [string, string] = [...cur];
+      cleared[prevActive] = '';
+      slotSrcRef.current = cleared;
+      setSlotSrc(cleared);
+      setOutgoingSlot(null);
+    }, FADE_MS + 100);
+  }, []);
 
   // After the (non-looping) transition video ends → stop transition and
   // fall back to the looping wallpaper video. The looping wallpaper video
@@ -135,31 +221,24 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
       </div>
 
       {/* Video area – two stacked layers crossfade on source change so the
-          wallpaper transition is seamless (no black frame while the new
-          source loads/decodes). The looping wallpaper video never drives a
-          layer switch; only the non-looping transition clip's `ended` does. */}
+          wallpaper transition is seamless. The active layer keeps playing
+          until the next can actually render (ready-gated), so rapid mode/R
+          switches never flash black. The looping wallpaper video never drives
+          a layer switch; only the non-looping transition clip's `ended` does. */}
       <div className={styles['companion-video-wrap']}>
-        <video
-          key={activeSrc}
-          src={activeSrc}
-          autoPlay
-          loop={!isTransition}
-          muted
-          onEnded={handleVideoEnd}
-          ref={ensurePlaying}
-          className={`${styles['companion-video']} ${styles['video-layer']} ${styles['video-layer-active']}`}
-        />
-        {outgoingSrc && (
-          <video
-            key={outgoingSrc}
-            src={outgoingSrc}
-            autoPlay
-            loop
-            muted
-            ref={ensurePlaying}
-            className={`${styles['companion-video']} ${styles['video-layer']} ${styles['video-layer-outgoing']}`}
+        {[0, 1].map((i) => (
+          <WallpaperLayer
+            key={i}
+            src={slotSrc[i]}
+            active={i === activeSlot}
+            loop={i === activeSlot ? !isTransition : true}
+            onReady={(s) => handleLayerReady(i, s)}
+            onEnded={i === activeSlot ? handleVideoEnd : undefined}
+            className={`${styles['companion-video']} ${styles['video-layer']} ${
+              i === activeSlot ? styles['video-layer-active'] : styles['video-layer-outgoing']
+            }`}
           />
-        )}
+        ))}
       </div>
 
       {/* Ambient audio – invisible. Not looped: ending advances the R layer. */}
