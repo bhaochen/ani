@@ -1,6 +1,9 @@
 import type { ActivePanel, RightWorkspaceTab, TabType } from '../types';
 import type { FileRef } from '../types/file-ref';
 
+export type CompanionMode = 'A' | 'B' | 'C';
+export type CompanionRLayer = 'R1' | 'R2' | 'R3';
+
 export interface MediaViewerState {
   files: FileRef[];
   currentId: string;
@@ -23,6 +26,13 @@ export interface UiSlice {
   activePanel: ActivePanel;
   rightWorkspaceTab: RightWorkspaceTab;
   jianDrawerOpen: boolean;
+  /**
+   * 陪伴页当前模式：A=日常 / B=创作 / C=思考。
+   * 由陪伴侧边栏底部三滑块切换，驱动 CompanionPage 的视频与氛围音轨。
+   */
+  companionMode: 'A' | 'B' | 'C';
+  /** 陪伴页当前 R 层（R1→R2→R3 循环），由音频结束驱动，供侧边栏显示。 */
+  companionRLayer: 'R1' | 'R2' | 'R3';
   locale: string;
   /** Skill 预览 overlay 数据（null = 关闭） */
   skillViewerData: { name: string; baseDir: string; filePath?: string; installed?: boolean } | null;
@@ -44,6 +54,8 @@ export interface UiSlice {
   setActivePanel: (panel: ActivePanel) => void;
   setRightWorkspaceTab: (tab: RightWorkspaceTab) => void;
   setJianDrawerOpen: (open: boolean) => void;
+  setCompanionMode: (mode: 'A' | 'B' | 'C') => void;
+  setCompanionRLayer: (layer: 'R1' | 'R2' | 'R3') => void;
   setChannelCreateOverlayVisible: (visible: boolean) => void;
   setMediaViewer: (state: MediaViewerState | null) => void;
   setSettingsModal: (state: SettingsModalState) => void;
@@ -66,6 +78,8 @@ export const createUiSlice = (
   activePanel: null,
   rightWorkspaceTab: 'workspace',
   jianDrawerOpen: false,
+  companionMode: 'A',
+  companionRLayer: 'R1',
   // Keep locale empty until i18n.load() finishes so the first successful
   // locale sync always triggers a rerender, even for the default zh locale.
   locale: '',
@@ -84,6 +98,8 @@ export const createUiSlice = (
   setActivePanel: (panel) => set({ activePanel: panel }),
   setRightWorkspaceTab: (tab) => set({ rightWorkspaceTab: tab }),
   setJianDrawerOpen: (open) => set({ jianDrawerOpen: open }),
+  setCompanionMode: (mode) => set({ companionMode: mode }),
+  setCompanionRLayer: (layer) => set({ companionRLayer: layer }),
   setChannelCreateOverlayVisible: (visible) => set({ channelCreateOverlayVisible: visible }),
   setMediaViewer: (state) => set({ mediaViewer: state }),
   setSettingsModal: (state) => set({ settingsModal: state }),

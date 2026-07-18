@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useStore } from '../../stores';
 import styles from './CompanionPage.module.css';
 
 // Helper: get current time slot based on system clock
@@ -36,7 +37,7 @@ function appAssetUrl(relativePath: string): string {
 }
 
 export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
-  const [mode] = useState<'A' | 'B' | 'C'>('A');
+  const mode = useStore(s => s.companionMode);
   const [rLayer, setRLayer] = useState<'R1' | 'R2' | 'R3'>('R1');
   const [slot, setSlot] = useState<'1200' | '1730' | '2000'>(getTimeSlot());
   const [isTransition, setIsTransition] = useState(false);
@@ -95,8 +96,18 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   // (per design: "after R1's MP3 ends, move to R2"). Audio is not looped so
   // its `ended` event fires and drives the rotation.
   const handleAudioEnd = () => {
-    setRLayer((prev) => (prev === 'R1' ? 'R2' : prev === 'R2' ? 'R3' : 'R1'));
+    setRLayer((prev) => {
+      const next = prev === 'R1' ? 'R2' : prev === 'R2' ? 'R3' : 'R1';
+      useStore.getState().setCompanionRLayer(next);
+      return next;
+    });
   };
+
+  // Keep the sidebar's displayed R layer in sync when mode is switched
+  // (which resets the layer to R1) or on first mount.
+  useEffect(() => {
+    useStore.getState().setCompanionRLayer(rLayer);
+  }, [rLayer]);
 
   // ── Resolve file URLs via app:// protocol (see declarations above) ──
 

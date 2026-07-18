@@ -3403,5 +3403,3 @@
     "sendFailed": "傳送失敗：{error}",
     "rejectFailed": "忽略失敗：{error}",
     "messageField": "訊息內容"
-  }
-}

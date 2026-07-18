@@ -3409,5 +3409,11 @@
     "sendFailed": "发送失败：{error}",
     "rejectFailed": "忽略失败：{error}",
     "messageField": "消息内容"
+  },
+  "companion": {
+    "mode": {
+      "label": "当前陪伴状态",
+      "title": "陪伴模式"
+    }
   }
 }
