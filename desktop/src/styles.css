@@ -567,6 +567,12 @@ html[data-platform="linux"] .tb-toggle-right {
     pointer-events: none;
 }
 
+.sidebar-companion-content {
+    margin-top: auto;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    flex-shrink: 0;
+}
+
 .sidebar-header {
     display: flex;
     align-items: center;

@@ -4,6 +4,7 @@ import { ChannelListSidebar } from '../channels/ChannelList';
 import { RegionalErrorBoundary } from '../RegionalErrorBoundary';
 import { SessionList } from '../SessionList';
 import { SidebarNoticeSlot } from '../notices/SidebarNoticeSlot';
+import { CompanionModeRail } from './CompanionModeRail';
 
 interface ChatSidebarContentProps {
   showSettingsButton?: boolean;
@@ -118,6 +119,7 @@ export function ChatSidebar({
   ...contentProps
 }: ChatSidebarProps) {
   const currentTab = useStore(s => s.currentTab);
+  const isCompanion = currentTab === 'companion';
 
   return (
     <aside className={`sidebar${open ? '' : ' collapsed'}`} id="sidebar">
@@ -129,6 +131,14 @@ export function ChatSidebar({
         {includeChannels && (
           <div className={`sidebar-channel-content${currentTab === 'channels' ? '' : ' hidden'}`}>
             <ChannelListSidebar />
+          </div>
+        )}
+
+        {isCompanion && (
+          <div className="sidebar-companion-content">
+            <RegionalErrorBoundary region="companion-mode">
+              <CompanionModeRail />
+            </RegionalErrorBoundary>
           </div>
         )}
       </div>
