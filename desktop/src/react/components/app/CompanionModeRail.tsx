@@ -24,34 +24,36 @@ export function CompanionModeRail() {
   return (
     <section className={styles.rail} data-region="companion-mode" aria-label={t('companion.mode.label')}>
       <div className={styles.row}>
-        <span className={styles.label}>{t('companion.mode.title')}</span>
-        <span className={styles.layer}>{rLayer}</span>
-      </div>
-      <div
-        className={styles.segment}
-        role="tablist"
-        aria-label={t('companion.mode.title')}
-      >
+        <span className={styles.label}>
+          {t('companion.mode.title')}
+          <span className={styles.layer}>{rLayer}</span>
+        </span>
         <div
-          className={styles.segmentSlider}
-          style={{ width: `calc((100% - 4px) / ${MODES.length})`, transform: `translateX(${activeIndex * 100}%)` }}
-          aria-hidden="true"
-        />
-        {MODES.map(({ mode, label }) => {
-          const active = companionMode === mode;
-          return (
-            <button
-              key={mode}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              className={`${styles.segBtn}${active ? ` ${styles.segBtnActive}` : ''}`}
-              onClick={() => setCompanionMode(mode)}
-            >
-              {label}
-            </button>
-          );
-        })}
+          className={styles.segment}
+          role="tablist"
+          aria-label={t('companion.mode.title')}
+        >
+          <div
+            className={styles.segmentSlider}
+            style={{ width: `calc((100% - 4px) / ${MODES.length})`, transform: `translateX(${activeIndex * 100}%)` }}
+            aria-hidden="true"
+          />
+          {MODES.map(({ mode, label }) => {
+            const active = companionMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`${styles.segBtn}${active ? ` ${styles.segBtnActive}` : ''}`}
+                onClick={() => setCompanionMode(mode)}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
