@@ -1,101 +1,78 @@
+/* 陪伴模式切换：分段控件（与顶部聊天/陪伴/频道 tab 同款滑块风格） */
+
 .rail {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 14px 16px;
+  gap: 8px;
+  padding: var(--space-8) var(--space-12);
   box-sizing: border-box;
 }
 
-.header {
+.row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
 }
 
-.title {
-  font-size: var(--fs-subtitle, 13px);
-  font-weight: 600;
-  color: var(--text);
+.label {
+  font-size: var(--fs-hint, 11px);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
 }
 
 .layer {
-  font-size: var(--fs-caption, 11px);
+  font-size: var(--fs-hint, 11px);
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
-.sliders {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.slider {
+/* 分段容器：复用顶部 tbTabs 的视觉（overlay 底、圆角、内边距） */
+.segment {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--overlay-soft, rgba(255, 255, 255, 0.03));
-  cursor: pointer;
-  color: var(--text-muted);
-  transition: background var(--duration-slow, 160ms), border-color var(--duration-slow, 160ms), color var(--duration-slow, 160ms);
+  gap: 2px;
+  background: var(--overlay-light, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-md, 8px);
+  padding: 2px;
 }
 
-.slider:hover {
-  background: var(--overlay-medium, rgba(255, 255, 255, 0.06));
-}
-
-.slider.active {
-  color: var(--text);
-  border-color: var(--accent, #6c8cff);
-  background: color-mix(in srgb, var(--accent, #6c8cff) 14%, transparent);
-}
-
-.track {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 5px;
-  background: var(--overlay-medium, rgba(255, 255, 255, 0.12));
-  flex-shrink: 0;
-  transition: background var(--duration-slow, 160ms);
-}
-
-.thumb {
+/* 滑动块：随激活项移动 */
+.segmentSlider {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  background: #fff;
-  transition: transform var(--duration-slow, 160ms);
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--tab-slider-bg, var(--bg-card, #2a2a2e));
+  box-shadow: var(--tab-slider-shadow, 0 1px 3px var(--shadow, rgba(0, 0, 0, 0.3)));
+  transition: transform var(--duration-slow, 160ms) cubic-bezier(0.4, 0, 0.2, 1),
+              width var(--duration-slow, 160ms) cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
 }
 
-.slider.active .track {
-  background: var(--accent, #6c8cff);
-}
-
-.slider.active .thumb {
-  transform: translateX(16px);
-}
-
-.label {
-  font-size: var(--fs-body, 13px);
-  font-weight: 500;
-}
-
-.hint {
-  margin-left: auto;
+/* 分段按钮：复用顶部 tbTab 的视觉 */
+.segBtn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 4px 14px;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
   font-size: var(--fs-caption, 11px);
-  color: var(--text-faint, rgba(255, 255, 255, 0.4));
-  letter-spacing: 0.05em;
+  font-weight: 500;
+  cursor: default;
+  transition: color var(--duration-fast, 120ms) var(--ease-out);
+  white-space: nowrap;
 }
 
-.slider.active .hint {
-  color: var(--accent, #6c8cff);
+.segBtn:hover {
+  color: var(--text-light);
+}
+
+.segBtnActive {
+  color: var(--text);
 }
