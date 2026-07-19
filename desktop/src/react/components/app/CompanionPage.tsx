@@ -288,17 +288,19 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
         >
+          {/* rounded outer frame — shared by both states */}
+          <rect x="4" y="4" width="16" height="16" rx="4.5" />
           {expanded ? (
-            // exit-fullscreen: corners fold inward
-            <path d="M9 4 v3 a2 2 0 0 1 -2 2 h-3 M20 9 h-3 a2 2 0 0 1 -2 -2 v-3 M15 20 v-3 a2 2 0 0 1 2 -2 h3 M4 15 h3 a2 2 0 0 1 2 2 v3" />
+            /* shrink: arrow points down-left ↙ */
+            <path d="M14.5 9.5 L9.5 14.5 M9.5 11.5 V14.5 H12.5" />
           ) : (
-            // fullscreen: corners splay outward
-            <path d="M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15" />
+            /* enlarge: arrow points up-right ↗ */
+            <path d="M9.5 14.5 L14.5 9.5 M14.5 12.5 V9.5 H11.5" />
           )}
         </svg>
       </button>
