@@ -264,14 +264,28 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
     };
   }, []);
 
+  // Expand the wallpaper to fill the whole app window (immersive). Toggle.
+  const [expanded, setExpanded] = useState(false);
+
   // ── Resolve file URLs via app:// protocol (see declarations above) ──
 
   return (
-    <div className={`${styles['companion-page']}${hidden ? ` ${styles.hidden}` : ''}`}>
-      {/* Mode indicator */}
-      <div className={styles['companion-mode-label']}>
-        {mode === 'A' ? '日常' : mode === 'B' ? '创作' : '思考'} · {rLayer}
-      </div>
+    <div className={`${styles['companion-page']}${hidden ? ` ${styles.hidden}` : ''}${expanded ? ` ${styles.expanded}` : ''}`}>
+      {/* Corner-bracket expand/collapse toggle (top-left).
+          Normal: ┌ ┐ / └ ┘ (outward brackets = enlarge).
+          Expanded: ┘ └ / ┐ ┌ (inward brackets = shrink). */}
+      <button
+        type="button"
+        className={styles['expand-toggle']}
+        aria-label={expanded ? '退出沉浸' : '充满窗口'}
+        aria-pressed={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className={styles['corner-tl']}>{expanded ? '┘' : '┌'}</span>
+        <span className={styles['corner-tr']}>{expanded ? '└' : '┐'}</span>
+        <span className={styles['corner-bl']}>{expanded ? '┐' : '└'}</span>
+        <span className={styles['corner-br']}>{expanded ? '┌' : '┘'}</span>
+      </button>
 
       {/* Video area – two stacked layers crossfade on source change so the
           wallpaper transition is seamless. The active layer keeps playing

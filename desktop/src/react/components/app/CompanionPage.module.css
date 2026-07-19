@@ -21,6 +21,14 @@
   z-index: -1;
 }
 
+/* Immersive mode: fill the entire app window, above sidebar/titlebar. */
+.companion-page.expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  border-radius: 0;
+}
+
 .companion-mode-label {
   position: absolute;
   top: 12px;
@@ -33,6 +41,58 @@
   font-size: 13px;
   letter-spacing: 0.5px;
   pointer-events: none;
+}
+
+/* Corner-bracket expand/collapse toggle (top-left). The four characters form
+   a frame: normal = ┌ ┐ / └ ┘ (enlarge), expanded = ┘ └ / ┐ ┌ (shrink). */
+.expand-toggle {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-mono, monospace);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.expand-toggle:hover {
+  color: #fff;
+}
+
+.corner-tl,
+.corner-tr,
+.corner-bl,
+.corner-br {
+  position: absolute;
+  pointer-events: none;
+}
+
+.corner-tl {
+  top: 0;
+  left: 0;
+}
+
+.corner-tr {
+  top: 0;
+  right: 0;
+}
+
+.corner-bl {
+  bottom: 0;
+  left: 0;
+}
+
+.corner-br {
+  bottom: 0;
+  right: 0;
 }
 
 .companion-video-wrap {
