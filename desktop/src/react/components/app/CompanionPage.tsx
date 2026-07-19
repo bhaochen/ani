@@ -57,6 +57,7 @@ function WallpaperLayer({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const lastSrc = useRef<string>('');
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const v = ref.current;
@@ -65,8 +66,20 @@ function WallpaperLayer({
       lastSrc.current = src;
       v.load();
     }
-    const p = v.play();
-    if (p && typeof p.catch === 'function') p.catch(() => {});
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.catch === 'function') {
+        // autoplay/pipeline can reject (hidden tab, decoder not ready). Retry
+        // shortly — a later attempt often succeeds (matches the "switch away
+        // and back" workaround the user observed).
+        if (retryTimer.current) clearTimeout(retryTimer.current);
+        retryTimer.current = setTimeout(tryPlay, 250);
+      }
+    };
+    tryPlay();
+    return () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+    };
   }, [src]);
 
   if (!src) return null;
@@ -79,6 +92,7 @@ function WallpaperLayer({
       muted
       loop={loop}
       onCanPlay={() => onReady(src)}
+      onLoadedData={() => onReady(src)}
       onPlaying={() => onReady(src)}
       onEnded={onEnded}
       className={className}
@@ -130,6 +144,11 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   // toggling never reveals a black frame — the old layer stays until the new
   // one is truly ready, then they crossfade.
   const FADE_MS = 700;
+  // If the next layer never reports ready (hidden tab / decoder event dropped),
+  // still promote after this timeout so a switch is never stuck on a black gap.
+  // The old layer is mid crossfade-out, so promoting late just finishes the
+  // fade — no black frame.
+  const READY_TIMEOUT_MS = 600;
   const slotSrcRef = useRef<[string, string]>([videoSrc, '']);
   const activeSlotRef = useRef(0);
   const targetSrcRef = useRef(videoSrc);
@@ -139,6 +158,27 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const [activeSlot, setActiveSlot] = useState(0);
   const [outgoingSlot, setOutgoingSlot] = useState<number | null>(null);
   const outgoingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const promoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const promoteSlot = useCallback((slot: number) => {
+    const act = activeSlotRef.current;
+    if (slot === act) return;
+    if (slotSrcRef.current[slot] !== targetSrcRef.current) return;
+    if (promoteTimer.current) clearTimeout(promoteTimer.current);
+    if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
+    const prevActive = act;
+    activeSlotRef.current = slot;
+    setActiveSlot(slot);
+    setOutgoingSlot(prevActive);
+    outgoingTimer.current = setTimeout(() => {
+      const cur = slotSrcRef.current;
+      const cleared: [string, string] = [...cur];
+      cleared[prevActive] = '';
+      slotSrcRef.current = cleared;
+      setSlotSrc(cleared);
+      setOutgoingSlot(null);
+    }, FADE_MS + 100);
+  }, []);
 
   // Load the desired source into the inactive slot whenever the target changes.
   useEffect(() => {
@@ -156,7 +196,10 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
       n[inactive] = false;
       return n;
     });
-  }, [videoSrc]);
+    // Safety net: promote even if the ready event never fires.
+    if (promoteTimer.current) clearTimeout(promoteTimer.current);
+    promoteTimer.current = setTimeout(() => promoteSlot(inactive), READY_TIMEOUT_MS);
+  }, [videoSrc, promoteSlot]);
 
   // Promote the inactive slot to active once it can play and is still the target.
   const handleLayerReady = useCallback((slot: number, src: string) => {
@@ -165,24 +208,9 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
       n[slot] = true;
       return n;
     });
-    const act = activeSlotRef.current;
-    if (slot === act) return;
-    if (slotSrcRef.current[slot] !== targetSrcRef.current) return;
-    // promote
-    if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
-    const prevActive = act;
-    activeSlotRef.current = slot;
-    setActiveSlot(slot);
-    setOutgoingSlot(prevActive);
-    outgoingTimer.current = setTimeout(() => {
-      const cur = slotSrcRef.current;
-      const cleared: [string, string] = [...cur];
-      cleared[prevActive] = '';
-      slotSrcRef.current = cleared;
-      setSlotSrc(cleared);
-      setOutgoingSlot(null);
-    }, FADE_MS + 100);
-  }, []);
+    if (promoteTimer.current) clearTimeout(promoteTimer.current);
+    promoteSlot(slot);
+  }, [promoteSlot]);
 
   // After the (non-looping) transition video ends → stop transition and
   // fall back to the looping wallpaper video. The looping wallpaper video
@@ -210,6 +238,14 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   useEffect(() => {
     useStore.getState().setCompanionRLayer(rLayer);
   }, [rLayer]);
+
+  // Clean up pending crossfade/promote timers on unmount.
+  useEffect(() => {
+    return () => {
+      if (outgoingTimer.current) clearTimeout(outgoingTimer.current);
+      if (promoteTimer.current) clearTimeout(promoteTimer.current);
+    };
+  }, []);
 
   // ── Resolve file URLs via app:// protocol (see declarations above) ──
 
