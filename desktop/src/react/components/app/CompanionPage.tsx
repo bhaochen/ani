@@ -281,10 +281,26 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
         aria-pressed={expanded}
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className={`${styles['corner']} ${styles['corner-tl']}`} />
-        <span className={`${styles['corner']} ${styles['corner-tr']}`} />
-        <span className={`${styles['corner']} ${styles['corner-bl']}`} />
-        <span className={`${styles['corner']} ${styles['corner-br']}`} />
+        <svg
+          className={styles['expand-icon']}
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          {expanded ? (
+            // exit-fullscreen: corners fold inward
+            <path d="M9 4 v3 a2 2 0 0 1 -2 2 h-3 M20 9 h-3 a2 2 0 0 1 -2 -2 v-3 M15 20 v-3 a2 2 0 0 1 2 -2 h3 M4 15 h3 a2 2 0 0 1 2 2 v3" />
+          ) : (
+            // fullscreen: corners splay outward
+            <path d="M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15" />
+          )}
+        </svg>
       </button>
 
       {/* Video area – two stacked layers crossfade on source change so the
