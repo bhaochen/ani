@@ -72,14 +72,17 @@ function WallpaperLayer({
       v.load();
     }
     const tryPlay = () => {
-      // Guard against the empty-src case that throws
-      // "The element has no supported sources" and would otherwise keep
-      // retrying forever.
-      if (!v.src || v.currentSrc === '') {
-        if (retryTimer.current) clearTimeout(retryTimer.current);
-        return;
+      let p: Promise<void> | undefined;
+      try {
+        // play() can throw synchronously with "no supported sources" if the
+        // element has no src yet; swallow it and retry shortly. NOTE: do NOT
+        // use v.currentSrc === '' to bail out — currentSrc is empty while the
+        // source is still loading (before the first frame), which is expected
+        // and must not stop retrying.
+        p = v.play();
+      } catch {
+        p = undefined;
       }
-      const p = v.play();
       if (p && typeof p.catch === 'function') {
         // autoplay/pipeline can reject (hidden tab, decoder not ready). Retry
         // shortly — a later attempt often succeeds (matches the "switch away
@@ -157,10 +160,12 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   // one is truly ready, then they crossfade.
   const FADE_MS = 700;
   // If the next layer never reports ready (hidden tab / decoder event dropped),
-  // still promote after this timeout so a switch is never stuck on a black gap.
-  // The old layer is mid crossfade-out, so promoting late just finishes the
-  // fade — no black frame.
-  const READY_TIMEOUT_MS = 600;
+  // still promote after this timeout so a switch is never stuck. The OLD layer
+  // keeps playing (visible) the whole time, so waiting longer costs nothing
+  // visually — no black frame. This is a last-resort safety net only; in
+  // practice the real canplay/playing event fires well before this (software
+  // AV1 decode on big B-mode clips can take a few seconds).
+  const READY_TIMEOUT_MS = 4000;
   const slotSrcRef = useRef<[string, string]>([videoSrc, '']);
   const activeSlotRef = useRef(0);
   const targetSrcRef = useRef(videoSrc);
