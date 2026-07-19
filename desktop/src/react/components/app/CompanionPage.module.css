@@ -43,9 +43,9 @@
   pointer-events: none;
 }
 
-/* Corner-bracket expand/collapse toggle (top-left). A small, rounded,
-   translucent dark-grey pill; the four corners are drawn with borders (no
-   glyphs). Normal = outward brackets (enlarge); expanded = inward (shrink). */
+/* Corner-bracket expand/collapse toggle (top-left). Deliberately unobtrusive:
+   invisible at rest (no fill, no frame, faint hairline corners) so it does not
+   disturb the wallpaper; it gently reveals on hover. */
 .expand-toggle {
   position: absolute;
   top: 12px;
@@ -56,31 +56,31 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: none;
   border-radius: 9px;
-  background: rgba(28, 28, 32, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
   cursor: pointer;
   pointer-events: auto;
-  transition: background var(--duration-fast, 120ms) var(--ease-out),
-              border-color var(--duration-fast, 120ms) var(--ease-out);
+  opacity: 0.32;
+  transition: opacity var(--duration-slow, 160ms) var(--ease-out),
+              background var(--duration-fast, 120ms) var(--ease-out);
 }
 
-.expand-toggle:hover {
-  background: rgba(40, 40, 46, 0.6);
-  border-color: rgba(255, 255, 255, 0.22);
+.expand-toggle:hover,
+.expand-toggle:focus-visible {
+  opacity: 0.9;
+  background: rgba(20, 20, 24, 0.35);
 }
 
 .expand-toggle:active {
-  background: rgba(52, 52, 60, 0.7);
+  background: rgba(30, 30, 36, 0.5);
 }
 
 .corner {
   position: absolute;
   width: 9px;
   height: 9px;
-  border: 0 solid rgba(255, 255, 255, 0.85);
+  border: 0 solid rgba(255, 255, 255, 0.55);
   border-radius: 3px;
   pointer-events: none;
   transition: border-width var(--duration-fast, 120ms) var(--ease-out);
@@ -90,58 +90,58 @@
 .corner-tl {
   top: 6px;
   left: 6px;
-  border-top-width: 2px;
-  border-left-width: 2px;
+  border-top-width: 1.5px;
+  border-left-width: 1.5px;
 }
 
 .corner-tr {
   top: 6px;
   right: 6px;
-  border-top-width: 2px;
-  border-right-width: 2px;
+  border-top-width: 1.5px;
+  border-right-width: 1.5px;
 }
 
 .corner-bl {
   bottom: 6px;
   left: 6px;
-  border-bottom-width: 2px;
-  border-left-width: 2px;
+  border-bottom-width: 1.5px;
+  border-left-width: 1.5px;
 }
 
 .corner-br {
   bottom: 6px;
   right: 6px;
-  border-bottom-width: 2px;
-  border-right-width: 2px;
+  border-bottom-width: 1.5px;
+  border-right-width: 1.5px;
 }
 
 /* Expanded (shrink): brackets open inward (mirror the borders) */
 .expanded-on .corner-tl {
   border-top-width: 0;
   border-left-width: 0;
-  border-bottom-width: 2px;
-  border-right-width: 2px;
+  border-bottom-width: 1.5px;
+  border-right-width: 1.5px;
 }
 
 .expanded-on .corner-tr {
   border-top-width: 0;
   border-right-width: 0;
-  border-bottom-width: 2px;
-  border-left-width: 2px;
+  border-bottom-width: 1.5px;
+  border-left-width: 1.5px;
 }
 
 .expanded-on .corner-bl {
   border-bottom-width: 0;
   border-left-width: 0;
-  border-top-width: 2px;
-  border-right-width: 2px;
+  border-top-width: 1.5px;
+  border-right-width: 1.5px;
 }
 
 .expanded-on .corner-br {
   border-bottom-width: 0;
   border-right-width: 0;
-  border-top-width: 2px;
-  border-left-width: 2px;
+  border-top-width: 1.5px;
+  border-left-width: 1.5px;
 }
 
 .companion-video-wrap {
