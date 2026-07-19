@@ -61,12 +61,24 @@ function WallpaperLayer({
 
   useEffect(() => {
     const v = ref.current;
-    if (!v || !src) return;
+    if (!v || !src) {
+      // No source (e.g. slot cleared after a crossfade): stop any pending retry
+      // so we never call play() on an element with no supported sources.
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      return;
+    }
     if (lastSrc.current !== src) {
       lastSrc.current = src;
       v.load();
     }
     const tryPlay = () => {
+      // Guard against the empty-src case that throws
+      // "The element has no supported sources" and would otherwise keep
+      // retrying forever.
+      if (!v.src || v.currentSrc === '') {
+        if (retryTimer.current) clearTimeout(retryTimer.current);
+        return;
+      }
       const p = v.play();
       if (p && typeof p.catch === 'function') {
         // autoplay/pipeline can reject (hidden tab, decoder not ready). Retry
