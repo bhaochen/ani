@@ -43,56 +43,105 @@
   pointer-events: none;
 }
 
-/* Corner-bracket expand/collapse toggle (top-left). The four characters form
-   a frame: normal = ┌ ┐ / └ ┘ (enlarge), expanded = ┘ └ / ┐ ┌ (shrink). */
+/* Corner-bracket expand/collapse toggle (top-left). A small, rounded,
+   translucent dark-grey pill; the four corners are drawn with borders (no
+   glyphs). Normal = outward brackets (enlarge); expanded = inward (shrink). */
 .expand-toggle {
   position: absolute;
-  top: 10px;
+  top: 12px;
   left: 14px;
   z-index: 2;
   width: 30px;
   height: 30px;
+  display: grid;
+  place-items: center;
   padding: 0;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.8);
-  font-family: var(--font-mono, monospace);
-  font-size: 14px;
-  line-height: 1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(28, 28, 32, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   pointer-events: auto;
+  transition: background var(--duration-fast, 120ms) var(--ease-out),
+              border-color var(--duration-fast, 120ms) var(--ease-out);
 }
 
 .expand-toggle:hover {
-  color: #fff;
+  background: rgba(40, 40, 46, 0.6);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
-.corner-tl,
-.corner-tr,
-.corner-bl,
-.corner-br {
+.expand-toggle:active {
+  background: rgba(52, 52, 60, 0.7);
+}
+
+.corner {
   position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 0 solid rgba(255, 255, 255, 0.85);
+  border-radius: 3px;
   pointer-events: none;
+  transition: border-width var(--duration-fast, 120ms) var(--ease-out);
 }
 
+/* Normal (enlarge): brackets open outward */
 .corner-tl {
-  top: 0;
-  left: 0;
+  top: 6px;
+  left: 6px;
+  border-top-width: 2px;
+  border-left-width: 2px;
 }
 
 .corner-tr {
-  top: 0;
-  right: 0;
+  top: 6px;
+  right: 6px;
+  border-top-width: 2px;
+  border-right-width: 2px;
 }
 
 .corner-bl {
-  bottom: 0;
-  left: 0;
+  bottom: 6px;
+  left: 6px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
 }
 
 .corner-br {
-  bottom: 0;
-  right: 0;
+  bottom: 6px;
+  right: 6px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Expanded (shrink): brackets open inward (mirror the borders) */
+.expanded-on .corner-tl {
+  border-top-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+.expanded-on .corner-tr {
+  border-top-width: 0;
+  border-right-width: 0;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+.expanded-on .corner-bl {
+  border-bottom-width: 0;
+  border-left-width: 0;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.expanded-on .corner-br {
+  border-bottom-width: 0;
+  border-right-width: 0;
+  border-top-width: 2px;
+  border-left-width: 2px;
 }
 
 .companion-video-wrap {

@@ -276,15 +276,15 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
           Expanded: ┘ └ / ┐ ┌ (inward brackets = shrink). */}
       <button
         type="button"
-        className={styles['expand-toggle']}
+        className={`${styles['expand-toggle']}${expanded ? ` ${styles['expanded-on']}` : ''}`}
         aria-label={expanded ? '退出沉浸' : '充满窗口'}
         aria-pressed={expanded}
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className={styles['corner-tl']}>{expanded ? '┘' : '┌'}</span>
-        <span className={styles['corner-tr']}>{expanded ? '└' : '┐'}</span>
-        <span className={styles['corner-bl']}>{expanded ? '┐' : '└'}</span>
-        <span className={styles['corner-br']}>{expanded ? '┌' : '┘'}</span>
+        <span className={`${styles['corner']} ${styles['corner-tl']}`} />
+        <span className={`${styles['corner']} ${styles['corner-tr']}`} />
+        <span className={`${styles['corner']} ${styles['corner-bl']}`} />
+        <span className={`${styles['corner']} ${styles['corner-br']}`} />
       </button>
 
       {/* Video area – two stacked layers crossfade on source change so the
