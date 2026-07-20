@@ -10,10 +10,13 @@ user/
 
 # ═══════════════════════════════════════════
 # 文档 / 参考文件
-# ═══════════════════════════════════════════
-assets/
+# ═════════════════════════════════════════
+assets/Wallpaper_Presence
+assets/Wallpaper_Ambience
+# 大视频资产（wallpaper / 落叶叠加层等）不进仓库；程序纹理小图 (.png) 仍保留
+*.webm
+desktop/src/assets/textures/leaves-overlay.webm
 .docs/
-CLAUDE.md
 AGENTS.md
 docs/superpowers/
 .superpowers/
@@ -57,7 +60,6 @@ node_modules
 *.code-workspace
 
 # 项目私有文件
-CLAUDE.md
 
 # 临时文件
 tmp/
