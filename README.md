@@ -139,8 +139,13 @@ Server 以独立 Node.js 进程运行（由 Electron spawn 或独立启动），
 # 安装依赖
 npm install
 
-# Electron 启动（自动构建 renderer）
+# Electron 启动（自动构建 renderer）生产式
+# 主进程/core 改动	同样需重启
 npm start
+
+# 热加载 开发式 自动开（F12 调试）渲染层热更（改 desktop/src/react/** 即时生效）
+# 主进程/core 改动	需重启	同样需重启（Electron 主进程不支持热更）
+npm run start:dev
 
 # Vite HMR 开发（需先运行 npm run dev:renderer）
 npm run start:vite
