@@ -1,7 +1,7 @@
 /**
  * LeavesOverlay — 树阴光影叠层
  *
- * 循环播放 leaves-overlay.webm（正放+倒放拼接，无缝循环），
+ * 循环播放 leaves-overlay.mp4（正放+倒放拼接，无缝循环），
  * mix-blend-mode: multiply 让白色区域透明，阴影叠在界面上。
  * 通过 body class toggle 控制开关（和纸质纹理同一模式）。
  */
@@ -9,7 +9,7 @@
 import { memo, useRef, useEffect, useState } from 'react';
 
 // Vite 会处理这个 import，返回构建后的资源 URL
-import leavesSrc from '../../assets/textures/leaves-overlay.webm';
+import leavesSrc from '../../assets/textures/leaves-overlay.mp4';
 
 export const LeavesOverlay = memo(function LeavesOverlay() {
   const videoRef = useRef<HTMLVideoElement>(null);
