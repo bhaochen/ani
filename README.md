@@ -15,8 +15,21 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/liliMozi/openhanako/releases)
 ## 📢 News
 
+- **2026-07-17** 🍃 陪伴页打磨 — 修复 `LeavesOverlay` 因 `*.webm` 与 `<source type="video/mp4">` 不匹配导致的叠加层不显示，回退为 `leaves-overlay.mp4`；设置 → 界面 → 外观 下的「晴天模式」现已正常叠加**叶片阴影**。
+- **2026-07-17** 🖥️ 默认工作台重命名 — 默认目录由 `OH-WorkSpace` 改为 `ANI-WorkSpace`（`~/Desktop/ANI-WorkSpace`），旧目录手动 `mv` 即可迁移，不再内建自动迁移逻辑。
+- **2026-07-17** 🎴 壁纸无缝切换 — 引入**双槽位就绪门控交叉淡入**（`WallpaperLayer`），新视频 `canplay`/`playing` 就绪后才提升为 active；`READY_TIMEOUT_MS=4000` 超时兜底，旧层持续播放，模式/分区快速切换**永不黑屏**；修复 B 模式（创作）因 `currentSrc==''` 早退而永不就绪的问题。
+- **2026-07-17** 🔘 陪伴模式栏 — 左侧栏（陪伴 tab）新增单行**分段控件**（日常 / 创作 / 思考），风格对齐顶部 tab 与频道底栏，由 `ui-slice` 的 `companionMode` 驱动。
+- **2026-07-17** ⛶ 沉浸式展开 — 陪伴页右下角 **Apple-minimal 玻璃质**按钮（↗/↙ 方向箭头，`opacity:0.5` 静止 hover 显现，`rotate(90deg)` 动画），切换 `.expanded`（`position:fixed; inset:0; z-index:1000`）。
+- **2026-07-17** 🎥 视频解码稳定性 — 在 **NVIDIA + Wayland** 下关闭 `disable-accelerated-video-decode` 并启用 `enable-unsafe-swiftshader`，统一走**软件解码**（AV1/VP9），规避 NVDEC/VAAPI 的 `vaEndPicture failed` 冻结；壁纸源由 `H.264` 转码为 `AV1 .webm`。
+- **2026-07-17** 🧩 区域容错 — `CompanionPage` 常驻挂载（`visibility:hidden` 而非 `display:none`）保持解码上下文；R 层由**氛围音 `ended`** 驱动循环（R1→R2→R3），视频始终 `loop` 不再重挂载，修复 TDZ 崩溃与黑帧。
+
 <details>
 <summary>Earlier news</summary>
+
+- **2026-07-15** 📝 模块化开发文档 — 新增 `docs/`（架构 / 桌面 / 渲染 / 状态 / 功能 / 工作流 / 复习），基于实际代码结构，含 **NVIDIA+Wayland 视频硬解**踩坑与面试速记。
+- **2026-07-15** 🗂️ 资产管线 — `.gitignore` 排除 `assets/Wallpaper_Presence`、`Wallpaper_Ambience` 与 `*.webm`（约 6 GB 视频不进仓库），通过安装包 / 对象存储分发。
+- **2026-04** 🏷️ 品牌与重构 — 项目由 `openhanako` 重命名为 **HanaAgent**，数据目录由 `.hanako/HANA_HOME` 迁移为 `.ani/ANI_HOME/aniHome`，并支持 **Node.js 26**（`better-sqlite3` 升级至 `v12.11.1`）。
+- **2026-04** 🧱 Markdown 编辑器增强 — 批量块操作、**marquee 选区**、块级 Grabber 对齐与复制原始 Markdown 等交互打磨。
 
 </details>
 
