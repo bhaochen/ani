@@ -12,8 +12,11 @@
 
 <p align="center"><a href="README_EN.md">English</a></p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/liliMozi/openhanako/releases)
+## News
+
+
+
 
 ---
 
