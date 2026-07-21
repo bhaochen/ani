@@ -89,8 +89,8 @@ describe('onboarding saveWorkspace', () => {
 
     await saveWorkspace({
       hanaFetch,
-      workspacePath: '/Users/test/Desktop/OH-WorkSpace',
-      defaultPath: '/Users/test/Desktop/OH-WorkSpace',
+      workspacePath: '/Users/test/Desktop/ANI-WorkSpace',
+      defaultPath: '/Users/test/Desktop/ANI-WorkSpace',
     });
 
     expect(hanaFetch).toHaveBeenNthCalledWith(1, '/api/config/default-workspace', {
@@ -101,7 +101,7 @@ describe('onboarding saveWorkspace', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         desk: {
-          home_folder: '/Users/test/Desktop/OH-WorkSpace',
+          home_folder: '/Users/test/Desktop/ANI-WorkSpace',
           heartbeat_enabled: false,
           heartbeat_interval: 31,
         },

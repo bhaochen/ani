@@ -2325,7 +2325,7 @@
     },
     "workspace": {
       "title": "建立工作台",
-      "subtitle": "我會把預設工作台放在桌面上的 OH-WorkSpace。\n你也可以選擇一個已有資料夾。",
+      "subtitle": "我會把預設工作台放在桌面上的 ANI-WorkSpace。\n你也可以選擇一個已有資料夾。",
       "defaultLabel": "預設工作台",
       "customLabel": "自選工作台",
       "defaultHint": "如果不選擇其他資料夾，將自動建立這個目錄。\n巡檢預設關閉，之後可在設定中開啟。",

@@ -2325,7 +2325,7 @@
     },
     "workspace": {
       "title": "创建工作台",
-      "subtitle": "我会把默认工作台放在桌面上的 OH-WorkSpace。\n你也可以选择一个已有文件夹。",
+      "subtitle": "我会把默认工作台放在桌面上的 ANI-WorkSpace。\n你也可以选择一个已有文件夹。",
       "defaultLabel": "默认工作台",
       "customLabel": "自选工作台",
       "defaultHint": "如果不选择其他文件夹，将自动创建这个目录。\n巡检默认关闭，之后可在设置中开启。",

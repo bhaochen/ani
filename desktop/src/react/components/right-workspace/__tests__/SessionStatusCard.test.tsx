@@ -12,7 +12,7 @@ const mockState: any = {
   currentSessionId: null,
   sessions: [],
   sessionLocatorsById: {},
-  deskBasePath: '/Users/x/OH-WorkSpace',
+  deskBasePath: '/Users/x/ANI-WorkSpace',
   currentModel: { id: 'gpt-x', provider: 'openai' },
   sessionModelsByPath: {},
   sessionRegistryFilesByPath: {},
@@ -38,7 +38,7 @@ describe('SessionStatusCard', () => {
     mockState.currentSessionId = null;
     mockState.sessions = [];
     mockState.sessionLocatorsById = {};
-    mockState.deskBasePath = '/Users/x/OH-WorkSpace';
+    mockState.deskBasePath = '/Users/x/ANI-WorkSpace';
     mockState.currentModel = { id: 'gpt-x', provider: 'openai' };
     mockState.sessionModelsByPath = {};
     mockState.sessionRegistryFilesByPath = {};

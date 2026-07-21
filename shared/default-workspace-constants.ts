@@ -1,2 +1,2 @@
-export const DEFAULT_WORKSPACE_DIRNAME = "OH-WorkSpace";
+export const DEFAULT_WORKSPACE_DIRNAME = "ANI-WorkSpace";
 export const DEFAULT_HEARTBEAT_INTERVAL_MINUTES = 31;

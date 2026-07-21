@@ -2325,7 +2325,7 @@
     },
     "workspace": {
       "title": "Create a Workspace",
-      "subtitle": "The default workspace will be OH-WorkSpace on your Desktop.\nYou can choose another existing folder.",
+      "subtitle": "The default workspace will be ANI-WorkSpace on your Desktop.\nYou can choose another existing folder.",
       "defaultLabel": "Default workspace",
       "customLabel": "Chosen workspace",
       "defaultHint": "If you do not choose another folder, this directory will be created automatically.\nPatrol is off by default and can be enabled later in settings.",
