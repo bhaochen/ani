@@ -13,10 +13,12 @@
 <p align="center"><a href="README_EN.md">English</a></p>
 
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/liliMozi/openhanako/releases)
-## News
+## 📢 News
 
+<details>
+<summary>Earlier news</summary>
 
-
+</details>
 
 ---
 
