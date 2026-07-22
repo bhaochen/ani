@@ -23,6 +23,7 @@
 - [overview.md](./architecture/overview.md) — 三大运行单元、目录结构、一次发消息的数据流、多入口、区域容错、资产不入库
 - [process-model.md](./architecture/process-model.md) — 启动时序、窗口结构、为什么 spawn Server、系统能力、自定义协议、崩溃容错
 - [backend-core.md](./architecture/backend-core.md) — HanaEngine facade、Agent 编排、会话、server 路由、数据目录、data epoch 内核互斥、安全模型
+- [tech-stack.md](./architecture/tech-stack.md) — 技术栈版本表、平台支持、LAN/Mobile 说明
 
 ### desktop/
 - [gpu-video.md](./desktop/gpu-video.md) — NVIDIA+Wayland 视频硬解坑与软件解码方案

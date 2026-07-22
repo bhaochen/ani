@@ -96,67 +96,19 @@
 - 📱 **Mobile & LAN Frontend** — The HanaAgent Server hosts a `/mobile/` PWA; phones log in via device access key or local account to view sessions, continue chatting, and manage workbench files. Another desktop connects over LAN URL + access key to the same Server and shares the same sessions and resources.
 - 🌍 **Internationalization** — UI in 5 languages: Chinese, English, Japanese, Korean, and Traditional Chinese.
 
-## 📦 Install
-
-首次启动时，引导向导会带你完成配置：选择语言、输入你的名字、连接模型提供商（API key + base URL），并选择三个模型：**对话模型**（主对话）、**小工具模型**（轻量任务）、**大工具模型**（记忆编译和深度分析）。设置页还可以单独选择**视觉模型**，让文本模型通过 Vision Bridge 处理图片附件。HanaAgent 支持 OpenAI 兼容、Anthropic 风格、OAuth Provider 和 Ollama 本地模型等多类接入。
-目前也添加了 OpenAI 的 OAuth 登录，鉴于 Anthropic 会有封号风险，所以暂时不提供。
-
-## 架构
-
-```
-core/           引擎编排层 + Manager（含 PluginManager）
-lib/            核心库（记忆、工具、沙盒、Bridge 适配器）
-server/         Hono HTTP + WebSocket 服务（独立 Node.js 进程）
-hub/            调度器、频道路由、事件总线
-desktop/        Electron 应用 + React 前端
-shared/         跨层共享工具（config schema、error bus、模型引用等）
-plugins/        内置系统插件（随应用打包）
-skills2set/     内置技能定义
-scripts/        构建工具（server 打包、启动器、签名）
-tests/          Vitest 测试
-```
-
-引擎层协调多个 Manager（Agent、Session、Model、Preferences、Skill、Channel、BridgeSession、Plugin 等），通过统一的 facade 暴露。Hub 负责后台任务（心跳巡检、自动化 / 定时任务、频道路由、Agent 间通信、DM 路由），独立于当前聊天会话运行。
-
-Session 内的用户可见文件通过 `SessionFile` sidecar 统一登记，桌面端、Bridge、Mobile PWA 和其它远程前端按各自能力消费同一份文件身份。各 Bridge adapter 显式声明自己的媒体类型、投递方式与大小限制；插件文件贡献规则见 `PLUGINS.md`。
-
-本机 staged 文件优先由各平台 adapter 直接上传：Telegram / 飞书 / 微信走各自上传接口，QQ 走官方 Bot 分片上传接口，再发送 `msg_type: 7` 富媒体消息。`preferences.bridge.mediaPublicBaseUrl` / `HANA_BRIDGE_PUBLIC_BASE_URL` 只用于仍需公网 URL 的平台或远程 fallback；该 URL 作为 `/api/bridge/media/:token` 临时文件路由的 origin，文件本身仍由短期 token、下载次数和本地路径白名单保护。Hana 不会自动开启公网 tunnel，公网入口必须由用户显式提供。
-
-Server 以独立 Node.js 进程运行（由 Electron spawn 或独立启动），通过 Vite 打包，@vercel/nft 追踪依赖。与 Electron 渲染进程通过 WebSocket 通信。
-用户数据目录由 `ANI_HOME` 决定（生产默认 `~/.ani`，开发默认 `~/.ani-dev`）。Hana 管理的 Pi SDK 运行时资源位于 `${ANI_HOME}/runtime/pi-sdk/`；Hana 不依赖 Pi 的全局 agent 目录或 `PI_CODING_AGENT_DIR`。旧版本遗留在 `${ANI_HOME}/.pi/agent/bin/` 的 `fd` / `rg` 只会在首次使用相应搜索工具时复制到新目录，旧文件会原样保留。
-
-## 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| 桌面端 | Electron 42 |
-| 前端 | React 19 + Zustand 5 + CSS Modules |
-| 构建 | Vite 7 |
-| 服务端 | Hono + @hono/node-server |
-| Agent 运行时 | [Pi SDK](https://github.com/badlogic/pi-mono) |
-| 数据库 | better-sqlite3（WAL 模式） |
-| 测试 | Vitest |
-| 国际化 | 5 语言（zh / en / ja / ko / zh-TW） |
-
-## 平台支持
-
-| 平台 | 状态 |
-|------|------|
-| macOS (Apple Silicon) | 已支持（已签名公证） |
-| macOS (Intel) | 已支持 |
-| Windows | Beta |
-| Linux | 已支持（AppImage / deb） |
-| 移动端 (PWA) | v0：同一 HanaAgent Server 的手机会话与工作台访问 |
-
-## 开发
+## 🚀 Quick Start
 
 ```bash
-# 安装依赖
+git clone https://github.com/chenbhao/ani.git && cd ani
+
+# 安装依赖 npm ci 完全按照版本
 npm install
 
 # Electron 启动（自动构建 renderer）生产式
 # 主进程/core 改动	同样需重启
 npm start
+
+# check ~/.ani and ~/.ani-dev
 
 # 热加载 开发式 自动开（F12 调试）渲染层热更（改 desktop/src/react/** 即时生效）
 # 主进程/core 改动	需重启	同样需重启（Electron 主进程不支持热更）
@@ -177,3 +129,34 @@ npm test
 # 类型检查
 npm run typecheck
 ```
+
+首次启动时，引导向导会带你完成配置：选择语言、输入你的名字、连接模型提供商（API key + base URL），并选择三个模型：**对话模型**（主对话）、**小工具模型**（轻量任务）、**大工具模型**（记忆编译和深度分析）。设置页还可以单独选择**视觉模型**，让文本模型通过 Vision Bridge 处理图片附件。HanaAgent 支持 OpenAI 兼容、Anthropic 风格、OAuth Provider 和 Ollama 本地模型等多类接入。
+目前也添加了 OpenAI 的 OAuth 登录，鉴于 Anthropic 会有封号风险，所以暂时不提供。
+
+## 🏗️ Architecture
+
+Ani is a three-part system: an **Electron desktop shell**, a standalone **Node.js backend** (`core/` + `server/`, the source of truth), and a **React renderer**. The engine layer coordinates Managers (Agent, Session, Model, Preferences, Skill, Channel, BridgeSession, Plugin, …) behind a single facade; `hub/` owns background work (heartbeat, automation/scheduled tasks, channel routing, inter-Agent messaging) independent of the active chat.
+
+User-visible session files are registered uniformly via a `SessionFile` sidecar so the desktop client, Bridges, the Mobile PWA, and other remote frontends share one file identity. The Server runs as its own Node.js process (spawned by Electron or standalone), bundled with Vite + `@vercel/nft`, talking to the renderer over WebSocket. User data lives under `ANI_HOME` (production `~/.ani`, dev `~/.ani-dev`).
+
+> Full details — repository layout, cross-surface file identity, Bridge media flow, and the `ANI_HOME` / Pi SDK layout — are in **[docs/architecture/overview.md](./docs/architecture/overview.md)** and **[docs/architecture/backend-core.md](./docs/architecture/backend-core.md)**.
+
+## 🧰 Tech Stack & Platforms
+
+| Layer | Technology |
+| --- | --- |
+| Desktop shell | Electron 42 |
+| Frontend | React 19 + Zustand 5 + CSS Modules |
+| Build | Vite 7 |
+| Server | Hono + `@hono/node-server` |
+| Agent runtime | [Pi SDK](https://github.com/badlogic/pi-mono) |
+| Database | `better-sqlite3` (WAL mode) |
+| Tests | Vitest |
+| i18n | 5 languages (zh / en / ja / ko / zh-TW) |
+
+**Platform support:** macOS (Apple Silicon, signed & notarized) · macOS (Intel) · Windows (Beta) · Linux (AppImage / deb) · Mobile PWA (v0, same-server access).
+
+> Versions, platform status, and LAN/Mobile notes: **[docs/architecture/tech-stack.md](./docs/architecture/tech-stack.md)**.
+
+## 开发
+
