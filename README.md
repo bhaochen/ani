@@ -70,34 +70,29 @@
 
 ## ✨ Features
 
+### 🤖 Agent & Personality
 - 🧠 **Memory** — A memory system that blends mainstream approaches with custom refinements; recent events are remembered firmly (long-term recall still being optimized).
-
 - 🎭 **Personality** — Not a generic "AI assistant". Personality templates and custom personality files shape a distinct character per Agent — its own voice and behavior logic. Agents are well-isolated, easy to back up (an Agent *is* a folder), with backup tooling on the way.
-
-- 🛠️ **Tools** — Read/write files, run one-shot commands or persistent terminal sessions, browse the web, search the internet via a browser backend or APIs, capture screenshots and long scrolling captures, preview media, and inspect pages. Covers the vast majority of daily-office scenarios. A server-first CLI can connect to the same HanaAgent Server to check status, list sessions, and continue conversations from the terminal.
-
-- 🧩 **Skills** — Built-in compatibility with the broad SKILLS community ecosystem, plus proactive optimizations: an Agent can install community skills from GitHub before a task, and can author and learn new skills on its own. Skills review is strict by default; you can disable it if installation is blocked.
-
-- 🃏 **Character Cards & Skill Bundles** — Agents import/export as local-first character-card zips, carrying persona, avatar, optional memory, and Skills via an allowlist. Skill Bundles are standalone skill-pack infrastructure: group, drag, enable in batches, and export individually as zip for migration and sharing.
-
 - 👥 **Multi-Agent** — Create multiple Agents, each with its own memory, personality, and scheduled tasks. Agents collaborate through channel group chats or delegate tasks to one another.
 
+### 🛠️ Capabilities
+- 🧰 **Tools** — Read/write files, run one-shot commands or persistent terminal sessions, browse the web, search the internet via a browser backend or APIs, capture screenshots and long scrolling captures, preview media, and inspect pages. Covers the vast majority of daily-office scenarios. A server-first CLI can connect to the same HanaAgent Server to check status, list sessions, and continue conversations from the terminal.
+- 🧩 **Skills** — Built-in compatibility with the broad SKILLS community ecosystem, plus proactive optimizations: an Agent can install community skills from GitHub before a task, and can author and learn new skills on its own. Skills review is strict by default; you can disable it if installation is blocked.
+- 🃏 **Character Cards & Skill Bundles** — Agents import/export as local-first character-card zips, carrying persona, avatar, optional memory, and Skills via an allowlist. Skill Bundles are standalone skill-pack infrastructure: group, drag, enable in batches, and export individually as zip for migration and sharing.
 - 🗂️ **Desk** — Every Agent has its own desk for files and notes (sticky-like; the Agent proactively reads and acts on them). Drag-and-drop, file preview, and workbench file-tree change watching make it an async collaboration space between you and the Agent.
-
 - 🔍 **Full-screen Media Viewer** — Any image, SVG, or video in chat or on the desk opens in a dark-masked full-screen preview: scroll to zoom, drag to pan, `+`/`-`/`0` shortcuts, and arrow keys to move between adjacent media in the same session or folder.
 
+### 💬 Sessions & Automation
 - 💬 **Session Management** — Sidebar search prioritizes title hits, then falls back to message bodies; archive old sessions and restore or permanently delete them from Settings. Selected text in a message becomes a quote card in the input, preserving context when you follow up.
-
 - ⏰ **Scheduled Tasks & Heartbeat** — Agents run Cron schedules and periodically inspect desk file changes. The automation executor now separates *when* from *what*: complex jobs still run in the Agent's background, lightweight reminders send notifications directly, and plugin actions can be scheduled too.
 
+### 🔐 Security & Extensibility
 - 🛡️ **Security Sandbox** — Two-layer isolation: app-level PathGuard four-tier access control plus OS-level sandboxing (macOS Seatbelt / Linux Bubblewrap / Windows restricted token). The Agent's permissions stay in your hands — read-only to ordinary files by default, writes/deletes confined to the work dir and controlled data dir. Windows uses a write-isolation model; adjust the level in Settings → Security. External network can use a system proxy, manual proxy, or direct connection.
-
 - 🧩 **Plugin System** — Convention-first extensible architecture. Drag to install community plugins; plugins contribute tools, skills, commands, Agent templates, HTTP routes, Pi SDK extensions, LLM Providers, pages, sidebar Widgets, config schema, and background tasks. Routes reach core services directly (via injected `PluginContext`) and talk to Agents through the Session Bus. A two-tier permission model (restricted / full-access) keeps things safe.
 
+### 🌐 Platforms & Reach
 - 🌐 **Multi-platform Bridge** — The same Agent connects to Telegram, Feishu, QQ, and WeChat bots at once — talk to it on any platform and operate your computer remotely. Bridge messages carry platform context, and notifications can echo back to the active external platform.
-
 - 📱 **Mobile & LAN Frontend** — The HanaAgent Server hosts a `/mobile/` PWA; phones log in via device access key or local account to view sessions, continue chatting, and manage workbench files. Another desktop connects over LAN URL + access key to the same Server and shares the same sessions and resources.
-
 - 🌍 **Internationalization** — UI in 5 languages: Chinese, English, Japanese, Korean, and Traditional Chinese.
 
 ## 📦 Install
