@@ -61,14 +61,15 @@
 ## ✨ Features
 
 > [!TIP]
-> Ani 是一个更加易用的 AI agent，有记忆，有性格，会主动行动，还能多 Agent 在你的电脑上一同工作。
-> 作为助手，Ta 是温柔的：不需要写复杂的配置，不需要理解晦涩的术语。Ani 它不只面向 coder
-> 而是为每一个坐在电脑前工作的人设计的助手。
-> 作为工具，Ta是强大的:记住你说过的每一件事,操作你的电脑,浏览网页,搜索信息,读写文件,执行代码,管理日程,还能自主学习新技能
-> 我开这个项目的初衷是：弥合绝大多数人和 AI Agent 之间的缝隙，让强大的 Agent 能力不再只局限于命令行里。于是我做了比传统 Coding Agent 更多一些的优化：一方面是强化 Agent「像人」的属性，是你和他们沟通更自然；另一方面，因为我本职也是一介文员，所以我也针对日常办公场景做了很多工具性和流程性的优化，敬请探索。
-> 此外，Ani 有比较完备的图形页面
-
-## ✨ Features
+> **Ani** is an AI agent with memory and personality that acts on its own initiative — and can run multiple Agents together on your computer.
+>
+> As a companion, it is gentle: no complex setup, no cryptic jargon. Ani is built not just for coders, but for everyone who works at a computer.
+>
+> As a tool, it is powerful: it remembers everything you say, operates your machine, browses the web, searches information, reads and writes files, runs code, manages your schedule, and even learns new skills on its own.
+>
+> The original intent was to close the gap between ordinary people and AI Agents — to take that power out of the terminal. Beyond a typical coding agent, Ani strengthens the "human" side of interaction and, drawing on my own office work, optimizes many tooling and workflow details for daily knowledge work. Explore and enjoy.
+>
+> Ani also ships a complete graphical interface.
 
 ### 🤖 Agent & Personality
 - 🧠 **Memory** — A memory system that blends mainstream approaches with custom refinements; recent events are remembered firmly (long-term recall still being optimized).
