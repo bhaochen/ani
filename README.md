@@ -15,47 +15,47 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/liliMozi/openhanako/releases)
 ## 📢 News
 
-- **2026-07-17** 🍃 陪伴页打磨 — 修复 `LeavesOverlay` 因 `*.webm` 与 `<source type="video/mp4">` 不匹配导致的叠加层不显示，回退为 `leaves-overlay.mp4`；设置 → 界面 → 外观 下的「晴天模式」现已正常叠加**叶片阴影**。
-- **2026-07-17** 🖥️ 默认工作台重命名 — 默认目录由 `OH-WorkSpace` 改为 `ANI-WorkSpace`（`~/Desktop/ANI-WorkSpace`），旧目录手动 `mv` 即可迁移，不再内建自动迁移逻辑。
-- **2026-07-17** 🎴 壁纸无缝切换 — 引入**双槽位就绪门控交叉淡入**（`WallpaperLayer`），新视频 `canplay`/`playing` 就绪后才提升为 active；`READY_TIMEOUT_MS=4000` 超时兜底，旧层持续播放，模式/分区快速切换**永不黑屏**；修复 B 模式（创作）因 `currentSrc==''` 早退而永不就绪的问题。
-- **2026-07-17** 🔘 陪伴模式栏 — 左侧栏（陪伴 tab）新增单行**分段控件**（日常 / 创作 / 思考），风格对齐顶部 tab 与频道底栏，由 `ui-slice` 的 `companionMode` 驱动。
-- **2026-07-17** ⛶ 沉浸式展开 — 陪伴页右下角 **Apple-minimal 玻璃质**按钮（↗/↙ 方向箭头，`opacity:0.5` 静止 hover 显现，`rotate(90deg)` 动画），切换 `.expanded`（`position:fixed; inset:0; z-index:1000`）。
-- **2026-07-17** 🎥 视频解码稳定性 — 在 **NVIDIA + Wayland** 下关闭 `disable-accelerated-video-decode` 并启用 `enable-unsafe-swiftshader`，统一走**软件解码**（AV1/VP9），规避 NVDEC/VAAPI 的 `vaEndPicture failed` 冻结；壁纸源由 `H.264` 转码为 `AV1 .webm`。
-- **2026-07-17** 🧩 区域容错 — `CompanionPage` 常驻挂载（`visibility:hidden` 而非 `display:none`）保持解码上下文；R 层由**氛围音 `ended`** 驱动循环（R1→R2→R3），视频始终 `loop` 不再重挂载，修复 TDZ 崩溃与黑帧。
-- **2026-07-12** 🚀 热更新管线 — 新增 **hot-update train** 发布流水线（`artifact-core` 库含 ustar 安全解压 / manifest 验签 / 指针存储 / 激活流程）；自动更新改为**只检查不下载**，下载与应用由用户点击触发；崩溃回退后向用户明确提示。
-- **2026-07-10** 🔒 数据目录加固 — `data epoch` 单调闸拒止旧内核打开新格式数据；同目录**内核互斥**（token 认证探测）；`loopback` 端口随机分配与运行期自愈，弃用固定默认 `14500`。
-- **2026-07-10** 🤝 跨 Session 协作 v0 — 工具读/写侧、draft 挂载、投递单点（空闲提交 / 跑动插入 / 竞态兜底）、草稿确认卡与 Agent 来源消息卡，桥接快照裁剪与分类登记。
-- **2026-07-08** 🔎 会话内搜索 — `Cmd+F` 会话内查找栏 + 消息级命中路由（`/api/sessions/find`），命中可跳到最佳匹配消息；`chat-find` slice 管理 keyed 查找态与定位意图。
-- **2026-07-07** 📰 报刊式排版 — Markdown 预览改用 **newsprint** 基线网格与 `PT Serif` 字体度量（`--tool-bg` 全主题加深一档），reading 默认切换为报刊指标。
-- **2026-07-04** 🧠 记忆流水线 — 周重编译改为**滚动每日摘要传送带**，今日记忆编译增量 + summary watermark；新增四段式记忆编辑器（按天/周条目），editable facts 提升为 canonical facts 管线。
-- **2026-06-28** 📝 通用 Markdown 编辑器 — `EditorContextMenu` 内化为 `PreviewEditor` 通用覆盖，圆角格式工具条；块级**拖拽手柄**、批量块操作与 **marquee 选区**。
-- **2026-06-22** 🧩 插件体系扩充 — `native chat surface cards`、资源监听 helper、SDK 发现与开发循环稳定；`resource-io` 统一远端资源预览访问与权威审计。
-- **2026-06-21** 📡 资源 IO 后端订阅 — `resource-io` provider 调度层 + 后端订阅 API，文件工具与 watch 收敛，workbench 变更事件（增删改/重命名）驱动预览重载。
-- **2026-06-21** 💬 钉钉桥接 — 新增 **DingTalk bridge adapter**，并持续增强 **Plugin Card Protocol**（iframe 卡片从 `tool_end` 渲染、自动注入 `pluginId`）。
-- **2026-05-31** 🤖 Subagent 复用 — 单 subagent **复用实例**（`reuseKey` + `resume` 续接 + 串行锁），per-session 作用域互不串味；右侧 subagent 卡复刻群聊（agent 行 + 点击展开实时流）。
-- **2026-05-30** 🔧 三段式重构 — 统一 **Agent Activity 真相源**（ActivityHub）数据链；Workflow 改为 per-agent 工具开关（默认关）并接入 agent。
-- **2026-05-25** 🏷️ 分发面更名 — distribution surface 重命名为 **HanaAgent**；重构 image-gen providers；新增 onboarding 记忆设置与 session 搜索/归档入口。
-- **2026-04-08** 🗃️ 统一迁移框架 — 数据迁移框架收敛（`fix #356` 悬空 provider 引用）；模型引用全线切到 `(provider, id)` **复合键**。
-- **2026-04-01** 🔌 插件兼容 — `minAppVersion` 检查跳过不兼容插件；**deepseek/qwen** provider-compat 子模块与 reasoning 内容兜底提取。
-- **2026-03-31** 🧩 插件 UI 面板 — 插件可声明 **page tab + sidebar widget** 双贡献；`PluginPageView`/`PluginWidgetView` + 动态 `ChannelTabBar`/`WidgetButtons`，`plugin-ui` slice 与初始化。
-- **2026-03-29** 🎨 图像生成系统插件 — `image-gen` 系统插件 + `MediaTab` 设置页 + provider 模型类型支持；plugin route context 与 session bus 携带 `agentId`。
+- **2026-07-17** 🍃 Companion polish — Fixed `LeavesOverlay` not showing because `*.webm` was paired with `<source type="video/mp4">`; reverted to `leaves-overlay.mp4`. The **leaf-shadow** overlay (Settings → Interface → Appearance → "Sunny Mode") now renders correctly.
+- **2026-07-17** 🖥️ Default workspace rename — Default directory changed from `OH-WorkSpace` to `ANI-WorkSpace` (`~/Desktop/ANI-WorkSpace`); migrate the old dir manually via `mv`, no built-in auto-migration.
+- **2026-07-17** 🎴 Seamless wallpaper switching — Introduced **ready-gated two-slot crossfade** (`WallpaperLayer`): the new video is promoted to active only after `canplay`/`playing`; `READY_TIMEOUT_MS=4000` fallback keeps the old layer playing so mode/slot switches **never go black**. Fixed B-mode (Creation) never becoming ready due to a `currentSrc==''` early bail.
+- **2026-07-17** 🔘 Companion mode rail — Added a single-row **segmented control** (Daily / Creation / Thinking) in the left sidebar (Companion tab), styled like the top tab bar and channel bottom bar, driven by `ui-slice`'s `companionMode`.
+- **2026-07-17** ⛶ Immersive expand — **Apple-minimal glassmorphism** button at the bottom-right of the companion page (↗/↙ arrows, `opacity:0.5` at rest, reveal on hover, `rotate(90deg)`), toggling `.expanded` (`position:fixed; inset:0; z-index:1000`).
+- **2026-07-17** 🎥 Video decode stability — On **NVIDIA + Wayland**, disabled `disable-accelerated-video-decode` and enabled `enable-unsafe-swiftshader` to force **software decode** (AV1/VP9), avoiding NVDEC/VAAPI `vaEndPicture failed` freezes; wallpaper sources transcoded from `H.264` to `AV1 .webm`.
+- **2026-07-17** 🧩 Region fault tolerance — `CompanionPage` stays mounted (`visibility:hidden` instead of `display:none`) to preserve the decode context; R-layers cycle on ambient-audio `ended` (R1→R2→R3) while the video always `loop`s (no remount), fixing a TDZ crash and black frames.
+- **2026-07-12** 🚀 Hot-update pipeline — Added a **hot-update train** release pipeline (`artifact-core` lib: safe ustar extract / manifest verify / pointer store / activation); auto-update now **checks but does not download**, with download/apply triggered by the user; clear prompt after a crash rollback.
+- **2026-07-10** 🔒 Data-directory hardening — `data epoch` monotonic gate rejects old kernels opening new-format data; single-kernel mutual exclusion via token probe; random `loopback` port with runtime self-healing, dropping the fixed default `14500`.
+- **2026-07-10** 🤝 Cross-Session Collaboration v0 — Tool read/write sides, draft mounting, single delivery point (idle commit / running insert / race fallback), draft confirmation cards and agent-source message cards, bridge snapshot pruning and classification.
+- **2026-07-08** 🔎 In-conversation search — `Cmd+F` in-conversation find bar + message-level hit route (`/api/sessions/find`); hits jump to the best-match message; `chat-find` slice manages keyed find state and locate intent.
+- **2026-07-07** 📰 Newsprint typography — Markdown preview switched to a **newsprint** baseline grid with `PT Serif` metrics (`--tool-bg` deepened one notch across all themes); reading defaults moved to newsprint metrics.
+- **2026-07-04** 🧠 Memory pipeline — Replaced weekly recompilation with a **rolling daily-digest conveyor**; today's memory compiles incrementally with a summary watermark; added a four-section memory editor (day/week entries); editable facts promoted to the canonical facts pipeline.
+- **2026-06-28** 📝 Universal Markdown editor — `EditorContextMenu` internalized into `PreviewEditor` for universal coverage with a rounded format toolbar; block-level **drag handles**, batch block actions, and **marquee selection**.
+- **2026-06-22** 🧩 Plugin system expansion — `native chat surface cards`, resource-watch helpers, stabilized SDK discovery and dev loop; `resource-io` unified remote resource preview access with authority audit.
+- **2026-06-21** 📡 Resource-IO backend subscription — `resource-io` provider dispatch layer + backend subscription API; file tools and watches converged; workbench mutation events (add/delete/rename) drive preview reload.
+- **2026-06-21** 💬 DingTalk bridge — Added a **DingTalk bridge adapter** and kept extending the **Plugin Card Protocol** (iframe cards rendered from `tool_end`, auto-injected `pluginId`).
+- **2026-05-31** 🤖 Subagent reuse — Single subagent **reuse instance** (`reuseKey` + `resume` + serial lock), per-session scope so conversations don't cross-contaminate; right-side subagent card mimics a group chat (agent row + click-to-expand live stream).
+- **2026-05-30** 🔧 Three-stage refactor — Unified the **Agent Activity source of truth** into `ActivityHub`; Workflow became a per-agent tool toggle (off by default) wired into the agent.
+- **2026-05-25** 🏷️ Distribution rename — Distribution surface renamed to **HanaAgent**; refactored image-gen providers; added onboarding memory setup and session search/archive entries.
+- **2026-04-08** 🗃️ Unified migration framework — Consolidated the data-migration framework (`fix #356` dangling provider refs); model references moved to the `(provider, id)` **composite key**.
+- **2026-04-01** 🔌 Plugin compatibility — `minAppVersion` check skips incompatible plugins; **deepseek/qwen** provider-compat submodules with reasoning-content fallback extraction.
+- **2026-03-31** 🧩 Plugin UI panels — Plugins can declare **page tab + sidebar widget** dual contributions; `PluginPageView`/`PluginWidgetView` + dynamic `ChannelTabBar`/`WidgetButtons`, `plugin-ui` slice and initialization.
+- **2026-03-29** 🎨 Image-gen system plugin — `image-gen` system plugin + `MediaTab` settings page + provider model-type support; plugin route context and session bus carry `agentId`.
 
 <details>
 <summary>Earlier news</summary>
 
-- **2026-07-15** 📝 模块化开发文档 — 新增 `docs/`（架构 / 桌面 / 渲染 / 状态 / 功能 / 工作流 / 复习），基于实际代码结构，含 **NVIDIA+Wayland 视频硬解**踩坑与面试速记。
-- **2026-07-15** 🗂️ 资产管线 — `.gitignore` 排除 `assets/Wallpaper_Presence`、`Wallpaper_Ambience` 与 `*.webm`（约 6 GB 视频不进仓库），通过安装包 / 对象存储分发。
-- **2026-07-05** 🪞 镜像发布 — 构建后镜像到 **atomgit**，updater 优先 atomgit 并 GitHub 兜底；新增 release digest 流程。
-- **2026-07-02** 🪟 Windows 运行时 — 以 **MinGit** 替换 PortableGit 运行时。
-- **2026-06-20** 🖥️ 通用 Markdown 预览 — universal markdown preview chrome 上线。
-- **2026-05-23** ⚙️ 自动化 — 新增 plugin automation actions，agents 可直接更新设置。
-- **2026-05-21** 📱 移动端 — 改进 mobile titlebar 与键盘布局，bridge sessions 同步进 memory ticker。
-- **2026-04** 🏷️ 品牌与重构 — 项目由 `openhanako` 重命名为 **HanaAgent**，数据目录由 `.hanako/HANA_HOME` 迁移为 `.ani/ANI_HOME/aniHome`，并支持 **Node.js 26**（`better-sqlite3` 升级至 `v12.11.1`）。
-- **2026-04-03** 🧩 延迟子代理 — deferred subagent、`check-deferred` 工具、plugin card v2、image-gen media routes。
-- **2026-04-02** 🖼️ 图像生成 — `image-gen` 从 dreamina 抽取 `TaskStore`（taskId 重命名 + adapterId），新增 deferred result Pi SDK 扩展。
-- **2026-03-30** 🔌 PI SDK 升级 — adapter 层 + patch 加固，升级 `PI SDK 0.56.3 → 0.64.0`，bridge 收到消息即发「AgentName 正在输入…」降低体感延迟。
-- **2026-03-31** 📌 插件卡片协议 — `<card>` 标签从历史重建 plugin_card blocks，right-click pin/unpin widget 按钮与插件页 tab。
-- **2026-02** 🌱 项目创世 — HanaAgent 前身 `openhanako` 起步，致力于把强大的 **Agent 能力**带出命令行，面向每一个坐在电脑前工作的人。
+- **2026-07-15** 📝 Modular developer docs — Added `docs/` (architecture / desktop / renderer / state / features / workflow / study) based on the actual code, including the **NVIDIA+Wayland video-decode** gotcha and an interview cheat-sheet.
+- **2026-07-15** 🗂️ Asset pipeline — `.gitignore` excludes `assets/Wallpaper_Presence`, `Wallpaper_Ambience`, and `*.webm` (~6 GB of video kept out of the repo), distributed via installer / object storage.
+- **2026-07-05** 🪞 Mirror releases — Mirror builds to **atomgit** after build; updater prefers atomgit with GitHub fallback; added release-digest flow.
+- **2026-07-02** 🪟 Windows runtime — Replaced PortableGit runtime with **MinGit**.
+- **2026-06-20** 🖥️ Universal Markdown preview — Universal markdown preview chrome shipped.
+- **2026-05-23** ⚙️ Automation — Added plugin automation actions; agents can update settings directly.
+- **2026-05-21** 📱 Mobile — Improved mobile titlebar and keyboard layout; bridge sessions synced into the memory ticker.
+- **2026-04** 🏷️ Rebrand & refactor — Project renamed from `openhanako` to **HanaAgent**; data dir migrated from `.hanako/HANA_HOME` to `.ani/ANI_HOME/aniHome`; added **Node.js 26** support (`better-sqlite3` upgraded to `v12.11.1`).
+- **2026-04-03** 🧩 Deferred subagent — deferred subagent, `check-deferred` tool, plugin card v2, image-gen media routes.
+- **2026-04-02** 🖼️ Image generation — `image-gen` `TaskStore` extracted from dreamina (taskId rename + adapterId); added deferred-result Pi SDK extension.
+- **2026-03-30** 🔌 PI SDK upgrade — Adapter layer + patch hardening; upgraded `PI SDK 0.56.3 → 0.64.0`; bridge sends "AgentName is typing…" on message receipt to reduce perceived latency.
+- **2026-03-31** 📌 Plugin Card Protocol — Rebuild `plugin_card` blocks from `<card>` tags in history; right-click pin/unpin for widget buttons and plugin page tabs.
+- **2026-02** 🌱 Project genesis — HanaAgent's predecessor `openhanako` began, aiming to bring powerful **Agent capability** out of the terminal for everyone working at a computer.
 
 </details>
 
