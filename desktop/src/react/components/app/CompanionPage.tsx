@@ -36,6 +36,22 @@ function appAssetUrl(relativePath: string): string {
   return `app://local/${relativePath}`;
 }
 
+// Resolve the wallpaper video file path for a given mode / R-layer / time slot.
+// During a time-slot transition the clip is `${mode}_Transition_${from}_${to}.webm`,
+// otherwise `${mode}_${rLayer}_${slot}.webm`. `from` must be the slot we are
+// leaving (not the destination) or the file won't exist → "not found sources".
+export function resolveWallpaperFile(
+  mode: string,
+  rLayer: string,
+  slot: string,
+  isTransition: boolean,
+  fromSlot: string,
+): string {
+  return isTransition
+    ? `assets/Wallpaper_Presence/${mode}_Transition_${fromSlot}_${slot}.webm`
+    : `assets/Wallpaper_Presence/${mode}_${rLayer}_${slot}.webm`;
+}
+
 // A single wallpaper video layer. Keeps the same DOM node across src changes
 // (keyed by slot index, not src) so we only reload+play when the src prop
 // actually changes — no remount, no black frame. Reports readiness so the
@@ -122,6 +138,12 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   const [slot, setSlot] = useState<'1200' | '1730' | '2000'>(getTimeSlot());
   const [isTransition, setIsTransition] = useState(false);
   const prevSlotRef = useRef(slot);
+  // Capture the slot we are transitioning *from* so the transition video
+  // filename can be built as `${mode}_Transition_${from}_${to}` correctly.
+  // Without this, prevSlotRef is overwritten by the time we compute the
+  // filename (below), producing a non-existent `${mode}_Transition_${to}_${to}.webm`
+  // which surfaces as "The element not found sources".
+  const transitionFromRef = useRef(slot);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Poll system clock every minute
@@ -133,15 +155,14 @@ export function CompanionPage({ hidden = false }: { hidden?: boolean }) {
   // When time slot changes → play transition video first
   useEffect(() => {
     if (prevSlotRef.current !== slot) {
+      transitionFromRef.current = prevSlotRef.current;
       setIsTransition(true);
     }
     prevSlotRef.current = slot;
   }, [slot]);
 
   // ── Resolve file URLs via app:// protocol ──
-  const videoFile = isTransition
-    ? `assets/Wallpaper_Presence/${mode}_Transition_${prevSlotRef.current}_${slot}.webm`
-    : `assets/Wallpaper_Presence/${mode}_${rLayer}_${slot}.webm`;
+  const videoFile = resolveWallpaperFile(mode, rLayer, slot, isTransition, transitionFromRef.current);
 
   const audioFile = isTransition
     ? 'assets/Wallpaper_Ambience/ambient_loop_22.mp3'
