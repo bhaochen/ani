@@ -68,35 +68,37 @@
 > 我开这个项目的初衷是：弥合绝大多数人和 AI Agent 之间的缝隙，让强大的 Agent 能力不再只局限于命令行里。于是我做了比传统 Coding Agent 更多一些的优化：一方面是强化 Agent「像人」的属性，是你和他们沟通更自然；另一方面，因为我本职也是一介文员，所以我也针对日常办公场景做了很多工具性和流程性的优化，敬请探索。
 > 此外，Ani 有比较完备的图形页面
 
-**记忆** — 结合主流的记忆方案，自己又发挥了一下，做了个记忆系统，近期的事情记得非常牢固，但目前确实有待优化。
+## ✨ Features
 
-**人格** — 不是千篇一律的"AI 助手"。通过人格模板和自定义人格文件塑造独特的性格，每个 Agent 都有自己的说话方式和行为逻辑，Agent 之间分离做得很好，备份方便，Agent 就是文件夹，后续还会添加备份功能。
+- 🧠 **Memory** — A memory system that blends mainstream approaches with custom refinements; recent events are remembered firmly (long-term recall still being optimized).
 
-**工具** — 读写文件、执行一次性命令或持续终端会话、浏览网页、通过浏览器后端或 API 搜索互联网、截图、分段长截图、媒体预览、检查网页。能力覆盖日常办公的绝大多数场景。也可以通过 server-first CLI 连接同一个 HanaAgent Server，在终端里查看状态、列会话和继续对话。
+- 🎭 **Personality** — Not a generic "AI assistant". Personality templates and custom personality files shape a distinct character per Agent — its own voice and behavior logic. Agents are well-isolated, easy to back up (an Agent *is* a folder), with backup tooling on the way.
 
-**SKILLS 支持** — 内置兼容庞大 SKILLS 社区生态，之外，我也做了一些主动的优化：有时候干活之前，Agent 会从 GitHub 安装社区技能，Agent 也可以自己编写并学会新技能，有比较不错的主动性。当然，默认情况给 Agent 做了比较严格的 SKILLS 审核，如果发现 SKILLS 装不上可以自行关闭。
+- 🛠️ **Tools** — Read/write files, run one-shot commands or persistent terminal sessions, browse the web, search the internet via a browser backend or APIs, capture screenshots and long scrolling captures, preview media, and inspect pages. Covers the vast majority of daily-office scenarios. A server-first CLI can connect to the same HanaAgent Server to check status, list sessions, and continue conversations from the terminal.
 
-**角色卡与技能包** — Agent 可以导入 / 导出为本地优先的角色卡 zip，按白名单携带人格、头像、可选记忆和 Skills。Skill Bundle 是独立的技能包基础设施，可以在技能管理页分组、拖拽、成组启用，并单独导出为 zip，方便迁移和分享。
+- 🧩 **Skills** — Built-in compatibility with the broad SKILLS community ecosystem, plus proactive optimizations: an Agent can install community skills from GitHub before a task, and can author and learn new skills on its own. Skills review is strict by default; you can disable it if installation is blocked.
 
-**多 Agent** — 创建多个 Agent，各自有独立的记忆、人格和定时任务。Agent 之间可以通过频道群聊协作，也可以互相委派任务。
+- 🃏 **Character Cards & Skill Bundles** — Agents import/export as local-first character-card zips, carrying persona, avatar, optional memory, and Skills via an allowlist. Skill Bundles are standalone skill-pack infrastructure: group, drag, enable in batches, and export individually as zip for migration and sharing.
 
-**书桌** — 每个 Agent 都有自己的书桌，可以放文件、写笺（类似便签，Agent 会主动读取并执行）。支持拖拽操作、文件预览和工作台文件树变更监听，是你和 Agent 之间的异步协作空间。
+- 👥 **Multi-Agent** — Create multiple Agents, each with its own memory, personality, and scheduled tasks. Agents collaborate through channel group chats or delegate tasks to one another.
 
-**全屏媒体查看器** — 聊天里或书桌上的任意图片、SVG、视频，点开就是暗色遮罩的全屏预览：滚轮缩放、拖拽平移，`+` / `−` / `0` 键盘快捷，左右箭头在同会话或同目录的相邻媒体间切换。
+- 🗂️ **Desk** — Every Agent has its own desk for files and notes (sticky-like; the Agent proactively reads and acts on them). Drag-and-drop, file preview, and workbench file-tree change watching make it an async collaboration space between you and the Agent.
 
-**会话管理** — 侧栏支持聊天记录搜索，标题命中优先，必要时继续检索正文；旧会话可以归档后从设置入口恢复或永久删除。聊天正文里的选中文本会进入输入框引用卡片，继续追问时保留原文语境。
+- 🔍 **Full-screen Media Viewer** — Any image, SVG, or video in chat or on the desk opens in a dark-masked full-screen preview: scroll to zoom, drag to pan, `+`/`-`/`0` shortcuts, and arrow keys to move between adjacent media in the same session or folder.
 
-**定时任务与心跳** — Agent 可以设置定时任务（Cron），也会定期巡检书桌上的文件变化。当前自动化执行器已经把“什么时候触发”和“做什么”拆开：复杂任务仍让 Agent 后台执行，轻量提醒可以直接发送通知，插件动作也可以被计划调用。
+- 💬 **Session Management** — Sidebar search prioritizes title hits, then falls back to message bodies; archive old sessions and restore or permanently delete them from Settings. Selected text in a message becomes a quote card in the input, preserving context when you follow up.
 
-**安全沙盒** — 双层隔离：应用层 PathGuard 四级访问控制 + 操作系统级沙盒（macOS Seatbelt / Linux Bubblewrap / Windows restricted token）。Agent 的权限在你的掌控之中。平时可只读访问系统普通文件，写入和删除限制在工作目录与受控数据目录。Windows 命令沙盒目前是写隔离模型：读取按当前用户权限自然发生，网络也按当前用户网络权限运行；macOS / Linux 的网络隔离仍由对应平台沙盒能力决定。如果你想调整权限，可以在设置 → 安全页面修改沙盒级别；外部网络也可以配置系统代理、手动代理或直连。
+- ⏰ **Scheduled Tasks & Heartbeat** — Agents run Cron schedules and periodically inspect desk file changes. The automation executor now separates *when* from *what*: complex jobs still run in the Agent's background, lightweight reminders send notifications directly, and plugin actions can be scheduled too.
 
-**插件系统** — 约定优先的可扩展插件架构。拖拽安装社区插件，插件可以贡献工具、技能、命令、Agent 模板、HTTP 路由、Pi SDK extension、LLM Provider、页面、侧栏 Widget、配置 schema 和后台任务。路由可直接访问核心服务（PluginContext 注入），通过 Session Bus 与 Agent 对话、获取历史、管理 session；插件卡片会进入统一的消息块和历史回放。两级权限模型（restricted / full-access）保障安全，`extensions/`、routes、providers、页面和生命周期能力只在 full-access 插件里生效。
+- 🛡️ **Security Sandbox** — Two-layer isolation: app-level PathGuard four-tier access control plus OS-level sandboxing (macOS Seatbelt / Linux Bubblewrap / Windows restricted token). The Agent's permissions stay in your hands — read-only to ordinary files by default, writes/deletes confined to the work dir and controlled data dir. Windows uses a write-isolation model; adjust the level in Settings → Security. External network can use a system proxy, manual proxy, or direct connection.
 
-**多平台接入** — 同一个 Agent 可以同时接入 Telegram、飞书、QQ、微信机器人，在任何平台和 Ta 对话，可以远程操作电脑；Bridge 消息会带平台上下文，通知也可以回发到当前外部平台。
+- 🧩 **Plugin System** — Convention-first extensible architecture. Drag to install community plugins; plugins contribute tools, skills, commands, Agent templates, HTTP routes, Pi SDK extensions, LLM Providers, pages, sidebar Widgets, config schema, and background tasks. Routes reach core services directly (via injected `PluginContext`) and talk to Agents through the Session Bus. A two-tier permission model (restricted / full-access) keeps things safe.
 
-**移动端与 LAN 前端** — HanaAgent Server 可以托管 `/mobile/` PWA，手机通过设备访问密钥或本地账号登录，查看会话、继续聊天和管理工作台文件。另一台桌面端也可以通过 LAN URL + access key 连接到已有 HanaAgent Server，继续消费同一套会话和资源。
+- 🌐 **Multi-platform Bridge** — The same Agent connects to Telegram, Feishu, QQ, and WeChat bots at once — talk to it on any platform and operate your computer remotely. Bridge messages carry platform context, and notifications can echo back to the active external platform.
 
-**国际化** — 界面支持中文、英文、日文、韩文、繁体中文 5 种语言。
+- 📱 **Mobile & LAN Frontend** — The HanaAgent Server hosts a `/mobile/` PWA; phones log in via device access key or local account to view sessions, continue chatting, and manage workbench files. Another desktop connects over LAN URL + access key to the same Server and shares the same sessions and resources.
+
+- 🌍 **Internationalization** — UI in 5 languages: Chinese, English, Japanese, Korean, and Traditional Chinese.
 
 ## 📦 Install
 
