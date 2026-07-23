@@ -130,8 +130,9 @@ npm test
 npm run typecheck
 ```
 
-首次启动时，引导向导会带你完成配置：选择语言、输入你的名字、连接模型提供商（API key + base URL），并选择三个模型：**对话模型**（主对话）、**小工具模型**（轻量任务）、**大工具模型**（记忆编译和深度分析）。设置页还可以单独选择**视觉模型**，让文本模型通过 Vision Bridge 处理图片附件。HanaAgent 支持 OpenAI 兼容、Anthropic 风格、OAuth Provider 和 Ollama 本地模型等多类接入。
-目前也添加了 OpenAI 的 OAuth 登录，鉴于 Anthropic 会有封号风险，所以暂时不提供。
+On first launch, the **onboarding wizard** helps you pick a language, enter your name, connect a model provider (API key + base URL), and choose **three models** — a **chat model** (main conversation), a **small-tool model** (lightweight tasks), and a **large-tool model** (memory compilation & deep analysis). The Settings page can also pick a **vision model** so a text model processes images via the **Vision Bridge**. HanaAgent supports OpenAI-compatible, Anthropic-style, OAuth, and Ollama local providers; OpenAI OAuth login was added, while Anthropic-style OAuth is **not offered for now** (account-ban risk).
+
+> Details on provider types, the three-model split, and Vision Bridge: **[docs/features/providers.md](./docs/features/providers.md)**.
 
 ## 🏗️ Architecture
 

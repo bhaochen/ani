@@ -43,7 +43,29 @@
 - `core/local-provider-plugin-store.ts`：本地 provider 插件存储。
 - `core/local-user-account.ts`：本地用户账户（离线可用）。
 
-## 7. 面试要点
+## 7. Onboarding & model setup
+
+On first launch, the **onboarding wizard** walks the user through setup: pick a language, enter their name, connect a model provider (API key + base URL), and choose **three models**:
+
+- **Chat model** — the main conversation model.
+- **Small-tool model** — lightweight tasks (routing, quick transforms, etc.).
+- **Large-tool model** — memory compilation and deep analysis.
+
+The Settings page can additionally pick a **vision model** so a text model can process image attachments through the **Vision Bridge** (`core/vision-bridge.ts` and friends).
+
+### Supported provider types
+
+HanaAgent supports several provider shapes:
+
+- **OpenAI-compatible** endpoints (API key + base URL).
+- **Anthropic-style** providers.
+- **OAuth providers** — OpenAI OAuth login was added; Anthropic-style OAuth is **not offered** for now due to account-ban risk.
+- **Ollama** local models (offline-capable).
+
+Provider credentials live in `server/routes/provider-credentials.ts` + `providers.ts`; the onboarding flow is in `desktop/src/react/onboarding/`.
+
+## 8. 面试要点
 
 - "为什么用 `(provider,id)` 复合键？"——解耦模型与供应商，避免同名冲突，支持同模型多供应商回退。
 - "怎么处理厂商 reasoning 内容差异？"——provider-compat 子模块做提取器 + 兜底，统一为规范字段。
+- "为什么分三个模型？"——按任务成本/延迟拆分：主对话用强模型，轻量任务用便宜模型，记忆编译/深度分析用大模型，控制开销与体感。
