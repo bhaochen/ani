@@ -98,6 +98,12 @@
 ```bash
 git clone https://github.com/chenbhao/ani.git && cd ani
 
+hf download chenbhao/ani-assets \
+    Wallpaper_Ambience \
+    Wallpaper_Presence \
+    --repo-type bucket \
+    --local-dir assets
+
 # 安装依赖 npm ci 完全按照版本
 npm install
 
