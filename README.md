@@ -55,9 +55,6 @@
 
 </details>
 
----
-
-
 ## ✨ Features
 
 > [!TIP]
@@ -158,6 +155,3 @@ User-visible session files are registered uniformly via a `SessionFile` sidecar 
 **Platform support:** macOS (Apple Silicon, signed & notarized) · macOS (Intel) · Windows (Beta) · Linux (AppImage / deb) · Mobile PWA (v0, same-server access).
 
 > Versions, platform status, and LAN/Mobile notes: **[docs/architecture/tech-stack.md](./docs/architecture/tech-stack.md)**.
-
-## 开发
-
