@@ -35,6 +35,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { spawn, execFile } = require("child_process");
 const fs = require("fs");
+const { Readable } = require("stream");
 const { pathToFileURL } = require("url");
 const { PNG } = require("pngjs");
 const { initAutoUpdater, checkForUpdatesAuto, setMainWindow: setUpdaterMainWindow, setUpdateChannel, installDownloadedUpdate, normalizeReleaseDigest } = require("./auto-updater.cjs");
@@ -5783,14 +5784,20 @@ app.whenReady().then(async () => {
       const rangeHeader = request.headers.get('range');
       // 视频播放需要 Range 支持：Chromium 对 <video> 的流式加载会发
       // Range 请求，不支持则返回黑屏（音频因整文件下载尚可播放）。
+      //
+      // 关键修复：曾经用 fs.readFileSync 读取整个文件再 subarray，对多 MB 的
+      // 壁纸/视频会**同步阻塞 Electron 主线程**，长时间运行 + 软件解码压力下
+      // 主线程卡死 → 媒体管线超时 → "The element has no supported sources"。
+      // 现在改为异步流式：Range 请求只 createReadStream 读取请求的字节区间，
+      // 不整文件读、不阻塞主线程、不占整文件内存。
       if (rangeHeader) {
         const match = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
         if (match) {
           const start = match[1] ? parseInt(match[1], 10) : 0;
           const end = match[2] ? parseInt(match[2], 10) : total - 1;
           if (!Number.isNaN(start) && start < total && end >= start && end < total) {
-            const chunk = fs.readFileSync(filePath).subarray(start, end + 1);
-            return new Response(chunk, {
+            const stream = fs.createReadStream(filePath, { start, end });
+            return new Response(Readable.toWeb(stream), {
               status: 206,
               headers: {
                 'Content-Type': contentType,
@@ -5802,8 +5809,8 @@ app.whenReady().then(async () => {
           }
         }
       }
-      const data = fs.readFileSync(filePath);
-      return new Response(data, {
+      const stream = fs.createReadStream(filePath);
+      return new Response(Readable.toWeb(stream), {
         status: 200,
         headers: {
           'Content-Type': contentType,
